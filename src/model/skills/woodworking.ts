@@ -113,7 +113,7 @@ export const RECIPES: Record<RecipeId, Recipe> = {
   heavyCudgel: { name: 'Heavy cudgel', group: 'Weapons', needs: 260, from: { oakPlank: 3, ironScrap: 3, leatherStrip: 1 }, makes: { item: 'bandedCudgel', level: 30, rarity: 'uncommon' }, seconds: 7 },
   oakBuckler: { name: 'Oak buckler', group: 'Shields', needs: 265, from: { oakPlank: 2 }, makes: { item: 'buckler', level: 30, rarity: 'uncommon' }, seconds: 7 },
   oakPavise: { name: 'Oak pavise', group: 'Shields', needs: 275, from: { oakPlank: 4, varnish: 1, ironBands: 2 }, makes: { item: 'pavise', level: 31, rarity: 'uncommon' }, seconds: 7.5 },
-  heartwoodTowerShield: { name: 'Heartwood tower shield', group: 'Shields', needs: 285, from: { heartwood: 2, oakPlank: 3, varnish: 1 }, makes: { item: 'towerShield', level: 33, rarity: 'rare' }, seconds: 8 },
+  heartwoodTowerShield: { name: 'Heartwood tower shield', group: 'Shields', needs: 285, from: { heartwood: 1, oakBurl: 1, oakPlank: 3, varnish: 1 }, makes: { item: 'towerShield', level: 33, rarity: 'rare' }, seconds: 8 },
 };
 export const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];
 
