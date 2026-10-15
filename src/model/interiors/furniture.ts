@@ -48,6 +48,7 @@ export const FURNITURE_KINDS = [
   'herbTable', // their worktable
   'dryingRack', // herbs hanging to dry
   'potionShelf', // their potions, on show
+  'herbStores', // baskets of roots and mushrooms, a sack, heaped in a corner
   // The inn's own
   'armchair',
   'bearRug',

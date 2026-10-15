@@ -4,15 +4,17 @@
 // herbs drying on the back wall too, the worktable out in the room (its
 // front kept free), the counter by the door where they trade (a row behind
 // it for them, one before it for the hero), their bed along the left wall,
-// a barrel of roots; no floor walled in. Each piece in its own place first,
-// as a herbalist would have it (the room just big enough for them all:
-// interiors.ts), else anywhere it fits.
+// their stores heaped in a front corner, a barrel of roots; no floor walled
+// in. Each piece in its own place first, as a herbalist would have it (the
+// room just big enough for them all: interiors.ts), else anywhere it fits.
 
 import type { Entrance, Room } from '../interiors/interiors';
-import { clothFor, type Furniture } from '../interiors/furniture';
+import type { Furniture } from '../interiors/furniture';
+
+const BLANKET = 2; // (a bed's cloth: view/interior/bedVoxels.ts BLANKETS)
 import type { Planner } from '../interiors/roomPlanner';
 
-export function furnishHerbalist(plan: Planner, room: Room, seed: number, entrance: Entrance): void {
+export function furnishHerbalist(plan: Planner, room: Room, _seed: number, _entrance: Entrance): void {
   const { kept, key, taken, fits, place, along, down, inside, walledIn, fillPocket } = plan;
   const { width: W, depth: D, door } = room;
   // Where they work (herbalistWork.ts), the tiles before each, its whole length, kept free to stand on (they stand
@@ -31,7 +33,7 @@ export function furnishHerbalist(plan: Planner, room: Room, seed: number, entran
   // Their bed in the back corner, along the left wall, its head against the back wall, the tile beside its pillow free.
   const bed = place('bed', 1, 2, 'left', [[0, 0]], false);
   if (bed) {
-    bed.cloth = clothFor(seed, entrance, bed.x, bed.z);
+    bed.cloth = BLANKET; // (moss: nothing loud in their room)
     kept.add(key(1, 1));
   }
   // The hearth in the middle of the back wall, the cauldron before it on its embers, stirred from the tile in front.
@@ -43,7 +45,8 @@ export function furnishHerbalist(plan: Planner, room: Room, seed: number, entran
   // The worktable at the left, toward the front, its front free; else anywhere it and its front fit.
   const tableSpots: Array<[number, number]> = [[0, D - 3], [0, D - 2], [W - 2, D - 3], [W - 2, D - 2], ...inside()];
   before(place('herbTable', 2, 1, 'none', tableSpots.filter(([x, z]) => fits(x, z, 2, 1) && open(x, z + 1, 2)), false));
-  // A barrel in a corner.
+  // Their stores (baskets, a sack) heaped in a front corner, and a barrel in another.
+  place('herbStores', 1, 1, 'none', [[W - 1, D - 1], [0, D - 1], [W - 1, D - 2]], false);
   place('barrel', 1, 1, 'none', [[W - 1, D - 1], [0, D - 1], [W - 1, 0]]);
   for (let pocket = walledIn(); pocket; pocket = walledIn()) fillPocket(...pocket);
 }
