@@ -179,6 +179,12 @@ export class RoomShift extends Shift {
     return said;
   }
 
+  // Whether E at `door` (the hero at it, inside) ends the shift there and then, as at the notice board: the room's own,
+  // the shift begun, no one at it nor in.
+  quitsBy(door: Furniture): boolean {
+    return this.begun && !this.client && !this.visit.figure && door === this.door && this.inRoom;
+  }
+
   // The one at the door, and what they say: let in (the tone the hero takes: warm, plain, teasing), or turned away.
   meet(): { who: Client; talk: Talk } | null {
     const client = this.actionAt()?.client;
@@ -309,6 +315,9 @@ export class RoomShift extends Shift {
     return clientOf(this.host.hero.look.build, x, z, this.seed, (salt) => this.roll(n, salt));
   }
 }
+
+// Whether E at `door` ends a pleasure worker's shift (work.ts: the hero's shift, if any).
+export const quitsAt = (work: { shift: unknown }, door: Furniture): boolean => work.shift instanceof RoomShift && work.shift.quitsBy(door);
 
 // What a client may say, from their temper (a plain one) or their trouble.
 export function linesOf(client: Client, of: 'knocks' | 'inside' | 'after'): readonly string[] {

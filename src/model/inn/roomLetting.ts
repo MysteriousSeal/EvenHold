@@ -31,7 +31,7 @@ const LET_TILL = 6; // and till
 const CHECK_OUT = 10; // the hour the next morning a room's to be left
 const WAKE_AT = 8; // the hour slept till
 
-// What she says: rooms not let yet (out of hours), one let already, one let just now; a different line each time.
+// What she says: rooms not let yet (out of hours), one let already, one let just now (after midnight: `late`); a different line each time.
 export const LINES = {
   closed: [
     'Rooms are let from four in the afternoon. Come back later.',
@@ -74,6 +74,12 @@ export const LINES = {
     "It's yours till ten. Up the stairs, first door along the back.",
     'Sleep well. First door along the back upstairs, and out by ten.',
     "The quiet one's yours: first door along the back. Till ten in the morning.",
+  ],
+  late: [
+    "Bit late for it, love. First door along the back upstairs, and out by ten.",
+    "Couldn't sleep, or couldn't find your way home? First door along the back. Out by ten.",
+    "Half the night's gone, but the bed's the same. First door on the back hall, till ten this morning.",
+    "Quietly up the stairs, mind: they're all asleep. First door along the back, till ten.",
   ],
 } as const;
 const line = (lines: readonly string[]): string => inTurn(lines, lines); // (each of her lists in turn: npcs/speech.ts)
@@ -168,7 +174,7 @@ export function rentRoom(model: { hero: Hero; minutes: number; inside: Inside | 
   model.hero.money -= price;
   if (purse) purse.money += price; // (hers, the inn's)
   letRoom(inn, nightsEnd(model.minutes)); // (bribed by day: through the night to come, not till ten this morning)
-  say(barmaid, line(early ? LINES.bribed : LINES.let));
+  say(barmaid, line(early ? LINES.bribed : between(model.minutes, 0, LET_TILL) ? LINES.late : LINES.let)); // (after midnight: not "tomorrow")
   return 'let';
 }
 
