@@ -95,7 +95,7 @@ describe('interiors', () => {
       expect(lanterns).toHaveLength(3);
       for (let i = 1; i < lanterns.length; i++) expect(lanterns[i] - lanterns[i - 1]).toBeGreaterThanOrEqual(2);
     }
-    expect(counts.reduce((a, b) => a + b, 0) / counts.length).toBeGreaterThanOrEqual(5.5); // (strewn at random: 4.7)
+    expect(counts.reduce((a, b) => a + b, 0) / counts.length).toBeGreaterThanOrEqual(5.25); // (strewn at random: 4.7; the floor just inside the door kept open)
   });
 
   it('lets the hero past a chair behind its back, but not through it', async () => {
