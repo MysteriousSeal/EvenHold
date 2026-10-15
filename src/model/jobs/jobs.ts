@@ -36,15 +36,16 @@ export const JOBS: Record<JobId, Job> = {
     ],
   },
   innBarkeep: {
+    // (its ranks further apart than the tables': a perfect pour's learnt from twice over, work.ts)
     name: 'Tending the bar',
     where: "Posted on every inn's notice board",
     about: 'Pour for the patrons at the bar and the tables the server calls for, each to the line, and keep the tankards washed. A wage and a tip for each, the better the pour, all paid when the shift ends.',
     ranks: [
       { name: 'Cellar hand', from: 0, tray: 1, patience: 0, tips: 1, steady: 0 },
-      { name: 'Tapster', from: 12, tray: 2, patience: 5, tips: 1.2, steady: 0.01 },
-      { name: 'Barkeep', from: 35, tray: 2, patience: 10, tips: 1.4, steady: 0.02 },
-      { name: 'Head barkeep', from: 70, tray: 3, patience: 15, tips: 1.7, steady: 0.03 },
-      { name: 'Master of the taps', from: 120, tray: 3, patience: 20, tips: 2, steady: 0.04 },
+      { name: 'Tapster', from: 20, tray: 2, patience: 5, tips: 1.2, steady: 0.01 },
+      { name: 'Barkeep', from: 60, tray: 2, patience: 10, tips: 1.4, steady: 0.02 },
+      { name: 'Head barkeep', from: 120, tray: 3, patience: 15, tips: 1.7, steady: 0.03 },
+      { name: 'Master of the taps', from: 200, tray: 3, patience: 20, tips: 2, steady: 0.04 },
     ],
   },
   innCompanion: {

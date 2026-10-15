@@ -4,7 +4,7 @@
 // round of the room (two open spots near it, a look at each, about 15
 // seconds) and is back at his post. Never behind the bar, never upstairs,
 // never sitting.
-// Spoken to (E), he has a gruff word or two.
+// Now and then on a round he has a word for the room. Spoken to (E), he has a gruff word or two.
 
 import type { Point } from '../map/obstacles';
 import { layoutOf } from '../interiors/indoors';
@@ -18,6 +18,7 @@ const AT_POST: [number, number] = [45, 75]; // seconds at his post between round
 const LOOK: [number, number] = [1.5, 3]; // seconds looking round at each spot of a round
 const INTO_ROOM = Math.PI; // facing into the room from beside the door
 const ROUND_SPOTS = 2; // spots looked in at, each round
+const ROUND_WORD = 0.35; // of a round's having a word for the room, at one of its spots
 const ROUND_REACH = 4; // room tiles from his post, the farthest a round takes him (a round: about 15 seconds)
 
 export const BOUNCER_LINES = [
@@ -33,14 +34,27 @@ export const BOUNCER_LINES = [
   'Hmph.',
 ];
 
+// Said to the room, looking round it.
+export const ROUND_LINES = [
+  'Easy, lads.',
+  'Who spilled this? Mop it up, or lick it up.',
+  "Another round of trouble and you're out on your arse.",
+  'Hands where I can see them.',
+  "You. Yes, you. Pay for that, or I'll take it out of your hide.",
+  'Sing if you like. Badly is fine. Brawling is not.',
+  "Last fellow who started something in here is still picking his teeth out of the road.",
+];
+
 // His next stop: at his post a while (every other stop), else a round of the room.
 export function bouncerSteps(npc: Npc, seed: number): NpcStep[] {
   npc.stop++;
   const post = postOf(npc, seed);
   if (npc.stop === 1) [npc.x, npc.z] = [post.x, post.z]; // there already when the inn opens
   if (npc.stop % 2 === 1) return [{ kind: 'go', to: post, face: INTO_ROOM }, { kind: 'wait', for: between(npc, AT_POST, 1) }];
+  const word = roll(npc, 20) < ROUND_WORD ? Math.floor(roll(npc, 21) * ROUND_SPOTS) : -1; // (at which spot, if any)
   return Array.from({ length: ROUND_SPOTS }, (_, k): NpcStep[] => [
     { kind: 'go', to: openSpot(npc, seed, post, 3 + k) },
+    ...(k === word ? [{ kind: 'hand', then: () => say(npc, oneOf(ROUND_LINES, roll(npc, 22))) } as NpcStep] : []),
     { kind: 'wait', for: between(npc, LOOK, 10 + k) },
   ]).flat();
 }

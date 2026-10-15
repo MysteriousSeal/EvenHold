@@ -17,6 +17,9 @@ import type { JobId, JobRank } from './jobs';
 
 export const SHIFT = 150; // seconds a shift lasts (two and a half hours on the game's clock)
 export const WAGE = 1; // copper an order (a shift a fallback: a third of a good hour's adventuring, not more; the tips and a clean shift's bonus, most of it)
+export const PER_LEVEL = 0.25; // more pay, a level of the hero's over the first (as the quests people give: story/story.ts)
+// What a shift's pay comes to, times, for a hero of `level` (the first's as it is).
+export const payRate = (level: number): number => 1 + PER_LEVEL * Math.max(0, level - 1);
 export const REACH = 1.4; // room tiles: by a patron, a table, or the counter's end, near enough for E
 const STAY: [number, number] = [40, 90]; // seconds those drawn in by the busy hour stay sat
 const WALKS = ["Forget it. I'll drink elsewhere.", 'Too slow by half!', "I've waited long enough.", 'Never mind!', 'Forget it.'];
@@ -27,6 +30,7 @@ export abstract class Shift {
   walkedOut = 0;
   earned = 0;
   tips = 0;
+  rate = 1; // its pay, times (the hero's level: payRate; set as it's begun)
   private rolls = 0;
   private readonly rush = { table: 0, bar: 0 }; // seconds before the next comes in, for each
   protected readonly furniture: readonly Furniture[]; // the inn's
@@ -64,6 +68,14 @@ export abstract class Shift {
   // How the shift went, beyond what's served and walked out, for its end ("4 tables cleared").
   abstract get tally(): string;
 
+  // `copper` earned (a wage, a tip, an empty taken back), at the shift's rate: what it came to.
+  protected earn(copper: number, tip = 0): number {
+    const paid = Math.round(copper * this.rate);
+    this.earned += paid;
+    this.tips += Math.round(tip * this.rate);
+    return paid;
+  }
+
   // A patron who's had enough: up and off, their stay over (`speak`: a word as they go).
   protected walkOut(npc: Npc, speak = true): void {
     Object.assign(npc, { awaiting: false, waited: Infinity });
@@ -75,9 +87,9 @@ export abstract class Shift {
     return hashUnit(typeof npc === 'number' ? npc : npc.id, ++this.rolls, salt);
   }
 
-  // The busy hour: every `every` seconds (a while either way) one of the village (of this inn's, not here already)
-  // comes in for a seat (`at`: a chair at a table, or a stool at the bar), while one's free and fewer than `most` are
-  // sat there or on their way.
+  // The busy hour: every `every` seconds (a while either way) one of the village (of this inn's, not here already, nor
+  // abed or off to it: a night shift's a quiet one) comes in for a seat (`at`: a chair at a table, or a stool at the
+  // bar), while one's free and fewer than `most` are sat there or on their way.
   protected drawIn(npcs: readonly Npc[], dt: number, at: 'table' | 'bar', every: [number, number], most: number): void {
     if ((this.rush[at] -= dt) > 0) return;
     this.rush[at] = every[0] + hashUnit(++this.rolls, this.seed, 61) * (every[1] - every[0]);
@@ -85,13 +97,16 @@ export abstract class Shift {
     const seats = this.furniture.filter((f) => f.kind === kind).length;
     const coming = (n: Npc) => n.steps.some((s) => s.kind === 'settle' && s.at === at) || (n.where === this.inn && n.seat?.piece.kind === kind);
     if (npcs.filter(coming).length >= Math.min(most, seats)) return;
-    const free = npcs.filter((n) => n.role === 'villager' && n.inn === this.inn && n.where !== this.inn && !coming(n));
+    const abed = (n: Npc) => !!n.seat?.lying || n.steps.some((s) => (s.kind === 'settle' && s.at === 'bed') || (s.kind === 'sit' && !!s.seat.lying)); // (the night's: not got up for it)
+    const free = npcs.filter((n) => n.role === 'villager' && n.inn === this.inn && n.where !== this.inn && !coming(n) && !abed(n));
     const who = oneOf(free, hashUnit(this.rolls, this.seed, 62));
     if (who) visitInn(who, this.inn, this.seed, STAY[0] + hashUnit(who.id, this.rolls, 63) * (STAY[1] - STAY[0]), at);
   }
 
-  // The shift let go of (its end, or the hero gone): the inn's own staff back at it (`npcs`: the folk about).
-  release(_npcs?: readonly Npc[]): void {
+  // The shift let go of (its end, or the hero gone): the inn's own staff back at it (`npcs`: the folk about); those at
+  // its tables with a drink before them done with it (only the shift counted it down: else sat there for good).
+  release(npcs: readonly Npc[] = []): void {
+    for (const npc of npcs) if (npc.where === this.inn && npc.seat?.piece.kind === 'chair' && npc.drinking) npc.drinking = null;
     shiftOver(this.inn);
   }
 }

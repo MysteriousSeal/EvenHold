@@ -340,7 +340,7 @@ export class BarShift extends Shift {
       case 'gather':
         if (action.z !== null) {
           const mug = takeMug(this.inn, action.z);
-          if (mug) this.held.push({ kind: 'empty', drink: mug.drink === 'wine' ? 'wine' : 'ale' });
+          if (mug && mug.drink !== 'pie') this.held.push({ kind: 'empty', drink: mug.drink }); // (a pie's plate: off to the kitchen, no cup of the bar's)
         } else for (const drink of this.passEmpties.splice(0, action.empties)) this.held.push({ kind: 'empty', drink });
         return 0;
       case 'pour':
@@ -370,7 +370,7 @@ export class BarShift extends Shift {
     const held = mine.sort((a, b) => GRADE_WORTH[b.grade] - GRADE_WORTH[a.grade])[0];
     this.held.splice(this.held.indexOf(held), 1);
     const left = takeMug(this.inn, want.order.stool.z); // (the cup before them: up, out of the way)
-    if (left && !left.full) this.held.push({ kind: 'empty', drink: left.drink === 'wine' ? 'wine' : 'ale' });
+    if (left && !left.full && left.drink !== 'pie') this.held.push({ kind: 'empty', drink: left.drink }); // (a plate: to the kitchen)
     const queue = ordersAt(this.inn);
     queue.splice(queue.indexOf(want.order), 1);
     this.wants.delete(want.order);
@@ -380,16 +380,14 @@ export class BarShift extends Shift {
   }
 
   // One handed over (or set down for a table): served, a wage and its tip (the better the pour, the shorter the
-  // wait, the longer the run it was in).
+  // wait, the longer the run it was in; a copper at least, but for a thin one: none).
   private paid(held: Held, patience: number): number {
     if (held.kind !== 'drink') return 0;
     const run = 1 + STREAK_TIP * Math.min(STREAK_MOST, Math.max(0, held.streak - 1));
-    const tip = Math.max(1, Math.round(TIP * GRADE_WORTH[held.grade] * Math.max(0, patience) * this.rank.tips * run * (held.drink === 'wine' ? WINE_TIP : 1)));
+    const tip = Math.max(held.grade === 'thin' ? 0 : 1, Math.round(TIP * GRADE_WORTH[held.grade] * Math.max(0, patience) * this.rank.tips * run * (held.drink === 'wine' ? WINE_TIP : 1)));
     this.served++;
     if (held.grade === 'perfect') this.perfect++;
-    this.earned += WAGE + tip;
-    this.tips += tip;
-    return WAGE + tip;
+    return this.earn(WAGE + tip, tip);
   }
 
   // The shift let go of: the stools' orders left for the barkeep (back at it), the server's hands empty.
@@ -397,9 +395,8 @@ export class BarShift extends Shift {
     this.pour = null;
     this.held.length = 0;
     for (const ticket of this.tickets) for (const npc of ticket.patrons) npc.awaiting = false; // (no longer held to their seats)
-    for (const npc of npcs) if (npc.where === this.inn && npc.seat?.piece.kind === 'chair' && npc.drinking) npc.drinking = null; // (done up)
     const server = npcs.find((n) => n.role === 'server' && n.home === this.inn);
     if (server) Object.assign(server, { carrying: false, steps: [], path: null });
-    super.release();
+    super.release(npcs);
   }
 }

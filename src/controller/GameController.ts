@@ -7,7 +7,7 @@ import { takeStairs, useHallDoor } from '../model/interiors/upstairs';
 import { rentRoom, roomAction } from '../model/inn/roomLetting';
 import type { Traveller } from '../model/travellers/travellers';
 import { shopAt } from '../model/inn/tavernShop';
-import { atTheBar, barmaidHere, type BarMenuItem } from './trade/barOrder';
+import { atOrderSeat, barmaidHere, type BarMenuItem } from './trade/barOrder';
 import type { BagItem } from '../model/hero/bag';
 import { gather } from '../model/hero/hands';
 import type { GameModel } from '../model/GameModel';
@@ -156,10 +156,10 @@ export class GameController {
       if (!this.model.inside || this.model.dungeon) this.model.cycleFocus(turn === 'back');
       if (!this.model.focused) cyclePeople(this.model, turn === 'back'); // (no foe to turn to: whoever's about)
     }
-    // F (an ale) or G (a pie), sat on a stool at the bar: ordered from the inn's barmaid. Stood by her, G: a room;
+    // F (an ale) or G (a pie), sat on a stool at the bar (or at a table: the server called over): ordered from the inn's barmaid. Stood by her, G: a room;
     // by its bed, at night, G: a night's sleep.
     const wanted = this.model.work.shift ? (this.input.consumeOrder(), null) : this.input.consumeOrder(); // (at work: none of it)
-    if (wanted && atTheBar(this.model)) {
+    if (wanted && atOrderSeat(this.model)) {
       const barmaid = barmaidHere(this.model);
       if (barmaid) this.onOrder(barmaid, wanted);
     } else if (wanted === 'pie') {

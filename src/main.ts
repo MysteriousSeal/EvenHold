@@ -85,6 +85,7 @@ import { STREAMED_SIZE } from './model/worldgen/regions';
 import { capitalize } from './util/text';
 import { BAR_ACTIONS, label as keyName } from './controller/keyBindings';
 import { chat } from './model/npcs/chat';
+import { withRound } from './model/inn/barRound';
 
 // Boots in steps, letting the browser repaint the loading screen between
 // each, so the page appears instantly and shows progress instead of
@@ -241,9 +242,9 @@ async function boot(): Promise<void> {
   const promptTarget = (): PromptTarget | null => {
     const { hero } = model;
     const seated = model.seated;
-    if (!model.work.shift && seated?.seat.piece.kind === 'barStool' && bar.busy) return null; // she's seeing to the order: no talking, and E waits
     const found = interactionOf(model); // (what E would do: model/hero/interaction.ts)
     if (!found) return null;
+    if (!model.work.shift && seated?.seat.piece.kind === 'barStool' && bar.busy && (found.kind !== 'talk' || found.npc.role === 'barkeep')) return null; // she's seeing to the order: no talking to her, and E waits (a word with the patron beside, still)
     const overHero = (label: string, up = 1.05) => ({ label, x: hero.x, y: hero.y + up, z: hero.z });
     const asking = (who: Who): boolean => ['offer', 'ready'].includes(model.story.markOf(who) ?? '') || ('role' in who && who.role === 'herbalist' && hasPox(model.hero)); // (a quest to give, or to take in: a word first, whatever their trade)
     switch (found.kind) {
@@ -332,8 +333,8 @@ async function boot(): Promise<void> {
     const action = prompt && roomAction(model); // (G by the barmaid: a room, or said it's let; by its bed at night: sleep)
     rentPrompt.update(action && prompt ? { label: roomActionLabel(action), muted: action.kind === 'rent' && action.taken && !action.week, x: prompt.x, y: prompt.y, z: prompt.z } : null, (x, y, z) => view.toScreen(x, y, z));
     // Sat on a stool at the bar: F orders an ale and G a meat pie, their prompts over the hero's head.
-    // Waiting behind others: the queue shown instead; gone while she's fetching it, or it's being had.
-    const order = bar.canOrder ? orderLabel(model, 'ale') : bar.ahead > 0 ? { label: `Ordered · ${bar.ahead} ahead`, soldOut: true } : null;
+    // Ordered: how many are ahead, or that it's on its way, shown instead; gone while it's being had.
+    const order = bar.canOrder ? orderLabel(model, 'ale') : bar.busy ? { label: bar.ahead > 0 ? `Ordered · ${bar.ahead} ahead` : 'Ordered · on its way', soldOut: true } : null;
     const pie = bar.canOrder ? orderLabel(model, 'pie') : null;
     bar.update();
     const { hero } = model;
@@ -350,7 +351,7 @@ async function boot(): Promise<void> {
   };
   const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item, count) => floatingText.spawn({ x: model.hero.x, y: model.hero.y + (model.inside ? 0.95 : 0.6) + 0.2, z: model.hero.z }, [`+ ${count > 1 ? `${count} ` : ''}${nameOf(item)} (${kindOf(item)})`], QUALITY_INK[qualityOf(item)]), onTraveller: (t) => talk.open(t) || trade(t), onCarter: (carter) => void talk.open(carter),
     // (A word with a herbalist: the pox first, if the hero has it; then her quests, her wares.)
-    onTalk: (npc) => (npc.role === 'herbalist' && talk.show(npc, poxTalk(model, npc, () => model.story.talk(npc)))) || talk.open(npc) || (npc.role === 'villager' && talk.show(npc, chat(model, npc))) || trade(npc), onMeet: (who, told) => void talk.show(who, told), onRead: (at) => board.open(at), onSalvage: () => salvage.open(), onCook: () => skills.window.open('cooking'), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
+    onTalk: (npc) => (npc.role === 'herbalist' && talk.show(npc, poxTalk(model, npc, () => model.story.talk(npc)))) || talk.open(npc) || (npc.role === 'villager' && talk.show(npc, npc.seat?.piece.kind === 'barStool' && model.seated?.seat.piece.kind === 'barStool' ? withRound(model, chat(model, npc)) : chat(model, npc))) || trade(npc), onMeet: (who, told) => void talk.show(who, told), onRead: (at) => board.open(at), onSalvage: () => salvage.open(), onCook: () => skills.window.open('cooking'), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
     onSleep: () => {
       if (!model.seated) model.sitOrStand(); // (into the bed)
       sleepFade(

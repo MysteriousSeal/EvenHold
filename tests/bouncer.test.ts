@@ -1,8 +1,9 @@
 // The inns' bouncers (inn/bouncer.ts): one to each inn, in his own studded
-// leathers, at his post by the door with a round of the room now and then, with a gruff word or two.
+// leathers, at his post by the door with a round of the room now and then (a word for the room, sometimes), with a
+// gruff word or two.
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { BOUNCER_LINES, bouncerSpeaks, postOf } from '../src/model/inn/bouncer';
+import { BOUNCER_LINES, ROUND_LINES, bouncerSpeaks, bouncerSteps, postOf } from '../src/model/inn/bouncer';
 import { gearOf, ITEMS, type ItemId } from '../src/model/human/equipment';
 import { titleOf } from '../src/model/npcs/npcs';
 import { roomFree } from '../src/model/npcs/npcWalk';
@@ -82,5 +83,19 @@ describe('bouncers', () => {
     expect(said).toHaveLength(2);
     for (const line of said) expect(BOUNCER_LINES).toContain(line);
     expect(said[0]).not.toBe(said[1]);
+  });
+
+  it('has a word for the room now and then on his rounds (not every one), and none at his post', () => {
+    const b = { ...bouncerOf(inns[0]), stop: 0 };
+    model.takeEvents();
+    const rounds = Array.from({ length: 40 }, () => bouncerSteps(b, model.seed));
+    for (const [i, steps] of rounds.entries()) if (i % 2 === 0) expect(steps.some((s) => s.kind === 'hand')).toBe(false); // (at his post)
+    const worded = rounds.filter((steps) => steps.some((s) => s.kind === 'hand'));
+    expect(worded.length).toBeGreaterThan(0);
+    expect(worded.length).toBeLessThan(15);
+    for (const steps of worded) for (const s of steps) if (s.kind === 'hand') s.then();
+    const said = model.takeEvents().filter((e) => e.kind === 'say').map((e) => (e as { text: string }).text);
+    expect(said).toHaveLength(worded.length);
+    for (const line of said) expect(ROUND_LINES).toContain(line);
   });
 });

@@ -116,7 +116,7 @@ export class InnShift extends Shift {
   update(npcs: readonly Npc[], dt: number): void {
     this.left = Math.max(0, this.left - dt);
     this.drawIn(npcs, dt, 'table', RUSH, MOST);
-    const patrons = npcs.filter((n) => n.where === this.inn && n.seat?.piece.kind === 'chair');
+    const patrons = npcs.filter((n) => n.role === 'villager' && n.where === this.inn && n.seat?.piece.kind === 'chair'); // (not the server, on her break in a chair by the fire)
     for (const npc of patrons) {
       if (npc.drinking) {
         if ((npc.drinking.left -= dt) <= 0) this.finished(npc);
@@ -147,7 +147,7 @@ export class InnShift extends Shift {
     for (const npc of this.callIn.keys()) if (!patrons.includes(npc)) this.callIn.delete(npc);
   }
 
-  // A want let go of (walked out, or the shift over): off the tray, out of the barkeep's queue if she's not on it yet,
+  // A want let go of (walked out, or the shift over): off the tray, out of the barkeep's queue (not poured after for no one),
   // the patron no longer held to their seat.
   private drop(want: Want): void {
     this.wants.delete(want.npc);
@@ -156,7 +156,7 @@ export class InnShift extends Shift {
     if (carried >= 0) this.tray.splice(carried, 1);
     const queue = ordersAt(this.inn);
     const queued = want.bar ? queue.indexOf(want.bar) : -1;
-    if (queued > 0) queue.splice(queued, 1); // (the front one she's seeing to: let be, it comes to nothing)
+    if (queued >= 0) queue.splice(queued, 1); // (the one she's pouring already, if it is: let go of, set down for no one)
   }
 
   // A patron done with what they were brought: its empty left on their table, and up for another, a while on.
@@ -220,8 +220,7 @@ export class InnShift extends Shift {
           want.state = 'carried';
           this.tray.push({ kind: 'order', want });
         }
-        this.earned += returned * CLEARED;
-        return returned * CLEARED;
+        return this.earn(returned * CLEARED);
       }
     }
   }
@@ -251,21 +250,20 @@ export class InnShift extends Shift {
     this.wants.delete(want.npc);
     const tip = Math.max(TIP_FLOOR, Math.round(TIP * (want.patience / want.of) * this.rank.tips));
     this.served++;
-    this.earned += WAGE + tip;
-    this.tips += tip;
+    const paid = this.earn(WAGE + tip, tip);
     want.npc.awaiting = false;
     want.npc.drinking = { left: ALE_SECONDS, seconds: ALE_SECONDS, drink: want.order };
     say(want.npc, oneOf(THANKS, this.roll(want.npc, 5)));
-    return WAGE + tip;
+    return paid;
   }
 
   // The shift let go of: those still waiting no longer held to their seats, their orders out of the queue, the
   // tables cleared (the inn's own staff to it), the server back on her feet.
-  release(): void {
+  release(npcs: readonly Npc[] = []): void {
     for (const want of [...this.wants.values()]) this.drop(want);
     this.tray.length = 0;
     this.empties.length = 0;
-    super.release();
+    super.release(npcs);
   }
 }
 

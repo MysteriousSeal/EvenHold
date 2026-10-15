@@ -102,7 +102,7 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
       'job-standing',
       el('span', 'job-label', 'Your standing'),
       el('strong', undefined, rank.name),
-      el('span', 'job-toward', next ? `${record.xp - rank.from} of ${next.from - rank.from} served` : 'The top of the trade'),
+      el('span', 'job-toward', next ? `${record.xp - rank.from} of ${next.from - rank.from} experience` : 'The top of the trade'),
       ...(next ? [el('span', 'job-next', `toward ${next.name}`)] : []),
     );
 
@@ -130,6 +130,7 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
     if (elsewhere) button.title = `You're ${elsewhere} just now`;
     const term = (label: string, value: Array<string | Node>, note: string, tone = '') => el('div', `job-term ${tone}`, el('span', 'job-label', label), el('b', undefined, ...value), el('small', undefined, note));
     const terms = el('div', 'job-terms');
+    const average = record.served ? Math.round(record.earned / record.served) : 0; // (what an order's come to for them, tips and bonus with it)
     if (shift) {
       terms.append(
         term('Time left', [clock(shift.left)], `of ${hours(SHIFT)}`),
@@ -139,7 +140,11 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
     } else {
       terms.append(
         term('A shift', [hours(SHIFT).replace(' hours', ''), el('em', undefined, 'hours')], 'on the clock'),
-        job === 'innCompanion' ? term('Pay', [...coinParts(Math.round(PRICE * rank.tips)), el('em', undefined, 'a client')], 'and a tip · paid when the shift ends') : term('Pay', [...coinParts(WAGE), el('em', undefined, 'an order')], 'and a tip · paid when the shift ends'),
+        job === 'innCompanion'
+          ? term('Pay', [...coinParts(Math.round(PRICE * rank.tips)), el('em', undefined, 'a client')], 'and a tip · paid when the shift ends')
+          : average
+            ? term('Pay', [...coinParts(average), el('em', undefined, 'an order')], 'yours on average, tips and all · paid when the shift ends')
+            : term('Pay', [...coinParts(WAGE), el('em', undefined, 'an order')], 'and a tip, most of the pay · paid when the shift ends'),
         term('Clean shift', [`+${BONUS}`, el('em', undefined, 'each')], 'if no one walks out'),
       );
     }
