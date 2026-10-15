@@ -32,8 +32,8 @@ const CUBE = new THREE.BoxGeometry(1, 1, 1);
 // Turned to face the camera whichever way its owner faces; shown for as
 // long as the owner lives.
 const MAX_BLOCKS = 10;
-const NAME_HEIGHT = 0.22; // world units tall, the name over the bar
-const NAME_Y = 0.14; // the name's height over the bar
+const NAME_HEIGHT = 0.32; // world units tall, the name over the bar (read at a glance, some 12px)
+const NAME_Y = 0.2; // the name's height over the bar (clear of it and of the hero's chevrons in a fight)
 const LEVEL_GAP = 0.05; // between the level and the name
 // The level's colour by how dangerous the foe is (as the target panel's name, hud.css).
 const DANGER_INK: Record<Difficulty, string> = { trivial: '#b4b0a8', even: INK, tough: '#f2d15a', hard: '#f0913a', deadly: '#e8483a' };
