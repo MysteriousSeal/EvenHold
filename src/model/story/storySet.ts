@@ -1,13 +1,16 @@
 // Where each quest people give is set (story.ts): the first village's line in the first village; a village's own in
 // each village that draws it (by its `share`, from the village's number and the world's seed: the same villages
 // every time) and has its people and its place; one that follows another, only where that one is; the road's, nowhere (whoever's met gives it). Each set is kept by a key, the quest's and where it's
-// set ("scrapForTheForge@8201", "wordToTheInn@first", "wolvesAtMyHeels@road"). Worked out from the world as it
-// stands, afresh only as that changes (storyCast.ts).
+// set ("scrapForTheForge@8201", "wordToTheInn@first", "wolvesAtMyHeels@road"); the second arc's, in its own three
+// places, those of them on the maps (saint/saintSet.ts). Worked out from the world as it stands, afresh only as that
+// changes (storyCast.ts).
 import type { Ruin } from '../ruins/ruins';
 import type { EnemyKind } from '../types';
 import { hashUnit } from '../../util/random';
-import { COMMON_QUESTS, FIRST_QUESTS, RARE_QUESTS, ROAD_QUESTS } from './quests/catalog';
-import { castKey, castOf, isTraveller, type CastHost, type Home, type Setting, type Who } from './storyCast';
+import { COMMON_QUESTS, FIRST_QUESTS, RARE_QUESTS, ROAD_QUESTS, SAINT_QUESTS } from './quests/catalog';
+import type { Carter } from './carter';
+import { saintSettingOf, saintSettings, type SaintPins, type SaintSettings } from './saint/saintSet';
+import { castKey, castOf, isTraveller, type CastHost, type Home, type Point, type Setting, type Who } from './storyCast';
 import type { Objective, StoryPlace, StoryQuest } from './storyQuests';
 
 export interface Instance {
@@ -24,6 +27,7 @@ export interface QuestSet {
   all: Map<string, Instance>;
   by: Map<object, Instance[]>; // whose each is: given by them, or handed in to them
   road: Instance[];
+  saint: SaintSettings; // the second arc's places, those on the maps
 }
 
 // Where a foe's kind keeps, for those that keep to a place.
@@ -81,7 +85,8 @@ export function resettle(set: QuestSet, forced: ReadonlyMap<string, Who | undefi
   }
 }
 
-export function settle(host: CastHost, home: Home = null): QuestSet {
+// (`pins`: the second arc's places, as kept: saint/saintSet.ts.)
+export function settle(host: CastHost, home: Home = null, pins: { road: Point | null; town: Point | null } = { road: null, town: null }): QuestSet {
   const { first, firstRuin, villages } = castOf(host, home);
   const all = new Map<string, Instance>();
   const by = new Map<object, Instance[]>();
@@ -94,5 +99,10 @@ export function settle(host: CastHost, home: Home = null): QuestSet {
     RARE_QUESTS.forEach((quest, i) => drawn(quest, i, at, RARE_SALT) && after(quest) && add(quest, at));
   }
   for (const quest of ROAD_QUESTS) add(quest, null);
-  return { key: castKey(host), first, firstRuin, villages, all, by, road: [...all.values()].filter((i) => !i.at) };
+  const saint = saintSettings(first, villages, { ...pins, home: home && home !== 'nearest' ? home : null, wagon: (first?.who.carter as Carter | undefined)?.wagon ?? null } satisfies SaintPins);
+  for (const quest of SAINT_QUESTS) {
+    const at = saintSettingOf(quest, saint);
+    if (at) add(quest, at); // (its place off the maps: not set, till it's on them)
+  }
+  return { key: castKey(host), first, firstRuin, villages, all, by, road: [...all.values()].filter((i) => !i.at), saint };
 }

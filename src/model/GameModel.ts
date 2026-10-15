@@ -363,6 +363,7 @@ export class GameModel {
   haunt = (ruin: Ruin, count: number): number => raiseGhosts(this, ruin, count); // (a ruin's ghosts risen again, for a quest that asks them slain: ruins/haunting.ts)
   campEmpty = (camp: Camp): boolean => this.campLife.empty(camp); // (asked by the quests people give: a camp cleared before it was asked)
   wakeWith = (who: Npc): void => void wakeWith(this, who); // (a night spent with them: woken in their place, story/nights.ts)
+  takeAway = (who: Npc): void => void [this.story.lose(who), this.chickens.lost.add(who.id), this.npcs.includes(who) && this.npcs.splice(this.npcs.indexOf(who), 1)]; // (taken by the men in grey for good, the second arc: gone from the world as one turned is, spells/turned.ts)
 
   // What's happened since takeEvents() was last asked (for floating text).
   events: GameEvent[] = [];
