@@ -44,7 +44,7 @@ export const SAINT_TOWN_QUESTS: StoryQuest[] = [
       'And afterwards they never pray again. Not one of them. They go home well, and they never pray again. I do not know what that means. I am frightened to know.',
     ],
     thanks: 'Something is answering.',
-    copper: 150,
+    copper: 120,
     xpShare: 0.5,
   }),
   saint({
@@ -68,7 +68,7 @@ export const SAINT_TOWN_QUESTS: StoryQuest[] = [
       "Do you want to know something funny? They work. I sold a toenail of Saint Aldous to a woman with a goitre the size of a hen's egg, and it went down overnight. It was a bit of a goat. I've stopped laughing about it. I'm a liar, friend. I'm not used to being right.",
     ],
     thanks: 'Everything works here.',
-    copper: 140,
+    copper: 110,
     xpShare: 0.5,
   }),
   saint({
@@ -93,7 +93,7 @@ export const SAINT_TOWN_QUESTS: StoryQuest[] = [
       "Don't calm me down. Find out what's under the floor.",
     ],
     thanks: "I'll find out.",
-    copper: 150,
+    copper: 120,
     xpShare: 0.6,
   }),
   saint({
@@ -118,7 +118,7 @@ export const SAINT_TOWN_QUESTS: StoryQuest[] = [
       'Let me give you some advice in return, as one careful person to another. People who go asking what is under the Minster tend to be found to have been witches all along. It is remarkable how often. I would hate to write your name down. I have very neat writing.',
     ],
     thanks: "I'll remember.",
-    copper: 120,
+    copper: 100,
     xpShare: 0.4,
   }),
   saint({
@@ -143,7 +143,7 @@ export const SAINT_TOWN_QUESTS: StoryQuest[] = [
       "But this one works. Do you understand what that means? The Minster was half empty a year ago. Now they sleep in the nave. They pay for candles, they pay for blessings, they pay to sleep near the glass. If something is answering their prayers, I have no intention of asking it to stop.",
     ],
     thanks: "And if it's something bad?",
-    copper: 180,
+    copper: 140,
     xpShare: 0.5,
   }),
   saint({
@@ -168,7 +168,7 @@ export const SAINT_TOWN_QUESTS: StoryQuest[] = [
       'I prayed to that every morning for twenty years. Well. God made the cat as well as the mouse. I have work to do. The sick will still be sick tomorrow, and now nobody is going to heal them but me.',
     ],
     thanks: "You'll manage.",
-    copper: 300,
+    copper: 240,
     xpShare: 1.2,
     gift: { gear: 'smokingCenser', least: 'rare' },
   }),
@@ -200,11 +200,11 @@ export const SAINT_TOWN_QUESTS: StoryQuest[] = [
       {
         key: 'gold',
         label: 'Take the purse. Say nothing.',
-        copper: 800,
+        copper: 600,
         said: () => ["Sensible. The world's run by sensible people, you know. That's why it's like this."],
       },
     ],
-    copper: 200,
+    copper: 160,
     xpShare: 1,
   }),
   saint({
@@ -226,7 +226,7 @@ export const SAINT_TOWN_QUESTS: StoryQuest[] = [
     task: (t) => `Take ${t.giver} home`,
     handIn: () => [],
     thanks: '',
-    copper: 200,
+    copper: 160,
     xpShare: 0.8,
   }),
   {
@@ -254,7 +254,7 @@ export const SAINT_TOWN_QUESTS: StoryQuest[] = [
     task: () => 'Hear what the herbalist has to say',
     handIn: () => [],
     thanks: '',
-    copper: 300,
+    copper: 240,
     xpShare: 1,
   },
 ];

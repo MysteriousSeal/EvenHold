@@ -156,7 +156,7 @@ describe("the second arc: the bishop's saint", () => {
     const money = model.hero.money;
     const last = toTheEnd(model, /Take the purse/, home);
     expect(story.saint.ending).toBe('kept');
-    expect(model.hero.money - money).toBeGreaterThan(800); // (the purse, and the rest)
+    expect(model.hero.money - money).toBeGreaterThan(600); // (the purse, and the rest)
     expect(last.lines.join(' ')).toMatch(/not speak to you again/);
     expect(story.talk(of(model, 'herbalist', home), undefined, true)!.lines.join(' ')).toMatch(/^Pay, and go.$/);
     expect([story.talk(of(model, 'herbalist', home)), story.markOf(of(model, 'herbalist', home))]).toEqual([null, null]); // (her wares, and no quests of hers)
