@@ -28,6 +28,8 @@ import {
   FUR,
   FUR_LIGHT,
   FUR_DARK,
+  MOSS,
+  MOSS_DARK,
   CLAY,
   CLAY_DARK,
   GLASS_GREEN,
@@ -78,10 +80,17 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number, i
     for (let u = 12; u <= 37; u++) stones(u, archTop(u) + 1, 0, u, 20, 11); // the arch
     for (let u = 12; u <= 37; u++) box(u, archTop(u) + 1, 11, u, archTop(u) + 2, 11, SOOT); // soot above the opening
     box(12, 3, 0, 37, 16, 2, SOOT); // the back of the fire
-    // Mantel, with a candle, a clay pot and a pewter plate on it.
+    // Mantel, with candles at either end, a clay pot and a pewter plate on it.
     box(1, 21, 0, 48, 23, 13, (u, y) => (y === 21 ? WOOD_DARK : u % 11 === 0 ? WOOD_DARK : WOOD));
     box(7, 24, 8, 8, 27, 9, LINEN); // candle
     box(7, 28, 8, 7, 28, 8, EMBER); // its flame
+    box(41, 24, 9, 42, 26, 10, LINEN); // another, burnt lower
+    box(41, 27, 9, 41, 27, 9, EMBER);
+    // Bunches of herbs hung to dry from the mantel's front edge, over the jambs (out of the flames), tied in linen.
+    for (const u of [4, 8, 39, 43]) {
+      box(u, 20, 12, u + 1, 20, 13, LINEN);
+      box(u, 16, 12, u + 1, 19, 13, (_u, y, v) => ((y + v) % 2 === 0 ? MOSS_DARK : MOSS));
+    }
     box(19, 24, 5, 23, 27, 9, RED); // clay pot
     box(20, 28, 6, 22, 28, 8, WOOD_DARK); // its lid
     box(32, 24, 3, 37, 29, 3, IRON_LIGHT); // pewter plate, standing
