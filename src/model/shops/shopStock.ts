@@ -3,18 +3,25 @@
 // much of each thing and only so much money, the purse growing as the hero
 // buys and shrinking as they sell; both drift back to the shop's usual as
 // real time passes (every RESTOCK_EVERY), even between visits. What the hero
-// last sold can be bought back at what they got for it (saved too).
+// last sold can be bought back at what they got for it (saved too). A trade's
+// goods (what's gathered, cooked or made: skills/*) it buys only while it has
+// fewer than it wants of each kind (WANTS), selling one of each on every
+// restock: so many a while, not a cartload at once.
 
 import { bagRoom, canCarry } from '../hero/bagSlots';
 import { slotsUsed, stacksOf } from '../hero/bagStacks';
 import { addToBag, takeFromBag, type BagItem } from '../hero/bag';
 import type { Hero } from '../types';
+import { isIngredient } from '../loot/ingredients';
+import { isMeal } from '../loot/meals';
+import { baseOf, isGear } from '../human/items/gear';
 
 export interface Shop {
   money: number; // copper in the keeper's purse
   stock: Partial<Record<BagItem, number>>;
   restockedAt: number; // when last restocked (ms, wall clock)
   buyback?: Sale[]; // the hero's last sales here, latest first, BUYBACK at most
+  bought?: Record<string, number>; // a trade's goods the hero's sold here, by kind, not yet sold on (WANTS)
 }
 
 // One of the hero's sales (or several of the same thing at the same price, stacked): to buy back, each at `price`.
@@ -34,6 +41,18 @@ export interface Usual {
 
 export const RESTOCK_EVERY = 5 * 60_000; // ms: every five minutes, one more of each it's short of
 const PURSE_DRIFT = 0.2; // of the way back to the usual purse, each restock (an emptied one three quarters back in half an hour: a fisher, a cook selling all day not turned away)
+
+// A trade's goods a shop buys only so many of at a time: a woodworker's cups and chests, and any piece of gear (by its
+// kind: so many swords, whatever their level), what's gathered and worked (ingredients, loot/ingredients.ts) and meals.
+const GOODS: ReadonlySet<string> = new Set(['woodenBowl', 'carvedTankard']);
+export const WANTS = { goods: 5, gear: 3 }; // of each kind
+const kindOf = (id: string): string | null => (isGear(id) ? baseOf(id) : isIngredient(id) || isMeal(id) || GOODS.has(id) ? id : null);
+
+// Whether the shop would take another `id` (a trade's goods: while it's bought fewer than it wants of its kind).
+export function wantsMore(shop: Shop, id: BagItem): boolean {
+  const kind = kindOf(id);
+  return kind === null || (shop.bought?.[kind] ?? 0) < (isGear(id) ? WANTS.gear : WANTS.goods);
+}
 
 // The shop at door `key`, made from its usual on first visit, restocked up to now.
 export function openShop(shops: Map<number, Shop>, key: number, usual: Usual, now = Date.now()): Shop {
@@ -55,6 +74,11 @@ function restock(shop: Shop, usual: Usual, now: number): void {
   const restocks = Math.floor((now - shop.restockedAt) / RESTOCK_EVERY);
   if (restocks <= 0) return;
   for (const id of Object.keys(usual.stock) as BagItem[]) shop.stock[id] = Math.min(usual.stock[id] ?? 0, (shop.stock[id] ?? 0) + restocks);
+  // A trade's goods it's bought, sold on: one of each kind a restock.
+  for (const [kind, n] of Object.entries(shop.bought ?? {})) {
+    if (n > restocks) shop.bought![kind] = n - restocks;
+    else delete shop.bought![kind];
+  }
   for (let i = 0; i < Math.min(restocks, 60); i++) shop.money += Math.round((usual.money - shop.money) * PURSE_DRIFT);
   shop.restockedAt += restocks * RESTOCK_EVERY;
 }
@@ -85,14 +109,17 @@ export function buyFrom(shop: Shop, hero: Hero, id: BagItem, price: number): 'bo
   return 'bought';
 }
 
-// The hero sells one of `id` at `price` (something the shop wants): why not, if not.
-export function sellTo(shop: Shop, hero: Hero, id: BagItem, price: number): 'sold' | 'none' | 'short' {
+// The hero sells one of `id` at `price` (something the shop wants): why not, if not (it has enough of those just now).
+export function sellTo(shop: Shop, hero: Hero, id: BagItem, price: number): 'sold' | 'none' | 'short' | 'not wanted' {
   if (!(hero.bag[id] ?? 0)) return 'none';
+  if (!wantsMore(shop, id)) return 'not wanted';
   if (shop.money < price) return 'short';
   takeFromBag(hero.bag, id);
   hero.money += price;
   shop.money -= price;
   shop.stock[id] = (shop.stock[id] ?? 0) + 1;
+  const kind = kindOf(id);
+  if (kind !== null) (shop.bought ??= {})[kind] = (shop.bought[kind] ?? 0) + 1;
   // Stacked with the same thing sold at the same price (junk sold a handful at a time), to the front.
   const sales = shop.buyback ?? [];
   const same = sales.find((s) => s.id === id && s.price === price);
@@ -111,6 +138,8 @@ export function buyBack(shop: Shop, hero: Hero, index: number): 'bought' | 'none
   hero.money -= cost;
   shop.money += cost;
   shop.stock[sale.id] = Math.max(0, (shop.stock[sale.id] ?? 0) - sale.count);
+  const kind = kindOf(sale.id);
+  if (kind !== null && shop.bought?.[kind]) shop.bought[kind] = Math.max(0, shop.bought[kind] - sale.count); // (back with the hero: room for them again)
   shop.buyback!.splice(index, 1);
   for (let i = 0; i < sale.count; i++) addToBag(hero.bag, sale.id);
   return 'bought';
