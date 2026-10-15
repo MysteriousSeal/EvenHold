@@ -10,7 +10,7 @@ import { WOOD, WOOD_DARK, WOOD_LIGHT, IRON, IRON_LIGHT, STONE, STONE_DARK, BRASS
 import type { Furniture } from '../../model/interiors/furniture';
 import { hashUnit } from '../../util/random';
 
-export type SmithyKind = 'forge' | 'anvil' | 'trough' | 'rack' | 'coal' | 'barStock' | 'scrapHeap' | 'smithCounter' | 'bellows' | 'weaponWall' | 'armorStand' | 'grindstone' | 'toolBoard' | 'salvageBench';
+export type SmithyKind = 'forge' | 'anvil' | 'trough' | 'rack' | 'coal' | 'barStock' | 'scrapHeap' | 'bladeCrate' | 'wheelRim' | 'smithCounter' | 'bellows' | 'weaponWall' | 'armorStand' | 'grindstone' | 'toolBoard' | 'salvageBench';
 
 // Water standing in a vessel over u0..u1, v0..v1 at height y: dark, its rim a voxel lighter where it meets the sides.
 const water = (box: Box, u0: number, v0: number, u1: number, v1: number, y: number) => box(u0, y, v0, u1, y, v1, (u, _y, v) => (u === u0 || u === u1 || v === v0 || v === v1 ? QUENCH_LIGHT : QUENCH));
@@ -56,11 +56,11 @@ export const SMITHY_PAINTERS: Record<SmithyKind, (box: Box, len: number, dep: nu
     box(m - 6, 12, 14, m - 5, 12, 14, IRON_LIGHT); // their pivot
     for (const u of [5, len - 7]) box(u, 12, 13, u + 1, 19, 14, IRON); // the hood's posts
     for (let y = 20; y <= 24; y++) {
-      const inset = Math.floor((y - 20) * 1.5);
-      const front = 14 - inset * 2;
+      const inset = y - 20;
+      const front = 14 - inset; // (stepping back gently: its top shades the flue from the fire)
       box(4 + inset, y, 0, len - 5 - inset, y, front, (u, yy, v) => (yy === 20 ? (v >= 13 ? CINDER : IRON) : (u + yy * 4) % 9 === 0 ? SOOT_LIGHT : SOOT)); // the hood, stepped in, on its rim
     }
-    box(17, 25, 0, len - 18, 33, 6, (u, y) => (y === 33 ? SOOT_LIGHT : (u + Math.floor(y / 3) * 4) % 8 === 0 || y % 3 === 0 ? SOOT_LIGHT : SOOT)); // the flue, coursed
+    box(17, 25, 0, len - 18, 33, 4, (u, y) => (y === 33 ? SOOT : (u + Math.floor(y / 3) * 4) % 8 === 0 || y % 3 === 0 ? SOOT : COAL)); // the flue, coursed, blackest of all (the fire lights its face)
   },
 
   // An anvil on a stump: the stump banded in iron, its top ringed; a narrow
@@ -152,14 +152,17 @@ export const SMITHY_PAINTERS: Record<SmithyKind, (box: Box, len: number, dep: nu
     }
   },
   // By the forge on the back wall: leather folds (pleated, clay and dark)
-  // between a board below and one above, a handle out front, an iron nozzle.
-  bellows: (box) => {
+  // between a board below and one above, a handle out front, an iron nozzle
+  // reaching into the forge's side.
+  bellows: (box, _len, _dep, item) => {
     for (const [u, v] of [[5, 3], [19, 3], [5, 13], [19, 13]]) box(u, 1, v, u, 2, v, WOOD_DARK); // feet
     box(4, 3, 2, 20, 3, 14, WOOD_DARK); // the lower board
     for (let y = 4; y <= 8; y++) box(5, y, 3, 19, y, 13 - (y - 4), y % 2 === 0 ? CLAY : CLAY_DARK); // the leather, folded
     box(4, 9, 2, 20, 9, 10, WOOD); // the upper board
     box(10, 10, 8, 14, 10, 15, WOOD_LIGHT); // its handle
-    box(11, 4, 14, 13, 5, 18, IRON); // the nozzle
+    const toForge = item.side ?? 1; // (along the wall, the way the forge is)
+    if (toForge > 0) box(20, 5, 6, 24, 6, 8, IRON); // the nozzle, into the forge's side
+    else box(0, 5, 6, 4, 6, 8, IRON);
     // Over it, on the wall by the fire, a rail of the tools he works it with: three tongs and two hammers hung.
     box(1, 25, 0, 23, 25, 2, WOOD_DARK);
     for (const u of [3, 8, 13]) {
@@ -185,6 +188,31 @@ export const SMITHY_PAINTERS: Record<SmithyKind, (box: Box, len: number, dep: nu
     }
     box(6, 11, 4, 20, 12, 7, (u, _y, v) => (v === 7 || u === 6 || u === 20 ? CLAY_DARK : 0)); // the strap round them
   },
+  // A crate of new blades by the counter, hilts up: an oak box, banded, the
+  // swords stood in it, their grips, guards and pommels showing, one drawn
+  // half out, its blade bright.
+  bladeCrate: (box) => {
+    box(5, 1, 6, 19, 9, 18, (u, y, v) => (y === 1 || y === 9 || u === 5 || u === 19 || v === 6 || v === 18 ? ((u + v + y) % 7 === 0 ? WOOD_DARK : WOOD) : 0)); // the crate,
+    box(5, 5, 6, 19, 5, 18, (u, _y, v) => (u === 5 || u === 19 || v === 6 || v === 18 ? IRON : 0)); // banded
+    box(6, 2, 7, 18, 8, 17, WOOD_DARK); // its dark inside, full
+    for (const [u, v] of [[8, 9], [12, 10], [16, 9], [9, 14], [14, 15]]) {
+      box(u - 1, 10, v, u + 1, 10, v, BRASS); // a guard,
+      box(u, 11, v, u, 13, v, WOOD_DARK); // its grip
+      box(u, 14, v, u, 14, v, BRASS_DARK); // and pommel
+    }
+    box(12, 11, 13, 12, 17, 13, (_u, y) => (y === 17 ? IRON_EDGE : IRON_LIGHT)); // one drawn half out, bright
+    box(11, 18, 13, 13, 18, 13, BRASS);
+    box(12, 19, 13, 12, 20, 13, WOOD_DARK);
+  },
+  // A cartwheel's iron tyre, waiting to be shrunk on, stood on its edge and
+  // leant toward the wall at the right, lit along its top.
+  wheelRim: (box) => {
+    for (let y = 1; y <= 15; y++) {
+      for (let v = 4; v <= 20; v++) {
+        if (Math.abs(Math.hypot(v - 12, y - 8) - 7) < 0.6) box(20 + (y >> 2), y, v, 21 + (y >> 2), y, v, y > 10 ? IRON_LIGHT : IRON);
+      }
+    }
+  },
   // A heap of scrap waiting by the salvage bench: rusted iron stepped up to a peak, a broken blade sticking up from
   // it, a dented helm, a horseshoe, a bar or two.
   scrapHeap: (box) => {
@@ -207,15 +235,15 @@ export const SMITHY_PAINTERS: Record<SmithyKind, (box: Box, len: number, dep: nu
   // Hung on a wall: a dark board with a sword, an axe and a spear pegged to it.
   weaponWall: (box) => {
     box(2, 12, 0, 22, 28, 1, (u, y) => (u === 2 || u === 22 || y === 12 || y === 28 ? WOOD_DARK : FUR_DARK)); // the board, framed
-    box(6, 14, 2, 6, 23, 2, IRON_LIGHT); // the sword: its blade,
+    box(6, 14, 2, 6, 23, 2, (_u, y) => (y === 14 ? IRON_EDGE : IRON_LIGHT)); // the sword: its blade, its point bright,
     box(4, 24, 2, 8, 24, 2, BRASS); // guard,
     box(6, 25, 2, 6, 26, 2, WOOD_DARK); // grip
     box(6, 27, 2, 6, 27, 2, BRASS_DARK); // and pommel
     box(12, 13, 2, 12, 27, 2, WOOD); // the axe: its haft,
-    box(13, 22, 2, 15, 26, 2, (u) => (u === 15 ? IRON_LIGHT : IRON)); // its head, the edge bright
+    box(13, 22, 2, 15, 26, 2, (u) => (u === 15 ? IRON_EDGE : IRON)); // its head, the edge bright
     box(18, 13, 2, 18, 24, 2, WOOD); // the spear: its shaft,
     box(17, 25, 2, 19, 25, 2, IRON); // socket,
-    box(18, 26, 2, 18, 27, 2, IRON_LIGHT); // and point
+    box(18, 26, 2, 18, 27, 2, IRON_EDGE); // and point
   },
   // A suit of armour on a stand, backed against the wall, its front toward
   // the room: a cross foot and a post, and one of four suits (`suit`), each
@@ -249,7 +277,7 @@ export const SMITHY_PAINTERS: Record<SmithyKind, (box: Box, len: number, dep: nu
         box(10, 32, c - 2, 14, 32, c + 2, CLAY); // its crown
         break;
       case 3: // brigandine
-        torso((u, y, v) => (v === front && u % 2 === 0 && y % 3 === 0 ? BRASS : u === 7 || u === 17 ? RED_DARK : RED)); // red cloth, riveted
+        torso((u, y, v) => (v === front && u % 2 === 0 && y % 3 === 0 ? BRASS : v === front && u % 2 === 0 ? RED : RED_DARK)); // dark red cloth, riveted, the rivets' columns brighter
         box(6, 24, c - 3, 18, 25, c + 3, RED_DARK); // its shoulders
         belt(FUR_DARK);
         box(6, 29, c - 6, 18, 29, c + 6, IRON); // the kettle helm's brim,
