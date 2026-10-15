@@ -93,7 +93,7 @@ const SIGHTS_SCENERY: ReadonlyArray<readonly [SceneryKind, string, string]> = [
   ['menhir', 'Next stone circle', 'A ring of standing stones, from its middle'],
 ];
 const BLOOM_NAMES: Record<BloomKind, string> = { poppy: 'poppies', bluebell: 'bluebells', daisy: 'daisies', buttercup: 'buttercups', foxglove: 'foxgloves', lavender: 'lavender', clover: 'clover' };
-const SIGHTS_LIFE: ReadonlyArray<readonly [LifeKind, string, string]> = [
+const SIGHTS_LIFE: ReadonlyArray<readonly [LifeKind & keyof typeof ICON, string, string]> = [ // (those with an icon)
   ['bird', 'Next songbirds', 'A little flock on the grass (by day: the hour set if need be)'],
   ['butterfly', 'Next butterflies', 'Over a meadow (by day: the hour set if need be)'],
   ['firefly', 'Next fireflies', 'Glowing in the dark (at night: the hour set if need be)'],

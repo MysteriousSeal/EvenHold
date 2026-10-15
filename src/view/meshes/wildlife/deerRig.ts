@@ -3,7 +3,9 @@
 // - walking, its legs stride in diagonal pairs; fleeing, it bounds, front
 //   legs and hind legs together, its body rocking and rising with each leap;
 // - grazing, its neck stretches forward and its head drops to the grass;
-//   fleeing, its head comes up; resting, it glances slowly around.
+//   fleeing, or wary of the hero coming, its head comes up (wary, stock-still,
+//   an ear-flick of a twitch now and then); resting, it glances slowly around;
+// - at night it lies down, legs folded under it, its head up, nodding off.
 // Stag, doe and fawn share one skeleton, drawn at their own sizes.
 
 import * as THREE from 'three';
@@ -63,6 +65,7 @@ export class DeerRig extends CreatureRig {
   private swing = 0; // 0 standing .. 1 full stride, eased
   private bound = 0; // 0 walking .. 1 bounding, eased
   private pitch = 0;
+  private lying = 0; // 0 stood .. 1 lying down, eased
 
   constructor(deer: Wildlife, look: DeerLook) {
     super(deer.id * 1.7); // so a herd doesn't glance about in step
@@ -96,16 +99,22 @@ export class DeerRig extends CreatureRig {
       const boundSide = front ? 1 : -1; // front pair against hind pair
       group.rotation.x = s * amplitude * (walkSide * (1 - this.bound) + boundSide * this.bound);
     }
+    // Lying down for the night: down on its folded legs (front ones tucked forward, hind ones back).
+    this.lying += ((deer.bedded ? 1 : 0) - this.lying) * Math.min(1, 1.5 * dt);
+    if (this.lying > 0.001) for (const { group, front } of this.legs) group.rotation.x = (front ? -1.4 : 1.4) * this.lying;
     // Each leap lifts and rocks the body.
-    this.body.position.y = LEG_LENGTH * V + Math.abs(Math.sin(this.phase)) * 0.06 * this.bound * this.swing;
+    this.body.position.y = LEG_LENGTH * V * (1 - this.lying * 0.8) + Math.abs(Math.sin(this.phase)) * 0.06 * this.bound * this.swing;
+    for (const { group } of this.legs) group.position.y = LEG_LENGTH * V * (1 - this.lying * 0.8);
     this.body.rotation.x = Math.cos(this.phase) * 0.12 * this.bound * this.swing;
 
     // The head: down to graze, up when fleeing, glancing about at rest.
     const grazing = deer.dabble !== null && deer.dabble >= 0;
-    const pitch = grazing ? GRAZE_PITCH : deer.fleeing ? ALERT_PITCH : 0;
+    const dozing = deer.bedded ? Math.max(0, Math.sin(this.time * 0.3)) * 0.5 : 0;
+    const pitch = grazing ? GRAZE_PITCH : deer.fleeing || deer.wary ? ALERT_PITCH : dozing;
     this.pitch += (pitch - this.pitch) * Math.min(1, 4 * dt);
     this.head.rotation.x = this.pitch;
-    const glance = !grazing && !deer.fleeing && !walking ? Math.sin(this.time * 0.6) * 0.45 : 0;
+    const twitch = deer.wary && this.time % 2.7 < 0.15 ? 0.12 : 0;
+    const glance = deer.wary ? twitch : !grazing && !deer.fleeing && !walking ? Math.sin(this.time * 0.6) * 0.45 : 0;
     this.head.rotation.y += (glance - this.head.rotation.y) * Math.min(1, 3 * dt);
   }
 }

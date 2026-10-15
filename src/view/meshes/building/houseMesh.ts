@@ -18,7 +18,7 @@ import { addLitBuildings, meshLit } from './litBuildings';
 // stored in the model: it's purely visual, and drawing it from the world
 // rng would shift every later placement for every existing seed.
 // Its trim (the paint on its shutters and door, its limewash) from higher bits.
-function looks(house: House): { layout: number; roof: number; trim: number } {
+export function looks(house: House): { layout: number; roof: number; trim: number } {
   const h = hashCell(house.x, house.z);
   return { layout: h % HOUSE_LAYOUTS.length, roof: (h >>> 8) % ROOF_SETS.length, trim: (h >>> 16) % TRIMS.length };
 }

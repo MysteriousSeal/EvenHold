@@ -2,7 +2,9 @@
 // kind with its own paces and places. One frame: fleeing or calm, the
 // leader's wandering and resting, the others keeping their places around it,
 // and everyone's feeding (a deer grazing, a duck tipped up), `feeding` being
-// seconds into it (or, below 0, till it starts).
+// seconds into it (or, below 0, till it starts). Some kinds (deer) are wary
+// first: the hero coming, they stop and watch them, heads up, before they
+// run; and lie down for the night, where they are.
 
 import { fleeTarget, rollAt } from './moving';
 import type { Wildlife } from './animal';
@@ -27,6 +29,8 @@ export interface GroupWays {
   feedLag: number; // up to this many seconds later than the leader
   salt: number; // for its rolls
   faceLeader?: boolean; // close to its place, a follower faces the way the leader does
+  waryRadius?: number; // the hero this close (but not yet fleeRadius), they stop and watch them
+  abed?: boolean; // it's their night: lying down where they are (till the hero sends them off)
 }
 
 export function stepGroup(group: Wildlife[], ways: GroupWays, hero: { x: number; z: number }, dt: number): void {
@@ -43,6 +47,22 @@ export function stepGroup(group: Wildlife[], ways: GroupWays, hero: { x: number;
     for (const animal of group) animal.fleeing = false;
     leader.target = null;
     leader.restFor = 1 + roll(leader, 0) * 2;
+  }
+
+  // Watching the hero come, or lying down for the night: stock-still, not feeding, the leader going nowhere.
+  const wary = !leader.fleeing && ways.waryRadius !== undefined && near < ways.waryRadius;
+  const abed = !leader.fleeing && !wary && !!ways.abed;
+  for (const animal of group) {
+    if (ways.waryRadius === undefined && !ways.abed) break;
+    [animal.wary, animal.bedded] = [wary, abed];
+    if (wary) animal.heading = Math.atan2(hero.x - animal.x, hero.z - animal.z);
+    if (wary || abed) animal.dabble = null;
+  }
+  if (wary || abed) {
+    leader.target = null;
+    leader.restFor = Math.max(leader.restFor, 1);
+    for (const animal of group) animal.speed = 0;
+    return;
   }
 
   for (const animal of group) {

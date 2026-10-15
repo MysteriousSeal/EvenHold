@@ -13,6 +13,7 @@ import { HOUSE_VOXEL_SIZE } from './houseVoxels';
 import { INN_GRID, buildInnVoxels } from './innVoxels';
 import { SMITHY_GRID, SMITHY_SMOKE_ORIGIN, buildSmithyVoxels } from './smithyVoxels';
 import { addChimneySmoke } from './smoke';
+import { weatherNow } from '../common/weatherNow';
 
 const MODELS: Record<BuildingKind, { grid: [number, number, number]; build: () => VoxelGrid }> = {
   inn: { grid: INN_GRID, build: buildInnVoxels },
@@ -37,5 +38,5 @@ export function buildBuildings(scene: WorldSink, model: GameModel): (elapsedSeco
       const p = local.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), (b.quarterTurns * Math.PI) / 2);
       return p.add(new THREE.Vector3(b.x, model.getGroundY(b.x, b.z), b.z));
     });
-  return addChimneySmoke(scene, chimneys);
+  return addChimneySmoke(scene, chimneys, () => weatherNow(model.seed, model.minutes, performance.now() / 1000));
 }
