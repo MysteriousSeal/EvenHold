@@ -13,6 +13,7 @@ import { PARTY, type Party } from '../src/model/roads/patrols';
 import { FOUGHT, RAN, fineFor } from '../src/model/roads/arrest';
 import { bribeFor, lieChance } from '../src/model/roads/questioning';
 import { foeStrikes } from '../src/model/hero/fighting';
+import { PITCH_TELL } from '../src/model/enemies/wildMoves';
 import type { Talk } from '../src/model/story/storyTypes';
 
 const step = (model: GameModel, seconds: number) => {
@@ -260,5 +261,26 @@ describe('running and fighting', () => {
     step(model, 0.1); // (the talk shut some other way: served all the same)
     expect(model.hero.money).toBe(1000 - fineFor(model.hero.level, FOUGHT));
     expect(model.hero.hp).toBeGreaterThan(0);
+  });
+
+  it('in a fight, a pot of burning pitch thrown from a few tiles off, told on the ground first; never while they would take them alive', () => {
+    for (const mode of ['Fight', 'Run'] as const) {
+      const { model, party } = withParty();
+      near(model, party, 5, 1);
+      model.hero.money = 0;
+      pick(stopped(model), mode);
+      const hunt = model.roads.patrols.hunts[0];
+      for (const e of hunt.foes.slice(1)) model.enemies.splice(model.enemies.indexOf(e), 1);
+      const [foe] = hunt.foes;
+      Object.assign(foe, { x: model.hero.x - 3, z: model.hero.z, state: 'chase', swingFor: null });
+      model.enemiesFrozen = true;
+      for (let t = 0; t < 2.2; t += 1 / 30) model.wild.update(1 / 30);
+      expect(model.wild.pitches.moves.length > 0, mode).toBe(mode === 'Fight');
+      if (mode === 'Run') continue;
+      const hp = model.hero.hp;
+      model.random = () => 0.99; // (no dodge)
+      for (let t = 0; t < PITCH_TELL + 0.1; t += 1 / 30) model.wild.update(1 / 30);
+      expect(model.hero.hp).toBeLessThan(hp);
+    }
   });
 });
