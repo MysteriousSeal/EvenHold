@@ -70,7 +70,9 @@ const SIZES: Record<BuildingType, { width: [number, number]; depth: [number, num
 // each reachable (herbalistLayout.ts; tests/herbalistInside.test.ts tries every door): no emptier.
 const HERBALIST_SIZE = { width: [7, 7] as [number, number], depth: [6, 6] as [number, number] };
 const FLOORS: Record<BuildingType, FloorStyle[]> = { house: ['planks', 'boards', 'flagstones'], inn: ['tavern'], smithy: ['flagstones'] };
-const WALLS: Record<BuildingType, WallStyle[]> = { house: ['plaster', 'timber', 'stone'], inn: ['timber', 'plaster'], smithy: ['stone'] };
+// (The inn's limewashed always: its darker floor and pools of light read against pale walls. Two of them, so a room's
+// rolls stay as they were.)
+const WALLS: Record<BuildingType, WallStyle[]> = { house: ['plaster', 'timber', 'stone'], inn: ['plaster', 'plaster'], smithy: ['stone'] };
 
 // The room behind a building's door: the same for a given seed and door, always.
 // (Never a crypt's: those are their own, crypts/crypts.ts.)
