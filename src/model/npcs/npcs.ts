@@ -196,6 +196,11 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
   const inns = entrances.filter((e) => e.type === 'inn');
   const doors = entrances.filter((e) => !goesUnder(e)).length; // (the buildings': staff ids count on from them, dungeons or not)
   const fieldCenters = fields.map((f) => ({ f, x: f.x0 + f.width / 2, z: f.z0 + f.depth / 2 })); // (once, not for every house)
+  // The field villager `id` of `village` works, if they're a farmer: the nearest its village, if near, now and then.
+  const fieldOf = (id: number, village: Village): Field | null => {
+    const field = nearest(fieldCenters, village.x, village.z);
+    return field && Math.hypot(field.x - village.x, field.z - village.z) < FIELD_NEAR && hashUnit(id, seed % 1_000_003, 76) < FARMER_CHANCE ? field.f : null;
+  };
   // The herbalists' houses: in each village, the house nearest its middle, theirs alone (no villager lives there).
   const houses = entrances.filter((e) => e.type === 'house');
   const herbalistHomes = villages.map((village) => {
@@ -205,9 +210,16 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
   const shops = new Set<Entrance | null>(herbalistHomes);
   for (const home of herbalistHomes) if (home) markHerbalistHome(home); // (furnished as theirs: herbalist/herbalistLayout.ts)
   // The hedge-witches' cottages: in about one village in three, its house farthest from its middle (witch/witchHomes.ts),
-  // hers alone. (Each house's village found once, only where there's a witch to house.)
+  // hers alone; never the house of either villager the story gives the village's quests to (story/storyCast.ts: the
+  // first of them, and the first after who works a field, else the second), so no save's quests lose their people.
+  // (Each house's village found once, only where there's a witch to house.)
   const ofVillage = villages.some((v) => hasWitch(seed, v)) ? houses.map((h) => nearest(villages, h.x, h.z)) : [];
-  const witchHomes = villages.map((village) => witchHomeIn(seed, village, houses.filter((h, k) => ofVillage[k] === village && !shops.has(h))));
+  const witchHomes = villages.map((village) => {
+    const own = houses.flatMap((h, k) => (ofVillage[k] === village && !shops.has(h) ? [k] : []));
+    const [first, ...rest] = own;
+    const storied = new Set([first, rest.find((k) => fieldOf(k, village)) ?? rest[0]].map((k) => houses[k]));
+    return witchHomeIn(seed, village, own.map((k) => houses[k]), (h) => storied.has(h));
+  });
   for (const home of witchHomes) if (home) (shops.add(home), markWitchHome(home)); // (furnished as hers: witch/witchLayout.ts)
   const villagers = houses
     .flatMap((home, id) => {
@@ -219,8 +231,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
       npc.stop = Math.floor(hashUnit(id, seed % 1_000_003, 75) * ROUTINE.length);
       npc.steps = [{ kind: 'settle', for: 5 + hashUnit(Math.round(home.x * 10), Math.round(home.z * 10), seed * 131 + 73) * 40 }];
       // Some work the field nearest their village, if there's one near.
-      const field = nearest(fieldCenters, village.x, village.z);
-      if (field && Math.hypot(field.x - village.x, field.z - village.z) < FIELD_NEAR && hashUnit(id, seed % 1_000_003, 76) < FARMER_CHANCE) npc.field = field.f;
+      npc.field = fieldOf(id, village);
       return [npc];
     });
   const innVillages = inns.map((inn) => nearest(villages, inn.x, inn.z)); // (each inn's: its barmaids' and its bouncer's)

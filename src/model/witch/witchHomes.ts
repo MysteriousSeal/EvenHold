@@ -17,12 +17,14 @@ export const isWitchHome = (entrance: Entrance): boolean => homes.has(entrance);
 export const hasWitch = (seed: number, village: Village): boolean => hashUnit(Math.round(village.x), Math.round(village.z), (seed % 1_000_003) + 6151) < WITCH_SHARE;
 
 // Her house in `village`, if it has her: of `houses` (its own, the herbalist's left out), the farthest from its
-// middle; none, a village too small to spare one.
-export function witchHomeIn(seed: number, village: Village, houses: readonly Entrance[]): Entrance | null {
+// middle that's not `spared` (whoever lives there has a part in the story: npcs.ts); none, a village too small to
+// spare one, or none to be had.
+export function witchHomeIn(seed: number, village: Village, houses: readonly Entrance[], spared: (house: Entrance) => boolean = () => false): Entrance | null {
   if (!hasWitch(seed, village) || houses.length < FEWEST) return null;
   let far: Entrance | null = null;
   let farD = -1;
   for (const h of houses) {
+    if (spared(h)) continue;
     const d = (h.x - village.x) ** 2 + (h.z - village.z) ** 2;
     if (d > farD) [far, farD] = [h, d];
   }
