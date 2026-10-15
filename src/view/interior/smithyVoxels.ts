@@ -10,7 +10,7 @@ import { WOOD, WOOD_DARK, WOOD_LIGHT, IRON, IRON_LIGHT, STONE, STONE_DARK, BRASS
 import type { Furniture } from '../../model/interiors/furniture';
 import { hashUnit } from '../../util/random';
 
-export type SmithyKind = 'forge' | 'anvil' | 'trough' | 'rack' | 'coal' | 'barStock' | 'scrapHeap' | 'bladeCrate' | 'wheelRim' | 'smithCounter' | 'bellows' | 'weaponWall' | 'armorStand' | 'grindstone' | 'toolBoard' | 'salvageBench';
+export type SmithyKind = 'forge' | 'anvil' | 'trough' | 'rack' | 'coal' | 'barStock' | 'scrapHeap' | 'bladeCrate' | 'smithCounter' | 'bellows' | 'weaponWall' | 'armorStand' | 'grindstone' | 'toolBoard' | 'salvageBench';
 
 // Water standing in a vessel over u0..u1, v0..v1 at height y: dark, its rim a voxel lighter where it meets the sides.
 const water = (box: Box, u0: number, v0: number, u1: number, v1: number, y: number) => box(u0, y, v0, u1, y, v1, (u, _y, v) => (u === u0 || u === u1 || v === v0 || v === v1 ? QUENCH_LIGHT : QUENCH));
@@ -203,15 +203,6 @@ export const SMITHY_PAINTERS: Record<SmithyKind, (box: Box, len: number, dep: nu
     box(12, 11, 13, 12, 17, 13, (_u, y) => (y === 17 ? IRON_EDGE : IRON_LIGHT)); // one drawn half out, bright
     box(11, 18, 13, 13, 18, 13, BRASS);
     box(12, 19, 13, 12, 20, 13, WOOD_DARK);
-  },
-  // A cartwheel's iron tyre, waiting to be shrunk on, stood on its edge and
-  // leant toward the wall at the right, lit along its top.
-  wheelRim: (box) => {
-    for (let y = 1; y <= 15; y++) {
-      for (let v = 4; v <= 20; v++) {
-        if (Math.abs(Math.hypot(v - 12, y - 8) - 7) < 0.6) box(20 + (y >> 2), y, v, 21 + (y >> 2), y, v, y > 10 ? IRON_LIGHT : IRON);
-      }
-    }
   },
   // A heap of scrap waiting by the salvage bench: rusted iron stepped up to a peak, a broken blade sticking up from
   // it, a dented helm, a horseshoe, a bar or two.
