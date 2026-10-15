@@ -10,7 +10,7 @@ import type { GearSet } from './sets';
 
 // Kinds of people who dress themselves from the item catalog (bandits at random;
 // the inns' bouncers always in their own studded leathers).
-export type Wearer = 'bandit' | 'bouncer' | 'pedlar' | 'pilgrim' | 'guard'; // (the last three: travellers on the roads, travellers/travellers.ts)
+export type Wearer = 'bandit' | 'bouncer' | 'pedlar' | 'pilgrim' | 'guard' | 'finder'; // (the last four: travellers on the roads, travellers/travellers.ts; a finder, the bishop's man in grey)
 // Those who sell items: the smith (weapons, shields, armour: smithy/smithShop.ts).
 export type Merchant = 'smith' | 'pedlar'; // (a pedlar: trinkets, carried along the roads: travellers/pedlarShop.ts)
 

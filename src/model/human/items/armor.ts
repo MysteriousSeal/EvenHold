@@ -4,6 +4,7 @@ import { slotItems } from './item';
 
 export const HEAD_ITEMS = slotItems('head', {
   leatherCap: { name: 'Leather cap', armor: 2, stats: { agility: 1 }, openBack: true },
+  findersHat: { name: "Witch-finder's hat", value: 70, wornBy: { finder: 1 }, droppedBy: { witchFinder: 2 }, armor: 2, stats: { stamina: 1, endurance: 1 } }, // (the bishop's men in grey: roads/patrols.ts)
   maskedHood: { name: 'Hood and mask', wornBy: { bandit: 3 }, armor: 1, stats: { agility: 2 } },
   redBandana: { name: 'Red bandana', wornBy: { bandit: 2 }, stats: { agility: 1 }, openBack: true },
   nasalCap: { name: 'Nasal cap', value: 60, soldBy: { smith: 2 }, wornBy: { bandit: 2, guard: 2 }, armor: 4, stats: { stamina: 1 }, openBack: true },
@@ -56,6 +57,7 @@ export const SHOULDERS_ITEMS = slotItems('shoulders', {
 
 export const TORSO_ITEMS = slotItems('torso', {
   gambeson: { name: 'Gambeson', armor: 4, stats: { stamina: 2 } },
+  findersCoat: { name: "Witch-finder's coat", value: 180, wornBy: { finder: 1 }, droppedBy: { witchFinder: 1 }, armor: 6, stats: { stamina: 2, endurance: 1 } }, // (grey wool over mail)
   leatherVest: { name: 'Leather vest', wornBy: { bandit: 3 }, armor: 4, stats: { agility: 2 } },
   patchedTunic: { name: 'Patched tunic', wornBy: { bandit: 2, pedlar: 1 }, armor: 1, stats: { endurance: 1 } },
   furJerkin: { name: 'Fur-collared jerkin', wornBy: { bandit: 2 }, armor: 3, stats: { endurance: 3 } },
@@ -77,7 +79,7 @@ export const TORSO_ITEMS = slotItems('torso', {
 });
 
 export const HANDS_ITEMS = slotItems('hands', {
-  ridingGloves: { name: 'Riding gloves', wornBy: { bandit: 2, guard: 1 }, armor: 1, stats: { agility: 1 } },
+  ridingGloves: { name: 'Riding gloves', wornBy: { finder: 1, bandit: 2, guard: 1 }, armor: 1, stats: { agility: 1 } },
   workGloves: { name: 'Work gloves', wornBy: { pedlar: 1 }, armor: 1, stats: { strength: 1 } },
   mailMittens: { name: 'Mail mittens', value: 70, soldBy: { smith: 1 }, armor: 2, stats: { stamina: 1 } },
   gauntlets: { name: 'Gauntlets', value: 140, soldBy: { smith: 1 }, wornBy: { guard: 1 }, armor: 3, stats: { strength: 2 } },
@@ -106,7 +108,7 @@ export const LEGS_ITEMS = slotItems('legs', {
   plaidKilt: { name: 'Plaid kilt', wornBy: { bandit: 1 }, armor: 1, stats: { endurance: 2 } },
   leatherBreeches: { name: 'Leather breeches', wornBy: { bandit: 1 }, armor: 3, stats: { agility: 2 } },
   stripedHose: { name: 'Striped hose', armor: 1, stats: { agility: 1 } },
-  paddedChausses: { name: 'Padded chausses', wornBy: { guard: 1 }, armor: 3, stats: { stamina: 1 } },
+  paddedChausses: { name: 'Padded chausses', wornBy: { finder: 1, guard: 1 }, armor: 3, stats: { stamina: 1 } },
   linenTrousers: { name: 'Linen trousers', wornBy: { pedlar: 2 }, armor: 1, stats: { endurance: 1 } },
   // The sets' (sets.ts).
   barrowGreaves: { name: 'Barrow greaves', set: 'barrow', level: 4, value: 140, droppedBy: { draugr: 2, skeleton: 1 }, armor: 5, stats: { stamina: 2 } },
@@ -118,7 +120,7 @@ export const LEGS_ITEMS = slotItems('legs', {
 
 export const FEET_ITEMS = slotItems('feet', {
   leatherBoots: { name: 'Leather boots', wornBy: { pedlar: 1, guard: 1 }, armor: 2, stats: { agility: 1 } },
-  blackBoots: { name: 'Black boots', wornBy: { bandit: 2, guard: 1 }, armor: 2, stats: { agility: 1, stamina: 1 } },
+  blackBoots: { name: 'Black boots', wornBy: { finder: 1, bandit: 2, guard: 1 }, armor: 2, stats: { agility: 1, stamina: 1 } },
   footWraps: { name: 'Foot wraps', wornBy: { bandit: 1, pedlar: 1, pilgrim: 1 }, stats: { endurance: 1 } },
   sandals: { name: 'Sandals', wornBy: { bandit: 1, pedlar: 1, pilgrim: 2 }, stats: { agility: 1 } },
   sabatons: { name: 'Sabatons', value: 150, soldBy: { smith: 1 }, armor: 3, stats: { stamina: 2 } },

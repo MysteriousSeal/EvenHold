@@ -17,7 +17,7 @@ export const MAIN_HAND_ITEMS = slotItems('mainHand', {
   fellingAxe: { type: 'axe', name: 'Felling axe', value: 90, stats: { strength: 3 } },
   broadAxe: { type: 'axe', name: 'Broad axe', value: 90, stats: { strength: 5, endurance: 1 } },
   club: { type: 'club', name: 'Knotted club', wornBy: { bandit: 2 }, stats: { strength: 2 } },
-  mace: { type: 'mace', name: 'Mace', value: 120, soldBy: { smith: 1 }, wornBy: { bandit: 1 }, stats: { strength: 4 } },
+  mace: { type: 'mace', name: 'Mace', value: 120, soldBy: { smith: 1 }, wornBy: { bandit: 1, finder: 1 }, stats: { strength: 4 } },
   warHammer: { type: 'hammer', name: 'War hammer', value: 200, soldBy: { smith: 1 }, stats: { strength: 5, stamina: 1 } },
   spear: { type: 'spear', name: 'Spear', value: 70, soldBy: { smith: 2 }, wornBy: { bandit: 1, guard: 1 }, stats: { strength: 2, agility: 2 } },
   quarterstaff: { type: 'staff', name: 'Quarterstaff', wornBy: { pilgrim: 1 }, stats: { agility: 1, endurance: 2 } },
@@ -41,7 +41,7 @@ export const OFF_HAND_ITEMS = slotItems('offHand', {
   pavise: { name: 'Pavise', value: 180, soldBy: { smith: 1 }, armor: 5, stats: { stamina: 2, endurance: 1 } },
   crestShield: { name: 'Sun crest shield', value: 160, soldBy: { smith: 1 }, armor: 4, stats: { strength: 1, stamina: 1 } },
   bronzeTarge: { name: 'Bronze targe', value: 100, soldBy: { smith: 1 }, armor: 3, stats: { strength: 1, agility: 1 } },
-  torch: { name: 'Torch', wornBy: { bandit: 1 }, stats: { endurance: 2 } },
+  torch: { name: 'Torch', wornBy: { bandit: 1, finder: 1 }, stats: { endurance: 2 } },
   parryingDagger: { name: 'Parrying dagger', value: 60, soldBy: { smith: 1 }, wornBy: { bandit: 1 }, stats: { agility: 3 } },
   tome: { name: 'Leather tome', stats: { endurance: 3 } },
   // The sets' (sets.ts): the watch's shield at the smithy and on the guards' arms; the rest found.

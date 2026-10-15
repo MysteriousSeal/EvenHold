@@ -58,6 +58,7 @@ export const EMPTY_SLOT_WEIGHT: Record<Wearer, Partial<Record<EquipSlot, number>
   pedlar: { head: 1, shoulders: 2, hands: 2, neck: 1, ring: 3, mainHand: 1, offHand: 1 }, // (unarmed)
   pilgrim: { head: 1, shoulders: 1, hands: 1, neck: 1, ring: 1, offHand: 1 },
   guard: { shoulders: 1, neck: 1, ring: 1, offHand: 1 },
+  finder: { shoulders: 1, neck: 1, ring: 1 }, // (always the hat and the coat; a torch in the off hand)
 };
 
 type Options = Array<[ItemId | null, number]>;

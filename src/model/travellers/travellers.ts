@@ -20,7 +20,7 @@ import { enemyLevel } from '../enemies/enemyLevels';
 import type { Enemy } from '../types';
 import { TravellerFights } from './travellerFights';
 
-export type TravellerRole = 'pedlar' | 'pilgrim' | 'guard';
+export type TravellerRole = 'pedlar' | 'pilgrim' | 'guard' | 'finder'; // (a finder: the bishop's men in grey, set out by roads/patrols.ts, never by the seed)
 
 export interface Traveller extends Humanoid {
   id: number;
@@ -165,8 +165,9 @@ export class Travellers {
   }
 
   // Where everyone is, for the save: each on their road (how far along, which way), their partner, their level.
+  // (Not the witch-finders: set out afresh as they're wanted, roads/patrols.ts.)
   save(): { v: number; on: Array<[number, TravellerRole, number, number, 1 | -1, number | null, number]> } {
-    return { v: SAVE_VERSION, on: this.list.map((t) => [t.id, t.role, t.road, Math.round(t.along * 100) / 100, t.way, t.leader, t.level]) };
+    return { v: SAVE_VERSION, on: this.list.filter((t) => t.role !== 'finder').map((t) => [t.id, t.role, t.road, Math.round(t.along * 100) / 100, t.way, t.leader, t.level]) };
   }
 
   // Everyone back where the save had them (what doesn't fit this world's roads, left as the seed has it).
@@ -189,6 +190,13 @@ export class Travellers {
       return t;
     }));
     this.byId = new Map(this.list.map((t) => [t.id, t]));
+  }
+
+  // Onto the roads (a party of witch-finders: roads/patrols.ts), walking with the rest.
+  join(t: Traveller): void {
+    t.y = this.groundY(t.x, t.z);
+    this.list.push(t);
+    this.byId.set(t.id, t);
   }
 
   // Each frame the hero's out in the world (`enemies`: the world's foes, for the guards to go for).

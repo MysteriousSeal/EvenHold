@@ -15,7 +15,7 @@ const HP_PER_LEVEL_SQUARED = 0.02; // and 2% times the levels up squared
 const DAMAGE_PER_LEVEL = 0.15;
 // The heavy that no plain blow staggers (enemies/poise.ts), the fights between a dungeon's bosses: more health the
 // higher they are, HEAVY_MORE a level more, HEAVY_MOST at most (none at level 1: a fresh hero's foes as ever).
-const HEAVY: ReadonlySet<EnemyKind> = new Set(['draugr', 'bear', 'banditChief', 'bruiser']);
+const HEAVY: ReadonlySet<EnemyKind> = new Set(['draugr', 'bear', 'banditChief', 'bruiser', 'witchFinder']);
 const HEAVY_MORE = 0.04;
 const HEAVY_MOST = 0.3;
 const DAMAGE_PER_LEVEL_SQUARED = 0.02;

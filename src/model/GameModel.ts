@@ -71,6 +71,8 @@ import { Story } from './story/story';
 import { consumed, startAttack, useAction } from './hero/heroActs';
 import { Chickens } from './spells/turned';
 import { Swaps } from './spells/swaps';
+import { Heat } from './roads/heat';
+import { Roads } from './roads/roads';
 
 export const CLASSIC_MOST = 4096; // tiles a side, at most, of a world made whole (larger: streamed)
 
@@ -140,6 +142,8 @@ export class GameModel {
   readonly cooking: Cooking = new Cooking(this); // (meals cooked by a fire: skills/cooking.ts)
   readonly herbs: Herbalism = new Herbalism(this); readonly alchemy: Alchemy = new Alchemy(this); // (herbs picked in their season, brewed at a cauldron: skills/herbalism.ts, alchemy.ts)
   readonly story = new Story(this); // (the quests people give, and how they stand: story/story.ts)
+  readonly heat = new Heat(this); // (what the witch-finders have heard of the hero, by village: roads/heat.ts)
+  readonly roads = new Roads(this); // (the witch-finders' patrols, the dead walking at night: roads/roads.ts)
   felled = (tree: Tree): boolean => this.lumber.felled(tree); // (the world's: a felled tree not there, nor in the way)
 
   // Dev cheats: speed factor (1 = normal); walking through everything; enemies' blows don't hurt; every blow of the hero's
@@ -173,7 +177,7 @@ export class GameModel {
     ({ enemies: this.enemies, travellers: this.travellers, wildlife: this.wildlife, entrances: this.entrances, npcs: this.npcs } = this.world);
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => foeStrikes(this, e));
-    this.wild = new WildMoves(() => this.director.around(), this.hero, (x, z) => this.obstacles.isBlocked(x, z, 0.25), () => dungeonHooks(this)); // (a bear's slam and charge, a lynx's pounce)
+    this.wild = new WildMoves(() => this.director.around(), this.hero, (x, z) => this.obstacles.isBlocked(x, z, 0.25), () => dungeonHooks(this), (foe) => this.roads.patrols.seizing(foe)); // (a bear's slam and charge, a lynx's pounce, a witch-finder's pitch)
     this.nearNpcs = new Nearby(this.npcs, (npc) => npc.village, ENEMY_ACTIVE_RADIUS + 40); // (+40: as far from their village as a villager goes, out to a field)
     this.nearWildlife = new Nearby(this.wildlife, (animal) => animal, ENEMY_ACTIVE_RADIUS);
     this.quests = new QuestBook(this);
@@ -270,6 +274,7 @@ export class GameModel {
     this.moves.update(dt, this.push, this.land);
     [this.director.update(dt), this.wild.update(dt), knockedOn(this, dt), this.campLife.update(this.hero, this.report), this.welcome.update(this.hero, this.report), this.story.update()]; // (the wild beasts' told moves; a blow's knock carrying the hero; the camps; the villages)
     this.travellers.update(dt, this.director.around()); // (the foes round the hero: guards fight only there)
+    this.roads.update(dt); // (the witch-finders, the night's dead)
     this.quests.update(dt);
     [this.bounties.update(), this.atlas.update()]; // (posters come down; the land round the hero seen)
     stepNpcs(this.folk, this, dt);
@@ -331,10 +336,11 @@ export class GameModel {
   shove = (enemy: Enemy, dx: number, dz: number): void => void (this.below?.run.director ?? this.director).move(enemy, dx, dz);
   // The hero knocked (dx, dz) indoors (a draugr's cleave), never into the walls, still facing as they were.
   push = (dx: number, dz: number, facing = this.hero.facing): void => void [this.inside ? walkInside(this.inside, this.hero, dx, dz, Math.hypot(dx, dz), () => false) : this.stepOut(dx, dz), (this.hero.facing = facing)];
-  report = (event: GameEvent): void => void [this.events.push(event), this.story.onEvent(event)]; // (and what the quests people give ask for, counted: story/story.ts)
+  report = (event: GameEvent): void => void [this.events.push(event), this.story.onEvent(event), this.heat.onEvent(event)]; // (and what the quests people give ask for, counted: story/story.ts)
   get lootSalt(): number | null { return this.below?.salt ?? null; } // (a dungeon's foes' drops: the dungeon, the time down)
   mercy = (source: LootSource, dropped: LootId | null, rolled: number): LootId | null => this.dropMercy.roll(source, this.story.wantedItems(), dropped, rolled);
   private readonly dropMercy = new DropMercy();
+  seized = (enemy: Enemy): boolean => this.roads.seized(enemy); // (a witch-finder's blow, taking hold of them: roads/roads.ts)
   slayGuard = (enemy: Enemy): void => void this.events.push(...(this.below?.run.slay(enemy, this.hero) ?? [])); // (its run's: what's told of it)
   // How much of a dungeon is cleared (0..1): its foes slain and its boss, of all of them (by its way in).
   clearedShare = (entrance: Entrance): number => dungeonShare(this.seed, entrance, this.cleared);
@@ -413,5 +419,5 @@ export class GameModel {
   private keepFocus = (): void => void [this.focusOn.keep(this.hero), this.chosen.keep(this)];
 
   // Out of health: fallen, waking at an inn (hero/setbacks.ts).
-  fall = (): void => fall(this);
+  fall = (by?: Enemy | null): void => fall(this, by);
 }

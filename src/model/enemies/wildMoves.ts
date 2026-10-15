@@ -5,7 +5,11 @@
 // - hurt, it charges, clumsily: lowering its head, pawing, then a rush down a
 //   strip at the hero (stopped short of anything in the way), bowling them back;
 // - a lynx, from a few tiles off, pounces: crouched, its eyes on the hero,
-//   then a leap at where they stood, its bite where it lands.
+//   then a leap at where they stood, its bite where it lands;
+// - a witch-finder (roads/patrols.ts), from a few tiles off, throws a pot of
+//   burning pitch at where the hero stands: its circle told on the ground as
+//   his arm goes back, burning whoever's still in it as it lands (never while
+//   he's out to take them alive).
 // The leap and the rush built as any (toldMoves.ts); the blows land through the
 // dungeons' own hooks (hero/fighting.ts: dungeonHooks).
 
@@ -27,6 +31,9 @@ const POUNCE_TIME = 0.28;
 export const POUNCE_LONG = 4.2;
 const POUNCE_BITE = 0.6; // tiles from where it lands it bites
 const POUNCE_KNOCK = 0.5;
+export const PITCH_TELL = 0.9;
+export const PITCH_RADIUS = 1.1; // tiles round where it lands it burns
+const PITCH_HARM = 1.2; // of his blow
 
 export const BEAR_SLAM: ToldMove = {
   told: 'slam',
@@ -48,28 +55,34 @@ export const bearCharge = (blocked: (x: number, z: number) => boolean): ToldMove
 export const lynxPounce = (blocked: (x: number, z: number) => boolean): ToldMove =>
   leap({ told: 'lunge', by: 'lynx', tell: POUNCE_TELL, after: POUNCE_TIME + 0.35, every: 5, first: 0.3, near: 4, far: 1.4 }, blocked, { reach: POUNCE_LONG, time: POUNCE_TIME, bite: POUNCE_BITE });
 
+// A witch-finder's pot of pitch: from a few tiles off, at where the hero stood as he drew back, landing there.
+export const PITCH: ToldMove = { told: 'firebomb', by: 'witchFinder', tell: PITCH_TELL, after: 0.3, every: 6, first: 2, near: 6, far: 1.8, hits: (m, hero) => Math.hypot(hero.x - m.tx, hero.z - m.tz) < PITCH_RADIUS };
+
 // The wild beasts' moves, run over the world's foes each frame.
 export class WildMoves {
   readonly slams: ToldMoves;
   readonly charges: ToldMoves;
   readonly pounces: ToldMoves;
+  readonly pitches: ToldMoves;
 
   constructor(
     private readonly foes: () => readonly Enemy[], // (those round the hero: no move's started, told or landed further off)
     private readonly hero: Hero,
     blocked: (x: number, z: number) => boolean,
     hooks: () => DungeonHooks,
+    private readonly gentle: (foe: Enemy) => boolean = () => false, // (a witch-finder out to take them alive: no pitch)
   ) {
     this.slams = new ToldMoves(BEAR_SLAM, (bear, m) => hooks().blow(bear, Math.round(bear.damage * 1.5), knockAway(m, this.hero, SLAM_KNOCK)));
     this.charges = new ToldMoves(bearCharge(blocked), (bear, m) => hooks().blow(bear, Math.round(bear.damage * 1.3), { dx: m.dx * CHARGE_KNOCK, dz: m.dz * CHARGE_KNOCK }));
     this.pounces = new ToldMoves(lynxPounce(blocked), (lynx, m) => hooks().blow(lynx, Math.round(lynx.damage * 1.5), { dx: m.dx * POUNCE_KNOCK, dz: m.dz * POUNCE_KNOCK }));
+    this.pitches = new ToldMoves(PITCH, (finder) => hooks().blow(finder, Math.round(finder.damage * PITCH_HARM)));
   }
 
   update(dt: number): void {
-    const moves = [this.slams, this.charges, this.pounces];
+    const moves = [this.slams, this.charges, this.pounces, this.pitches];
     for (const told of moves) {
       // One at a time; a bear charges only once it's hurt.
-      told.update(this.foes(), this.hero, dt, (foe) => moves.some((other) => other !== told && other.doing(foe)) || (told === this.charges && foe.hp > foe.maxHp * HURT_TO_CHARGE));
+      told.update(this.foes(), this.hero, dt, (foe) => moves.some((other) => other !== told && other.doing(foe)) || (told === this.charges && foe.hp > foe.maxHp * HURT_TO_CHARGE) || (told === this.pitches && this.gentle(foe)));
     }
   }
 }

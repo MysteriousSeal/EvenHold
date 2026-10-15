@@ -26,6 +26,7 @@ import { mail, mod, weave } from '../patterns';
 import { L, M, cornered, domed, edgeOf, onFace, riveted, within } from './headShape';
 import { HELM_MODELS } from './helms';
 import { SET_HELM_MODELS } from './setHelms';
+import { FINDER_HEAD } from './finderGear';
 
 
 // A leather cap: a crown of four panels, seams raised over it, down to the
@@ -234,4 +235,5 @@ export const HEAD_MODELS: Record<keyof typeof HEAD_ITEMS, ItemModel> = {
   circlet,
   ...HELM_MODELS,
   ...SET_HELM_MODELS,
+  ...FINDER_HEAD,
 };

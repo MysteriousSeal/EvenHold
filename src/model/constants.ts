@@ -75,6 +75,10 @@ export const ENEMY_STATS = {
   unquietBrother: { family: 'undead', passive: false, hp: 4, damage: 1, xp: 30, coins: 4, radius: 0.14, walk: 0.3, run: 1.1, sight: 6, giveUp: 10, wander: 0.5, stop: 3.2, swing: 0.9, cooldown: 2, rest: [6, 6], shove: 0.8, loot: 1.2 },
   gildedSaint: { family: 'undead', passive: true, hp: 13, damage: 3, xp: 60, coins: 12, radius: 0.16, walk: 0.4, run: 1.5, sight: 6, giveUp: 16, wander: 0, stop: 0.7, swing: 1.0, cooldown: 1.6, rest: [5, 5], shove: 0.3, loot: 1.6 },
   gildedDeacon: { family: 'undead', passive: true, hp: 56, damage: 4, xp: 420, coins: 60, radius: 0.26, walk: 0.5, run: 1.6, sight: 10, giveUp: 40, wander: 0, stop: 0.8, swing: 1.0, cooldown: 1.4, rest: [3, 3], shove: 0.2, loot: 2.5 },
+  // A witch-finder (roads/patrols.ts): the bishop's men in grey, turned on the hero from the road. Armoured (a bandit's
+  // health and more, hardly moved by a blow), hard blows, quick to see and slow to give up; a pace slower than the
+  // hero's, so a run can get away.
+  witchFinder: { family: 'humanoid', passive: false, hp: 9, damage: 3, xp: 40, coins: 12, radius: 0.15, walk: 0.9, run: 2.6, sight: 7, giveUp: 14, wander: 1.5, stop: 0.65, swing: 0.85, cooldown: 1.4, rest: [2, 3], shove: 0.4, loot: 1.2 },
   skeletonArcher: { family: 'undead', passive: false, hp: 3, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.4, run: 1.9, sight: 7, giveUp: 12, wander: 2.5, stop: 4.5, swing: 1.0, cooldown: 1.4, rest: [4, 4], shove: 1, loot: 1 },
 } as const;
 export const ENEMY_ACTIVE_RADIUS = 40; // only enemies this close to the hero think

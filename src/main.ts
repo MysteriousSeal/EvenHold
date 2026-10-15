@@ -211,6 +211,7 @@ async function boot(): Promise<void> {
   // pedlar's pack, a bouncer's or a traveller's line; a villager's: none.
   const trade = (who: Who): void => {
     if (!('role' in who)) return;
+    if ('road' in who && who.role === 'finder') return void ((told) => told && talk.show(who, told))(model.roads.talkTo(who)); // (the bishop's men: their questions, roads/questioning.ts)
     if ('road' in who) return void (who.role === 'pedlar' ? pack.open(who) : (model.travellers.hold(who, WORD_HOLD), say(who, travellerSays(who, model.crypts))));
     if (who.role === 'smith') forge.open(who);
     else if (who.role === 'herbalist') herbs.open(who);

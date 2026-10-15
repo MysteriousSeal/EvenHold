@@ -54,6 +54,7 @@ export class EnemyViews {
     broodMother: (enemy) => new SpiderRig(enemy, this.motherLook),
     caveBat: (enemy) => new BatRig(enemy, this.batLook),
     caveWorm: (enemy) => new WormRig(enemy, this.wormLook),
+    witchFinder: (enemy) => new BanditRig(enemy, this.banditLook), // (in his grey: what he wore on the road, model/roads/patrols.ts)
     // A stronghold's (model/strongholds/): bandits, each kind in its own outfit; their hounds.
     bruiser: (enemy) => new BanditRig(enemy, this.banditLook, 'bruiser'),
     crossbowman: (enemy) => new BanditRig(enemy, this.banditLook, 'crossbowman'),

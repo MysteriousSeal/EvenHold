@@ -14,6 +14,7 @@ import { buildSignposts } from '../meshes/road/signpostMesh';
 import { buildPlazas } from '../meshes/plaza/plazaMesh';
 import { buildLanterns } from '../meshes/plaza/lanternMesh';
 import { buildBenches } from '../meshes/plaza/benchMesh';
+import { buildStocksMeshes } from '../meshes/plaza/stocksMesh';
 import { buildNoticeBoards } from '../meshes/quest/noticeBoardMesh';
 import { buildFields } from '../meshes/field/fieldMesh';
 import { buildGroundCover } from '../meshes/cover/groundCoverMesh';
@@ -50,6 +51,7 @@ export const WORLD_BUILDERS: readonly WorldBuilder[] = [
   { label: 'Lighting the lanterns', build: buildLanterns },
   { label: 'Pinning up the notices', build: buildNoticeBoards },
   { label: 'Setting out the benches', build: buildBenches },
+  { label: 'Setting up the stocks', build: buildStocksMeshes },
   { label: 'Kindling the campfires', build: buildCamps },
   { label: 'Crumbling the old ruins', build: buildRuins },
   { label: 'Hollowing the hills', build: buildCaveMouths },

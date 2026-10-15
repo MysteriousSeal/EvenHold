@@ -423,7 +423,7 @@ describe('a pedlar\'s pack', () => {
     step(model, 3);
     const again = new GameModel(2, MID);
     restore(again, parseSave(JSON.stringify(snapshot(model)), 2)!);
-    const kept = (m: GameModel) => m.travellers.list.map((t) => [t.id, t.role, t.name, t.road, t.way, Math.round(t.along * 100) / 100, t.leader, t.level]);
+    const kept = (m: GameModel) => m.travellers.list.filter((t) => t.role !== 'finder').map((t) => [t.id, t.role, t.name, t.road, t.way, Math.round(t.along * 100) / 100, t.leader, t.level]); // (not the witch-finders: set out afresh, model/roads/patrols.ts)
     expect(kept(again)).toEqual(kept(model));
     for (const t of again.travellers.list) {
       const was = model.travellers.list.find((x) => x.id === t.id)!;

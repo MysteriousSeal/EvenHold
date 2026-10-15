@@ -61,6 +61,31 @@ export function villageBenches(world: BenchWorld, village: Village): Bench[] {
 }
 
 function benchesOn(world: BenchWorld, village: Village, solid: Set<string>, allDoors: ReadonlyArray<{ x: number; z: number }>, board: { x: number; z: number }): Bench[] {
+  const spots = edgeSpots(world, village, solid, allDoors, board);
+  const chosen: typeof spots = [];
+  for (const spot of spots) {
+    if (chosen.length >= PER_SQUARE) break;
+    if (chosen.some((c) => Math.max(Math.abs(c.x - spot.x), Math.abs(c.z - spot.z)) <= 1)) continue; // not right beside another
+    chosen.push(spot);
+  }
+  const y = squareY(village);
+  return chosen.map(({ x, z, front }) => {
+    const [fx, fz] = front;
+    const [ax, az] = [fz, -fx]; // along it: its left, as one sits
+    const bench: Bench = { village, x, z, y, front, quarterTurns: quarterTurnsOf(front), seats: [] };
+    bench.seats = [-1, 1].map((side) => {
+      const at = { x: x + ax * side * SEAT_APART, z: z + az * side * SEAT_APART };
+      // Each seat its own piece, so the two are taken apart from each other.
+      const piece = { kind: 'bench' as const, x: at.x, z: at.z, w: 1, d: 1, wall: 'none' as const, solid: true, facing: front };
+      return { piece, x: at.x, z: at.z, y: y + SEAT_HEIGHT, facing: Math.atan2(fx, fz), lying: false };
+    });
+    return bench;
+  });
+}
+
+// The spots along a square's edge a bench (or the stocks: roads/stocks.ts) could stand on, in the seed's order: never
+// its corners (the lamp posts'), built on, where a lane comes in, round the notice board, or before a door.
+export function edgeSpots(world: BenchWorld, village: Village, solid: Set<string>, allDoors: ReadonlyArray<{ x: number; z: number }>, board: { x: number; z: number }): Array<{ x: number; z: number; front: [number, number] }> {
   const path = (x: number, z: number) => world.tiles.surface(x, z) === 'path';
   // Only this square's doors can be before a spot on its edge (not the world's thousands).
   const doors = allDoors.filter((d) => Math.abs(d.x - village.x) <= R + 1 && Math.abs(d.z - village.z) <= R + 1);
@@ -76,29 +101,14 @@ function benchesOn(world: BenchWorld, village: Village, solid: Set<string>, allD
       spots.push({ x, z, front: [-dx, -dz], order: hashUnit(x, z, (world.seed % 1_000_003) + 301) });
     }
   }
-  const chosen: typeof spots = [];
-  for (const spot of spots.sort((a, b) => a.order - b.order)) {
-    if (chosen.length >= PER_SQUARE) break;
-    if (chosen.some((c) => Math.max(Math.abs(c.x - spot.x), Math.abs(c.z - spot.z)) <= 1)) continue; // not right beside another
-    chosen.push(spot);
-  }
-  const y = village.groundTier * TILE_HEIGHT + ROAD_SURFACE_HEIGHT;
-  return chosen.map(({ x, z, front }) => {
-    const [fx, fz] = front;
-    const [ax, az] = [fz, -fx]; // along it: its left, as one sits
-    const bench: Bench = { village, x, z, y, front, quarterTurns: quarterTurnsOf(front), seats: [] };
-    bench.seats = [-1, 1].map((side) => {
-      const at = { x: x + ax * side * SEAT_APART, z: z + az * side * SEAT_APART };
-      // Each seat its own piece, so the two are taken apart from each other.
-      const piece = { kind: 'bench' as const, x: at.x, z: at.z, w: 1, d: 1, wall: 'none' as const, solid: true, facing: front };
-      return { piece, x: at.x, z: at.z, y: y + SEAT_HEIGHT, facing: Math.atan2(fx, fz), lying: false };
-    });
-    return bench;
-  });
+  return spots.sort((a, b) => a.order - b.order);
 }
 
+// The paving of a square, its height.
+export const squareY = (village: Village): number => village.groundTier * TILE_HEIGHT + ROAD_SURFACE_HEIGHT;
+
 // Quarter turns (about y) that face +z toward `front`.
-function quarterTurnsOf([fx, fz]: [number, number]): number {
+export function quarterTurnsOf([fx, fz]: [number, number]): number {
   return fz === 1 ? 0 : fx === 1 ? 1 : fz === -1 ? 2 : 3;
 }
 
