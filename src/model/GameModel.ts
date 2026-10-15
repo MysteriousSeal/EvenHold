@@ -175,7 +175,7 @@ export class GameModel {
     ({ enemies: this.enemies, travellers: this.travellers, wildlife: this.wildlife, entrances: this.entrances, npcs: this.npcs } = this.world);
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => foeStrikes(this, e));
-    this.wild = new WildMoves(() => this.director.around(), this.hero, (x, z) => this.obstacles.isBlocked(x, z, 0.25), () => dungeonHooks(this)); // (a bear's slam and charge, a lynx's pounce)
+    this.wild = new WildMoves(() => this.director.around(), this.hero, (x, z) => this.obstacles.isBlocked(x, z, 0.25), () => dungeonHooks(this), (foe) => this.roads.patrols.seizing(foe)); // (a bear's slam and charge, a lynx's pounce, a witch-finder's pitch)
     this.nearNpcs = new Nearby(this.npcs, (npc) => npc.village, ENEMY_ACTIVE_RADIUS + 40); // (+40: as far from their village as a villager goes, out to a field)
     this.nearWildlife = new Nearby(this.wildlife, (animal) => animal, ENEMY_ACTIVE_RADIUS);
     this.quests = new QuestBook(this);
