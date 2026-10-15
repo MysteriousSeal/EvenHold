@@ -257,6 +257,6 @@ describe('the pause menu: the rest', () => {
 
   it('no new game here (a new hero is made from the main menu)', () => {
     menu.open();
-    expect(Array.from(document.querySelectorAll('.pause-item b')).map((b) => b.textContent)).toEqual(['Resume', 'Zoom', 'Inner walls', 'Graphics', 'Brightness', 'Controls', 'Keys', 'Main menu']);
+    expect(Array.from(document.querySelectorAll('.pause-item b')).map((b) => b.textContent)).toEqual(['Resume', 'Zoom', 'Inner walls', 'Graphics', 'Brightness', 'Tips', 'Controls', 'Keys', 'Main menu']);
   });
 });

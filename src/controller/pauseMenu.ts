@@ -3,7 +3,8 @@
 // (view/ui/gilded.css): on the left the hero, framed (their portrait, name,
 // level, day and world); beside them "Paused" between gold rules, then
 // Resume (gold), the settings in place (the zoom stepped ‹ ›, the inner
-// walls switched Low | Full, the graphics' quality and brightness stepped: view/render/graphics.ts), the controls (controlsCodex.ts, Back to
+// walls switched Low | Full, the graphics' quality and brightness stepped: view/render/graphics.ts; the first
+// hour's tips Off | On: tips/firstTips.ts), the controls (controlsCodex.ts, Back to
 // return), the keys rebound (keysScreen.ts), and back to the main menu (a new hero, or this one's world
 // left be, there). Arrows choose, Enter acts (← → on a setting
 // change it), Escape resumes (or comes back from the controls); the mouse
@@ -21,6 +22,7 @@ import { QUALITY_NAMES, graphics, stepBrightness, stepQuality } from '../view/re
 import { controlsCodex } from './controlsCodex';
 import { keysScreen } from './keysScreen';
 import { rebind, type KeyAction } from './keyBindings';
+import { setTipsOn, tipsOn } from './tips/firstTips';
 import '../view/ui/gilded.css';
 import './pauseMenu.css';
 
@@ -171,11 +173,12 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
         (by) => (stepBrightness(by), changed()),
         () => (stepBrightness(1, true), changed()),
       );
+      const tips = toggle('Tips', tipsOn, ['Off', 'On'], () => (setTipsOn(!tipsOn()), draw()));
       const controls = button('', 'Controls', 'Every key, and what it does', () => ((showing = 'controls'), (lit = 0), draw()));
       const keys = button('', 'Keys', 'Put any action on the key you like', () => ((showing = 'keys'), (lit = 0), draw()));
       const menu = button('', 'Main menu', 'This world saved: another hero, another world', () => hooks.mainMenu());
       const settings = el('div', 'pause-settings');
-      settings.append(zoom.node, walls.node, quality.node, brightness.node);
+      settings.append(zoom.node, walls.node, quality.node, brightness.node, tips.node);
       main.append(title, resume, settings, controls, keys, menu, el('p', 'pause-foot', 'Esc to resume · Your progress saves itself'));
       items = [
         { node: resume, act: () => resume.click() },
@@ -183,6 +186,7 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
         walls,
         quality,
         brightness,
+        tips,
         { node: controls, act: () => controls.click() },
         { node: keys, act: () => keys.click() },
         { node: menu, act: () => menu.click() },
