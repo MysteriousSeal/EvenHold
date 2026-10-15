@@ -7,7 +7,6 @@ import { GameModel } from '../src/model/GameModel';
 import { generateWorld } from '../src/model/worldgen/world';
 import { mapsAsTiles } from '../src/model/map/tiles';
 import { BIOMES, createBiomes, type Biome } from '../src/model/scenery/biomes';
-import { createForestDensity } from '../src/model/worldgen/trees';
 import { sceneryTiles } from '../src/model/scenery/scenery';
 import { createCoverScatter } from '../src/view/meshes/cover/groundCoverScatter';
 import { BIOME_COVER } from '../src/view/meshes/cover/biomeCover';
@@ -43,18 +42,36 @@ describe('kinds of country', () => {
     }
   });
 
-  it('the woods where the trees grow thick; marsh only on low ground, hills only on high', () => {
-    const forest = createForestDensity(7);
-    const [woods, open]: number[][] = [[], []];
+  it('the marsh on lower ground, the hills on higher', () => {
+    const tiers = new Map<Biome, number[]>(BIOMES.map((b) => [b, []]));
     for (let x = 0; x < MID.width; x += 3) for (let z = 0; z < MID.depth; z += 3) {
       const kind = biomes.at(x, z);
-      if (kind === 'forest') woods.push(forest(x, z));
-      else open.push(forest(x, z));
-      if (kind === 'marsh') expect(world.heightMap[x][z]).toBeLessThanOrEqual(1);
-      if (kind === 'hills') expect(world.heightMap[x][z]).toBeGreaterThanOrEqual(3);
+      tiers.get(kind)!.push(world.heightMap[x][z]);
     }
     const mean = (list: number[]) => list.reduce((a, b) => a + b, 0) / list.length;
-    expect(mean(woods)).toBeGreaterThan(mean(open) * 2);
+    expect(mean(tiers.get('marsh')!)).toBeLessThan(mean(tiers.get('meadow')!));
+    expect(mean(tiers.get('hills')!)).toBeGreaterThan(mean(tiers.get('meadow')!));
+  });
+
+  it('stretch over tens of tiles: most of the land in runs of 8 or more along a line, one country the most of any 64 tiles', () => {
+    const big = createBiomes(1);
+    let [long, all] = [0, 0];
+    for (let z = 8000; z < 8600; z += 29) {
+      let run = 0;
+      for (let x = 8000; x <= 8600; x++) {
+        if (x > 8000 && big.at(x, z) !== big.at(x - 1, z)) [long, run] = [long + (run >= 8 ? run : 0), 0];
+        run++;
+        all++;
+      }
+      long += run >= 8 ? run : 0;
+    }
+    expect(long / all).toBeGreaterThan(0.7);
+    for (let w = 0; w < 6; w++) {
+      const counts = new Map<Biome, number>();
+      for (let x = 0; x < 64; x += 2) for (let z = 0; z < 64; z += 2) counts.set(big.at(9000 + w * 256 + x, 9000 + z), (counts.get(big.at(9000 + w * 256 + x, 9000 + z)) ?? 0) + 1);
+      expect(counts.size).toBeLessThan(BIOMES.length + 1);
+      expect(Math.max(...counts.values()) / 1024).toBeGreaterThan(0.3);
+    }
   });
 
   it('change no tree: the world made from the seed is as it was (its trees, their kinds, where they stand)', () => {
@@ -104,11 +121,13 @@ describe('what grows on the ground', () => {
 
   it('each country\'s own plants, and only there', () => {
     const kinds = new Set(cover.wild.map((w) => w.kind));
-    for (const kind of ['fern', 'mushroom', 'heather', 'reed', 'stone']) expect(kinds.has(kind as never), kind).toBe(true);
+    for (const kind of ['fern', 'bracken', 'mushroom', 'heather', 'reed', 'stone', 'litter', 'thistle']) expect(kinds.has(kind as never), kind).toBe(true);
     for (const w of cover.wild) {
       const country = biomes.at(Math.round(w.x), Math.round(w.z));
       expect(w.country).toBe(country);
-      expect(BIOME_COVER[country].wild.some((g) => g.kind === w.kind)).toBe(true);
+      const [x, z] = [Math.round(w.x), Math.round(w.z)];
+      const shore = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => model.tiles.has(x + dx, z + dz) && model.tiles.lake(x + dx, z + dz));
+      expect(BIOME_COVER[country].wild.some((g) => g.kind === w.kind) || (w.kind === 'reed' && shore), `${w.kind} in ${country}`).toBe(true);
     }
   });
 
