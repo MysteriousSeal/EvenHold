@@ -116,11 +116,11 @@ export const SKILLS: Record<SkillId, Skill> = {
     about: "Turn what's caught and hunted into meals that heal more than anything sold, and keep the hero going for a while after.",
     unlocks: [
       { at: 1, what: 'Roast boar and small fry over any fire: Well fed after (a roast of meat twice as long); a fry cake at 15' },
-      { at: 25, what: 'Wolf skewers; seared lynx at 45, a fry chowder at 55, bear steaks at 60' },
+      { at: 25, what: 'Wolf skewers; fried roach at 40, seared lynx at 45, a fry chowder at 55, bear steaks at 60' },
       { at: 75, what: 'Grilled trout; salt-baked perch at 90' },
-      { at: 100, what: "Stews at a hearth: Well fed after, mending as you go (a fisherman's stew at 115, honey-glazed bear at 130)" },
-      { at: 150, what: 'Roast pike; pies at a hearth from 160 (a pike pie at 180, a honey cake at 200): Fortified after' },
-      { at: 225, what: "Feasts before a hard fight: Feasted after (a river feast at 250, a lord's at 275)" },
+      { at: 100, what: "Stews at a hearth: Well fed after, mending as you go (smoked eel at 110, a fisherman's stew at 115, baked bream at 120, honey-glazed bear at 130)" },
+      { at: 150, what: 'Roast pike; pies at a hearth from 160 (a grayling pie at 165, a pike pie at 180, a honey cake at 200): Fortified after; seared char at 185' },
+      { at: 225, what: "Feasts before a hard fight: Feasted after (a river feast at 250, smoked sturgeon at 260, a lord's at 275, an angler's at 290)" },
     ],
   },
   fishing: {
