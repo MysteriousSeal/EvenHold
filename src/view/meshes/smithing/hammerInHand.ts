@@ -12,8 +12,9 @@ import { greedyMesh } from '../voxel/greedyMesh';
 const SIZE: [number, number, number] = [3, 7, 11]; // across, up, along: the head's width and height, the haft's length
 const HAFT: [number, number] = [1, 3]; // the haft's place across and up
 const GRIP: [number, number, number] = [HAFT[0] + 0.5, HAFT[1] + 0.25, 1.5]; // the hand's place in it, in voxels (as the pick's)
-// Ash 1, its leather grip 2, the head's iron 3, its worn face and peen 4.
-const PALETTE = [0x9a6a40, 0x4a3020, 0x50525a, 0xc4c8cc];
+// Dark oak 1, its grip 2, the head's iron 3, its striking face and peen 4: as the hammer leant on the anvil's stump
+// (interior/furniturePalette.ts: WOOD_DARK, IRON, IRON_LIGHT).
+const PALETTE = [0x5e3f28, 0x3e2a1a, 0x5a5e66, 0x8d939c];
 
 // A hammer along z: its haft (a grip at the hand's end), the head across it at the far end, a broad face one way, a
 // narrower peen the other.
