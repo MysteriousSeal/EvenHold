@@ -156,12 +156,15 @@ export function beforeBench(bench: Furniture, hero: { x: number; z: number }): b
   return Math.abs(hero.x - bench.x) <= BENCH_ALONG && out >= BENCH_OUT[0] && out <= BENCH_OUT[1];
 }
 
-// The hero's own make: a piece of gear made (woodworking.ts, smithing.ts), counted by its key; and one of them broken
-// down, the count less. A save's, as far as it's sound.
+// The hero's own make: a piece of gear made (woodworking.ts, smithing.ts), counted by its key (one broken down, sold or
+// otherwise gone, the count less: unmarkCrafted); whether a piece is; a save's, as far as it's sound.
 export function markCrafted(hero: Hero, item: string): void {
   if (isGear(item)) (hero.crafted ??= {})[item] = (hero.crafted[item] ?? 0) + 1;
 }
-const isCrafted = (hero: Hero, key: string): boolean => (hero.crafted?.[key] ?? 0) > 0;
+export function unmarkCrafted(hero: Hero, key: string): void {
+  if (isCrafted(hero, key) && --hero.crafted![key] <= 0) delete hero.crafted![key];
+}
+export const isCrafted = (hero: Hero, key: string): boolean => (hero.crafted?.[key] ?? 0) > 0; // (made by the hero, not found: the bench, a buyer)
 export function readCrafted(saved: unknown): Record<string, number> {
   const crafted: Record<string, number> = {};
   if (!saved || typeof saved !== 'object') return crafted;
@@ -236,7 +239,7 @@ export class Salvage {
     const { needs, gives } = salvaged;
     if (!this.roomFor(breaking.key, gives)) return this.host.report({ kind: 'poor', text: 'Your bag is full' }); // (filled meanwhile: the piece kept)
     takeFromBag(hero.bag, breaking.key);
-    if (salvaged.made && --hero.crafted![breaking.key] <= 0) delete hero.crafted![breaking.key]; // (one of their own, gone)
+    if (salvaged.made) unmarkCrafted(hero, breaking.key); // (one of their own, gone)
     for (const [item, n] of gives) for (let i = 0; i < n; i++) addToBag(hero.bag, item);
     this.host.report({ kind: 'salvaged', item: breaking.key, gives });
     let gained = 0;

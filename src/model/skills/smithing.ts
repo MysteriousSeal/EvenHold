@@ -92,6 +92,17 @@ export const SMITH_RECIPE_IDS = Object.keys(SMITH_RECIPES) as SmithRecipeId[];
 const recipeOf = (id: SmithRecipeId): SmithRecipe => SMITH_RECIPES[id];
 export const smithRise = (id: SmithRecipeId, level: number) => materialRise(SMITH_RECIPES, ['Smelting', 'Fittings'], id, level); // (an ingot or a fitting green while what's made of it teaches, as a plank is)
 
+// What smithing would teach the hero next (the smith's word to a hand at it: smithy/smithPanel.ts): of the recipes
+// they've reached, the likeliest still to raise the skill; of those as likely, one the bag would make now, then the
+// hardest. None, if nothing they know teaches any more.
+export function nextToLearn(hero: Hero): SmithRecipeId | null {
+  const level = skillOf(hero, SKILL).level;
+  const chance = (id: SmithRecipeId) => smithRise(id, level).chance;
+  const can = (id: SmithRecipeId) => Object.entries(recipeOf(id).from).every(([item, n]) => (hero.bag[item as LootId] ?? 0) >= n!);
+  const teaching = SMITH_RECIPE_IDS.filter((id) => recipeOf(id).needs <= level && chance(id) > 0);
+  return teaching.sort((a, b) => chance(b) - chance(a) || Number(can(b)) - Number(can(a)) || recipeOf(b).needs - recipeOf(a).needs)[0] ?? null;
+}
+
 export interface SmithingHost {
   readonly hero: Hero;
   readonly inside: { entrance: Entrance; furniture: readonly Furniture[]; below?: unknown } | null;
