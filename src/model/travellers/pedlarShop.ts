@@ -50,8 +50,8 @@ const RELICS_WANTED = 4;
 export const wantsRelic = (shop: Shop, id: string): boolean => !isRelic(id) || (shop.bought?.[id] ?? 0) < RELICS_WANTED;
 export const pedlarBuys = (id: string): id is BagItem => isRelic(id) || isProvision(id) || isPotion(id) || isBagItem(id) || id === 'fishingRod' || isFish(id) || FINERY.has(id) || LOGS.has(id) || FOUND.has(id) || WARES.has(id) || (isGear(id) && isJewelrySlot(slotOfGear(id)));
 
-export const pedlarPrice = (id: BagItem, selling: boolean): number =>
-  isRelic(id) ? LOOT[id as keyof typeof LOOT].value * RELIC_PREMIUM : id === 'firewood' ? INGREDIENTS.firewood.value : LOGS.has(id) || WARES.has(id) ? LOOT[id as keyof typeof LOOT].value : FOUND.has(id) ? Math.floor(LOOT[id as keyof typeof LOOT].value / 2) : FINERY.has(id) ? Math.floor(LOOT[id as keyof typeof LOOT].value / (selling ? 2 : 1)) : isProvision(id) ? (selling ? sellPrice(id) : buyPrice(id)) : isPotion(id) ? potionPrice(id, selling) : isBagItem(id) ? (selling ? Math.floor(BAG_ITEMS[id].value / 2) : BAG_ITEMS[id].value) : id === 'fishingRod' ? (selling ? Math.floor(TOOL_ITEMS.fishingRod.value / 2) : TOOL_ITEMS.fishingRod.value) : isFish(id) ? LOOT[id].value : selling ? gearSellPrice(id as GearKey) : gearPrice(id as GearKey);
+export const pedlarPrice = (id: BagItem, selling: boolean, hero?: Hero): number => // (`hero`'s gear worn: less, as at the smith's)
+  isRelic(id) ? LOOT[id as keyof typeof LOOT].value * RELIC_PREMIUM : id === 'firewood' ? INGREDIENTS.firewood.value : LOGS.has(id) || WARES.has(id) ? LOOT[id as keyof typeof LOOT].value : FOUND.has(id) ? Math.floor(LOOT[id as keyof typeof LOOT].value / 2) : FINERY.has(id) ? Math.floor(LOOT[id as keyof typeof LOOT].value / (selling ? 2 : 1)) : isProvision(id) ? (selling ? sellPrice(id) : buyPrice(id)) : isPotion(id) ? potionPrice(id, selling) : isBagItem(id) ? (selling ? Math.floor(BAG_ITEMS[id].value / 2) : BAG_ITEMS[id].value) : id === 'fishingRod' ? (selling ? Math.floor(TOOL_ITEMS.fishingRod.value / 2) : TOOL_ITEMS.fishingRod.value) : isFish(id) ? LOOT[id].value : selling ? gearSellPrice(id as GearKey, hero) : gearPrice(id as GearKey);
 
 // What the pedlar `t` carries when their pack's full: the same pedlar, the same pack (a trinket or a potion they
 // don't carry, they never have).
@@ -80,7 +80,7 @@ export const pedlarWaresOf = (seed: number, t: Pick<Traveller, 'id'>): BagItem[]
 export const buyFromPedlar = (shop: Shop, hero: Hero, id: BagItem) => buyFrom(shop, hero, id, pedlarPrice(id, false));
 export function sellToPedlar(shop: Shop, hero: Hero, id: BagItem) {
   if (!pedlarBuys(id) || !wantsRelic(shop, id)) return 'not wanted';
-  const result = sellTo(shop, hero, id, pedlarPrice(id, true));
+  const result = sellTo(shop, hero, id, pedlarPrice(id, true, hero));
   if (result === 'sold' && isRelic(id)) (shop.bought ??= {})[id] = (shop.bought[id] ?? 0) + 1; // (sold on to the pilgrims a restock at a time, as a trade's goods)
   return result;
 }

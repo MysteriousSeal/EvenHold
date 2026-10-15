@@ -7,6 +7,8 @@ import { gearKey, isGear, levelOf, type GearKey } from '../src/model/human/items
 import { RESTOCK_EVERY, buyBack } from '../src/model/shops/shopStock';
 import { mendBill, mendCost, wearOf } from '../src/model/hero/wear';
 import { isCrafted } from '../src/model/skills/salvage';
+import { stallPrice } from '../src/model/town/stallShop';
+import { pedlarPrice } from '../src/model/travellers/pedlarShop';
 
 const atSmith = () => {
   const model = fresh();
@@ -76,6 +78,16 @@ describe('trading with the smith', () => {
     model.hero.wear = { [ware]: 100 };
     expect(buyBack(shop, model.hero, 0)).toBe('bought');
     expect(wearOf(model.hero, ware)).toBe(100);
+  });
+
+  it('a worn piece fetches as little at a stall or from a pedlar as at the smith: its mending taken off', () => {
+    const { hero } = fresh();
+    const shirt = gearKey({ item: 'brigandine', level: 12, rarity: 'common', roll: 0 });
+    hero.bag[shirt] = 1;
+    hero.wear = { [shirt]: 90 };
+    expect(gearSellPrice(shirt, hero)).toBeLessThan(gearSellPrice(shirt));
+    expect(stallPrice(shirt, true, hero)).toBe(gearSellPrice(shirt, hero));
+    expect(pedlarPrice(shirt, true, hero)).toBe(gearSellPrice(shirt, hero));
   });
 
   it('mends what the hero carries as well as what they wear', () => {

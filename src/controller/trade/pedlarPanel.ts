@@ -50,7 +50,7 @@ export function createPedlarPanel(model: GameModel, hooks: { bag?: TradeBag }): 
     shop,
     wares: () => pedlarWaresOf(model.seed, pedlar!), // (what they carry: none shown sold out that never comes back)
     wanted: (id): id is BagItem => pedlarBuys(id) && wantsRelic(shop(), id), // (a relic past what they want: junk to them, as to anyone)
-    price: pedlarPrice,
+    price: (id, selling) => pedlarPrice(id, selling, model.hero),
     trade: (id, selling) => (selling ? sellToPedlar(shop(), model.hero, id) : buyFromPedlar(shop(), model.hero, id)),
     lines: LINES,
     about: () => pick(ABOUT),
