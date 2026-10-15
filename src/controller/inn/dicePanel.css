@@ -1,0 +1,59 @@
+/* Hazard's window (dicePanel.ts), over menu.css's look and the shop's talk (shopPanel.css). */
+.menu:has(.dice-board), .menu:has(.dice-rules) { width: min(560px, 100%); }
+
+.dice-purses { justify-content: space-between; margin-bottom: 10px; }
+.dice-net { font-size: 14px; font-weight: 700; color: var(--ink-soft); }
+.dice-net.up { color: #3f7a2e; }
+.dice-net.down { color: var(--clay-dark); }
+
+/* The table: green baize, the dice on it, the game beside them. */
+.dice-table {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 92px;
+  padding: 10px 14px;
+  background: #3d5a36;
+  border: 2px solid var(--ink);
+  box-shadow: inset 0 0 0 3px #2c4227;
+}
+.dice-dice { display: flex; gap: 10px; flex: 0 0 auto; min-width: 128px; }
+.dice-idle { color: #e8e0c8; font-style: italic; font-size: 14px; max-width: 170px; }
+.dice-face {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  width: 52px;
+  height: 52px;
+  padding: 7px;
+  box-sizing: border-box;
+  background: #efe6cf;
+  border: 2px solid var(--ink);
+  box-shadow: inset -3px -3px 0 #c9bb98;
+}
+.dice-face .pip { border-radius: 50%; background: #2a1d14; }
+.dice-face.ace .pip { background: #a4302a; }
+.dice-dice.rolling .dice-face { transform: rotate(-8deg); }
+.dice-dice.rolling .dice-face:last-child { transform: rotate(11deg) translateY(-4px); }
+
+.dice-state { flex: 1; color: #f2ead6; font-size: 14px; }
+.dice-called { font-weight: 700; }
+.dice-casts { margin-top: 4px; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.dice-seen { margin-top: 6px; font-style: italic; color: #f0cf7a; }
+.dice-result { margin-top: 6px; font-size: 16px; font-weight: 700; }
+.dice-result.won { color: #b9e88f; }
+.dice-result.lost { color: #f2a08c; }
+.dice-over { margin-top: 12px; font-weight: 700; color: var(--clay-dark); }
+
+/* The call and the stake, each a row of buttons; the chosen one lit. */
+.dice-calls { margin-top: 12px; display: grid; gap: 8px; }
+.dice-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dice-row b { width: 52px; color: var(--ink-soft); font-weight: 600; }
+.dice-row .menu-button { min-width: 40px; }
+.dice-row .menu-button.chosen { background: var(--lantern); box-shadow: inset 0 0 0 2px var(--ink); }
+.dice-acts { margin-top: 12px; display: flex; gap: 14px; }
+.dice-foul:not(:disabled) { color: #fff; background: var(--clay-dark); text-shadow: 1px 1px 0 var(--ink); }
+
+.dice-rules { display: grid; gap: 4px; max-width: 520px; }
+.dice-rule-head { margin-top: 6px; font-weight: 700; color: var(--clay-dark); text-transform: uppercase; font-size: 13px; letter-spacing: 0.04em; }
+.dice-rule { font-size: 15px; color: var(--ink); line-height: 1.35; }

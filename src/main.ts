@@ -53,6 +53,7 @@ import { createSmithPanel } from './controller/trade/smithPanel';
 import { talkPrompt } from './model/npcs/talk';
 import { bouncerSpeaks } from './model/inn/bouncer';
 import { createBar, orderLabel } from './controller/trade/barOrder';
+import { createDicePanel } from './controller/inn/dicePanel';
 import { createDrinkTimer } from './view/hud/drinkTimer';
 import { createJournal } from './controller/quests/journal';
 import { createSkillsPanel } from './controller/skills/skillsPanel';
@@ -171,6 +172,7 @@ async function boot(): Promise<void> {
   const lootPrompt = createLootPrompt(() => keyName('use'));
   const orderPrompt = createLootPrompt(() => keyName('ale')); // sat at the bar: an ale, over the hero's head
   const piePrompt = createLootPrompt(() => keyName('pie'), false, orderPrompt); // and a meat pie, stacked over it
+  const dice = createDicePanel(model); // hazard at an inn's table, R: its prompt under the hero (controller/inn/dicePanel.ts)
   const rentPrompt = createLootPrompt(() => keyName('pie'), false, lootPrompt); // stood by the barmaid: a room, stacked over her E; by the let room's bed: sleep
   const sleepFade = createSleepFade();
   const drinkTimer = createDrinkTimer();
@@ -374,6 +376,7 @@ async function boot(): Promise<void> {
     const order = bar.canOrder ? orderLabel(model, 'ale') : bar.busy ? { label: bar.ahead > 0 ? `Ordered · ${bar.ahead} ahead` : 'Ordered · on its way', soldOut: true } : null;
     const pie = bar.canOrder ? orderLabel(model, 'pie') : null;
     bar.update();
+    dice.update((x, y, z) => view.toScreen(x, y, z));
     const { hero } = model;
     orderPrompt.update(order ? { label: order.label, muted: order.soldOut, x: hero.x, y: hero.y + 1.05, z: hero.z } : null, (x, y, z) => view.toScreen(x, y, z));
     piePrompt.update(pie ? { label: pie.label, muted: pie.soldOut, x: hero.x, y: hero.y + 1.05, z: hero.z } : null, (x, y, z) => view.toScreen(x, y, z)); // (at the ale's, stacked over it)

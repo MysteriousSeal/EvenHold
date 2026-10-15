@@ -5,7 +5,7 @@
 // Escape (the pause menu, shutting windows) and the backquote (the cheats) are never rebound.
 
 export type KeyAction =
-  | 'up' | 'down' | 'left' | 'right' | 'roll' | 'use' | 'ale' | 'pie'
+  | 'up' | 'down' | 'left' | 'right' | 'roll' | 'use' | 'ale' | 'pie' | 'dice'
   | 'attack' | 'guard' | 'focus' | `bar${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`
   | 'sheet' | 'bag' | 'journal' | 'skills' | 'levelUp' | 'map';
 
@@ -18,6 +18,7 @@ export const DEFAULT_KEYS: Readonly<Record<KeyAction, readonly string[]>> = {
   use: ['KeyE'],
   ale: ['KeyF'],
   pie: ['KeyG'],
+  dice: ['KeyH'],
   attack: ['Space'],
   guard: ['KeyQ'],
   focus: ['Tab'],
