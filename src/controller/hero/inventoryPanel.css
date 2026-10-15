@@ -19,3 +19,13 @@
 .bag-empty { margin: 0 2px 6px; font-size: 13px; font-style: italic; color: var(--ink-soft); }
 .bag-empty[hidden] { display: none; }
 .bag-sort::after { inset: -6px -8px -8px; }
+/* The bag open: a window in the middle (the salvage bench, a skill's) kept left of it at every size, the bag's width
+   and a gap off the right, narrower if it must be; where the two don't fit side by side, its grid's columns wrap. */
+body:has(.menu-backdrop:not([hidden]) .menu[aria-label='Bag']) .menu-backdrop.place-center { padding-right: calc(min(668px, 100vw - 32px) * var(--ui-scale) + 32px); }
+@media (max-width: 1499px) {
+  body:has(.menu-backdrop:not([hidden]) .menu[aria-label='Bag']) .menu-backdrop.place-center .menu-grid:not(.rows) { grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)) !important; }
+}
+@media (max-width: 1199px) { /* (narrower still: what's picked told of under the grid, not beside) */
+  body:has(.menu-backdrop:not([hidden]) .menu[aria-label='Bag']) .menu-backdrop.place-center .menu-split { flex-direction: column; }
+  body:has(.menu-backdrop:not([hidden]) .menu[aria-label='Bag']) .menu-backdrop.place-center .menu-detail { flex-basis: auto; width: auto; }
+}
