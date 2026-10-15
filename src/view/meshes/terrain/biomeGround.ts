@@ -13,16 +13,16 @@ import { hashUnit } from '../../../util/random';
 import type { Tiles } from '../../../model/map/tiles';
 
 const GROUND: Record<Biome, number> = {
-  meadow: 0x6fae4f,
+  meadow: 0x74b552, // sunny: home
   forest: 0x4f8a42,
-  heath: 0x8c9a58, // the moor: olive-green, clear of the roads' brown (its heather its colour)
+  heath: 0x9aa25e, // the moor: a lighter, yellower olive than the meadow, clear of the roads' brown (its heather its colour)
   marsh: 0x5f8a5a, // a touch lighter and bluer than the woods'
   hills: 0x8f957a, // rocky
 };
 const MUD = 0x5a5038; // a marsh tile at the water's edge, here and there (MUD_CHANCE), half-way to it (MUD_STRENGTH)
 const MUD_CHANCE = 0.45;
 const MUD_STRENGTH = 0.55;
-const TIER_STEP = [0.9, 0.94, 0.98, 1.01, 1.03]; // the lower, the darker (the highest meadow never lime)
+const TIER_STEP = [0.76, 0.84, 0.92, 0.99, 1.04]; // the lower, the darker: a step of some 8% a tier, so the terraces read (the highest meadow never lime)
 // The countries read round a tile, and how much each counts: the 5x5 round it, the nearer the more (a border shades
 // over some five tiles).
 const FALLOFF = [1, 2, 3, 2, 1];

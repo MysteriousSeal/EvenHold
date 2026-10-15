@@ -11,6 +11,7 @@ export type WildKind = 'fern' | 'bracken' | 'mushroom' | 'heather' | 'reed' | 's
 
 export interface BiomeCover {
   grass: number; // the meadow's clumps times this
+  short?: number; // and their size times this (1 if not said)
   pebbles: number; // a tile's chance of pebbles
   wild: ReadonlyArray<{ kind: WildKind; chance: number; most: number; least?: number }>; // (least: 1 if not said)
 }
@@ -18,7 +19,7 @@ export interface BiomeCover {
 export const BIOME_COVER: Record<Biome, BiomeCover> = {
   meadow: { grass: 1, pebbles: 0.04, wild: [] },
   forest: { grass: 0.3, pebbles: 0.03, wild: [{ kind: 'fern', chance: 0.35, most: 2 }, { kind: 'mushroom', chance: 0.07, most: 1 }, { kind: 'litter', chance: 0.2, most: 1 }] },
-  heath: { grass: 0.4, pebbles: 0.05, wild: [{ kind: 'heather', chance: 0.6, most: 3 }, { kind: 'bracken', chance: 0.12, most: 2 }, { kind: 'thistle', chance: 0.05, most: 1 }, { kind: 'stone', chance: 0.015, most: 1 }] },
+  heath: { grass: 0.3, short: 0.65, pebbles: 0.05, wild: [{ kind: 'heather', chance: 0.7, least: 3, most: 6 }, { kind: 'bracken', chance: 0.16, least: 2, most: 3 }, { kind: 'thistle', chance: 0.05, most: 1 }, { kind: 'stone', chance: 0.015, most: 1 }] },
   marsh: { grass: 1.25, pebbles: 0, wild: [{ kind: 'reed', chance: 0.4, most: 3 }] },
   hills: { grass: 0.35, pebbles: 0.16, wild: [{ kind: 'stone', chance: 0.07, most: 1 }, { kind: 'thistle', chance: 0.07, most: 2 }] },
 };

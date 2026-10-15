@@ -136,11 +136,11 @@ export function buildHeather(shape: number): VoxelGrid {
     if (d > 1 - rng() * 0.18) continue;
     setColor(g, x, y, z, y === 0 ? C.twigDark : C.twig);
   }
-  // Its top voxels, the bells: mostly purple, lighter and deeper here and there.
+  // Its top voxels, the bells: purple, lighter and deeper in patches (by 2 x 2: they merge).
   for (let x = 0; x < 10; x++) for (let z = 0; z < 10; z++) for (let y = 5; y >= 1; y--) {
     if (colorAt(g, x, y, z) === 0) continue;
-    const r = rng();
-    if (r < 0.85) setColor(g, x, y, z, r < 0.2 ? C.heatherLight : r < 0.35 ? C.heatherDeep : C.heather);
+    const r = hashOf(x >> 1, z >> 1, shape + 23);
+    if (r < 0.9) setColor(g, x, y, z, r < 0.2 ? C.heatherLight : r < 0.35 ? C.heatherDeep : C.heather);
     break;
   }
   return g;

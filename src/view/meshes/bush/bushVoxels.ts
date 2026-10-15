@@ -88,7 +88,7 @@ export function buildBushVoxels(kind: BushLook, shape: number): VoxelGrid {
       if (colorAt(grid, x, y + 1, z) === FOLIAGE) accented.push([x, y + 1, z, BERRIES[1]]);
     }
     if (kind === 'gorse' && accents() < 0.16) accented.push([x, y, z, GORSE[accents() < 0.6 ? 0 : 1]]);
-    if (kind === 'bramble' && y >= 1 && accents() < 0.07) accented.push([x, y, z, accents() < 0.6 ? BLACKBERRIES[accents() < 0.5 ? 0 : 1] : BERRIES[0]]);
+    if (kind === 'bramble' && y >= 1 && accents() < 0.03) accented.push([x, y, z, BLACKBERRIES[accents() < 0.5 ? 0 : 1]]); // (accents: its leaves the most of it)
     if (kind === 'thorn' && colorAt(grid, x, y + 1, z) === 0 && accents() < 0.14) accented.push([x, y, z, BLOSSOMS[0]]);
     if (kind === 'flowering' && colorAt(grid, x, y + 1, z) === 0 && accents() < 0.12) {
       accented.push([x, y, z, BLOSSOMS[accents() < 0.5 ? 0 : 1]]);
@@ -112,7 +112,7 @@ export function buildBushVoxels(kind: BushLook, shape: number): VoxelGrid {
     let shade = 0.6 * ny + (0.5 * (nx * SUN[0] + ny * SUN[1] + nz * SUN[2])) / len + (accents() - 0.5) * DITHER;
     if (colorAt(grid, x, y + 1, z) === 0) shade += 0.35; // open to the sky
     if (y > 0 && colorAt(grid, x, y - 1, z) === 0) shade = Math.min(shade, -0.6); // underside
-    if (kind === 'gorse' || kind === 'bramble' || kind === 'thorn') shade -= 0.3; // (darker leaves: gorse's needles, bramble's under the trees)
+    if (kind === 'gorse' || kind === 'thorn') shade -= 0.3; // (darker leaves: gorse's needles, a thorn's)
     const band = Math.floor(((Math.max(-1, Math.min(1, shade)) + 1) / 2) * LEAF_BANDS.length);
     setColor(grid, x, y, z, LEAF_BANDS[Math.min(LEAF_BANDS.length - 1, band)]);
   });

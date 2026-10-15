@@ -23,7 +23,7 @@ const DRIFT_LEAST = 3; // and at least
 const DRIFT_CHANCE = 0.15; // a patch tile's chance of a drift at the patch's edge (up to all, in its middle)
 const DRIFT_SPREAD = 0.3; // tiles across a drift
 const STRAY = 0.08; // of a patch's drifts, one of another kind among them
-const SPRIGS_PER_TILE = 2; // on all plain grass, meadow or not (each ~40 triangles, so kept few)
+const SPRIGS_PER_TILE = 2; // on all plain grass, meadow or not (each ~40 triangles, so kept few: one where the country's own plants grow)
 const SCATTER_SPREAD = 0.8; // offsets stay within the middle 80% of the tile
 const SCATTER_SALT = 2;
 const ROAD_EDGE_CANDIDATES = 7; // tries per road tile to place a lining clump
@@ -134,7 +134,7 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
       const clumps = Math.floor(density * MAX_CLUMPS_PER_TILE * grows.grass + rng() * 0.99);
       // Clumps also grow with the meadow: small at the thin edges, largest
       // in the lush centers, so patches read as mounds rather than dots.
-      const meadowScale = CLUMP_SCALE_EDGE + (CLUMP_SCALE_CENTER - CLUMP_SCALE_EDGE) * density;
+      const meadowScale = (CLUMP_SCALE_EDGE + (CLUMP_SCALE_CENTER - CLUMP_SCALE_EDGE) * density) * (grows.short ?? 1);
       for (let i = 0; i < clumps; i++) {
         cover.tufts.push(item(offset(), offset(), meadowScale * (0.85 + rng() * 0.3), rng() < 0.5 ? 0 : 1));
       }
@@ -155,7 +155,7 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
         for (let i = 0; i < count; i++) cover.pebbles.push(item(offset(), offset(), 0.025 + rng() * 0.025, Math.floor(rng() * 3)));
       }
       // Rolled last, so every tuft, flower and pebble keeps its place.
-      for (let i = 0; i < SPRIGS_PER_TILE; i++) cover.sprigs.push(item(offset(), offset(), 1, rng() < 0.5 ? 0 : 1));
+      for (let i = 0; i < (country === 'meadow' ? SPRIGS_PER_TILE : 1); i++) cover.sprigs.push(item(offset(), offset(), 1, rng() < 0.5 ? 0 : 1));
       // A meadow patch of wildflowers, where its own noise is high, one kind of flower to a stretch of country: in drifts,
       // a tight clump of a few stems of one kind to a tile here and there (the more of them the thicker the patch), the
       // ground between them clear. Rolled after all the rest.
