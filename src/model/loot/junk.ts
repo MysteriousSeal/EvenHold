@@ -9,6 +9,8 @@ export const JUNK_ITEMS = {
   // Made by a woodworker (skills/woodworking.ts), to sell: dropped by no one.
   woodenBowl: { name: 'Wooden bowl', value: 9, droppedBy: {} },
   carvedTankard: { name: 'Carved tankard', value: 30, droppedBy: {} },
+  varnishedCasket: { name: 'Varnished casket', value: 70, droppedBy: {} }, // (an expert's: oak, varnished, for a merchant's letters)
+  heartwoodChest: { name: 'Heartwood chest', value: 200, droppedBy: {} }, // (an artisan's: of an ancient oak's heart, for a lord's plate)
   // Someone turned into one (spells/turned.ts: the poppet-maker's stitch), lying where they stood: dropped by no one.
   doll: { name: 'Poppet', value: 15, droppedBy: {} },
   // From beasts (wolves).
