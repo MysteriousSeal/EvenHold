@@ -331,10 +331,11 @@ describe("cooking's page", () => {
 });
 
 describe('tuning', () => {
-  it("cooked meat and fish heal more than the inn's like (a bear steak over her roast leg), each Well fed a few minutes after; a stew's longer", () => {
+  it("cooked meat and fish heal more than the inn's like (a bear steak over her roast leg), each Well fed a few minutes after (a roast of meat twice a fish's); a stew's longer", () => {
     expect(MEALS.bearSteak.heal).toBeGreaterThan(PROVISIONS.roastLeg.heal!);
     expect(MEALS.roastPike.heal).toBeGreaterThan(PROVISIONS.roastLeg.heal!);
-    for (const id of ['roastedFry', 'roastBoar', 'wolfSkewer', 'searedLynx', 'bearSteak', 'grilledTrout', 'saltedPerch', 'roastPike'] as const) expect(MEALS[id].fed, id).toEqual({ kind: 'fed', seconds: 4 * 60 });
+    for (const id of ['roastedFry', 'fryCake', 'grilledTrout', 'saltedPerch', 'roastPike'] as const) expect(MEALS[id].fed, id).toEqual({ kind: 'fed', seconds: 4 * 60 });
+    for (const id of ['roastBoar', 'wolfSkewer', 'searedLynx', 'bearSteak'] as const) expect(MEALS[id].fed, id).toEqual({ kind: 'fed', seconds: 8 * 60 });
     expect(MEALS.boarStew.fed!.seconds).toBeGreaterThan(4 * 60);
     expect(KINDLED_BURNS).toBe(8 * 60); // (time enough for a batch)
   });
@@ -353,11 +354,11 @@ describe('butchered', () => {
   it("a beast slain leaves its meat on a roll of its own, about as often as told; a bear's honeycomb now and then; no one else's", async () => {
     const { butcher } = await import('../src/model/loot/ingredients');
     const share = (source: Parameters<typeof butcher>[0], item: string) => Array.from({ length: 2000 }, (_, id) => butcher(source, id)).filter((got) => got.includes(item as never)).length / 2000;
-    expect(share('boar', 'rawBoarMeat')).toBeCloseTo(0.6, 1);
-    expect(share('bear', 'rawBearMeat')).toBeCloseTo(0.6, 1);
-    expect(share('bear', 'honeycomb')).toBeCloseTo(0.25, 1);
-    expect(share('beast', 'rawWolfMeat')).toBeCloseTo(0.4, 1);
-    expect(share('lynx', 'leanLynxMeat')).toBeCloseTo(0.5, 1);
+    expect(share('boar', 'rawBoarMeat')).toBeCloseTo(0.7, 1);
+    expect(share('bear', 'rawBearMeat')).toBeCloseTo(0.7, 1);
+    expect(share('bear', 'honeycomb')).toBeCloseTo(0.4, 1);
+    expect(share('beast', 'rawWolfMeat')).toBeCloseTo(0.6, 1);
+    expect(share('lynx', 'leanLynxMeat')).toBeCloseTo(0.6, 1);
     expect(butcher('undead', 3)).toEqual([]);
   });
 });
