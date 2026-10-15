@@ -43,14 +43,24 @@ const TINTS: Partial<Record<LifeKind, number[]>> = {
   dragonfly: [0x2fa8b8, 0x2fa8b8, 0x4a7ee0], // teal (most), blue
 };
 
-// Whether `kind` is out, its hours (`out`) and the weather considered.
-export function weathered(kind: LifeKind, out: boolean, w: WeatherNow): boolean {
-  if (kind === 'frog') return out || w.rain > 0.3; // (out in the rain, whatever the hour)
-  if (kind === 'bird' || kind === 'crow') return out && w.rain <= 0.5 && w.snow <= 0.3;
-  if (kind === 'butterfly' || kind === 'dragonfly') return out && w.rain <= 0.3 && w.snow === 0 && (kind === 'butterfly' || w.fog <= 0.5);
-  if (kind === 'firefly') return out && w.rain <= 0.3;
-  return out;
+// How many of `kind` are out (0 none .. 1 all), its hours (`out`), the weather and the season considered: birds and
+// butterflies under cover in the rain, frogs out in it whatever the hour; no butterflies, dragonflies, fireflies or
+// frogs in winter (the frogs asleep in the mud), fewer songbirds and rabbits; fewer butterflies and dragonflies in autumn.
+export function weathered(kind: LifeKind, out: boolean, w: WeatherNow): number {
+  const season = SEASONS[w.season][kind] ?? 1;
+  if (kind === 'frog') return (out || w.rain > 0.3 ? 1 : 0) * season;
+  if (!out) return 0;
+  if ((kind === 'bird' || kind === 'crow') && (w.rain > 0.5 || w.snow > 0.3)) return 0;
+  if ((kind === 'butterfly' || kind === 'dragonfly') && (w.rain > 0.3 || w.snow > 0)) return 0;
+  if ((kind === 'dragonfly' && w.fog > 0.5) || (kind === 'firefly' && w.rain > 0.3)) return 0;
+  return season;
 }
+const SEASONS: Record<WeatherNow['season'], Partial<Record<LifeKind, number>>> = {
+  spring: {},
+  summer: {},
+  autumn: { butterfly: 0.4, dragonfly: 0.3 },
+  winter: { butterfly: 0, dragonfly: 0, firefly: 0, frog: 0, bird: 0.5, rabbit: 0.6 },
+};
 
 export class AmbientLife {
   private readonly meadow: (x: number, z: number) => number;
@@ -113,11 +123,11 @@ export class AmbientLife {
     Object.assign(this.moment, { time: this.time, dt, hour: hourAt(minutes), hero });
     for (const kind of Object.keys(this.meshes) as Array<keyof typeof this.meshes>) this.counts[kind] = 0;
     const weather = weatherNow(this.model.seed, minutes, this.time);
-    const out = Object.fromEntries(KINDS.map((kind) => [kind, weathered(kind, lifeOut(kind, minutes), weather)])) as Record<LifeKind, boolean>;
+    const out = Object.fromEntries(KINDS.map((kind) => [kind, weathered(kind, lifeOut(kind, minutes), weather)])) as Record<LifeKind, number>;
     const fits = (x: number, z: number) => this.model.isOpenTile(Math.round(x), Math.round(z)) && !this.model.tiles.lake(Math.round(x), Math.round(z));
     for (const list of this.cells.values()) {
       for (const c of list) {
-        if (!out[c.kind] && c.fled === null) continue;
+        if (c.seed >= out[c.kind] && c.fled === null) continue; // (out, or the share of them that is: by each one's own roll)
         if (this.counts[c.kind] >= MOST[c.kind]) continue; // (the most drawn)
         const m = this.moment;
         const shown =
@@ -133,7 +143,7 @@ export class AmbientLife {
       }
     }
     // A flock over now and then, by day, dry: crows' black, high up.
-    if (out.crow) flock(this.moment, this.model.seed, () => this.counts.crow < MOST.crow && this.draw('crow', 0));
+    if (out.crow > 0) flock(this.moment, this.model.seed, () => this.counts.crow < MOST.crow && this.draw('crow', 0));
     for (const [kind, m] of Object.entries(this.meshes) as Array<[keyof typeof this.meshes, THREE.InstancedMesh]>) {
       m.count = this.counts[kind];
       m.visible = m.count > 0; // (no draw for a kind with none out)

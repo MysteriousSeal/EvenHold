@@ -75,13 +75,22 @@ describe('the small life, by country and weather', () => {
   });
 
   it('in the rain the birds and butterflies are under cover, and the frogs out even by day', () => {
-    const dry = { x: 1, z: 0, strength: 0.4, rain: 0, fog: 0, snow: 0 };
+    const dry = { x: 1, z: 0, strength: 0.4, rain: 0, fog: 0, snow: 0, season: 'spring' as const };
     const wet = { ...dry, rain: 0.8 };
-    expect(weathered('bird', true, dry) && weathered('butterfly', true, dry)).toBe(true);
-    expect(weathered('bird', true, wet) || weathered('butterfly', true, wet) || weathered('dragonfly', true, wet)).toBe(false);
-    expect(weathered('frog', false, dry)).toBe(false);
-    expect(weathered('frog', false, wet)).toBe(true);
-    expect(weathered('dragonfly', true, { ...dry, fog: 0.8 })).toBe(false);
+    expect(weathered('bird', true, dry) + weathered('butterfly', true, dry)).toBe(2);
+    expect(weathered('bird', true, wet) + weathered('butterfly', true, wet) + weathered('dragonfly', true, wet)).toBe(0);
+    expect(weathered('frog', false, dry)).toBe(0);
+    expect(weathered('frog', false, wet)).toBe(1);
+    expect(weathered('dragonfly', true, { ...dry, fog: 0.8 })).toBe(0);
+  });
+
+  it('in winter no butterflies, dragonflies or frogs and fewer songbirds; fewer butterflies in autumn', () => {
+    const day = { x: 1, z: 0, strength: 0.4, rain: 0, fog: 0, snow: 0 };
+    for (const kind of ['butterfly', 'dragonfly', 'frog', 'firefly'] as const) expect(weathered(kind, true, { ...day, season: 'winter' }), kind).toBe(0);
+    expect(weathered('bird', true, { ...day, season: 'winter' })).toBeGreaterThan(0);
+    expect(weathered('bird', true, { ...day, season: 'winter' })).toBeLessThan(1);
+    expect(weathered('butterfly', true, { ...day, season: 'autumn' })).toBeLessThan(weathered('butterfly', true, { ...day, season: 'summer' }));
+    expect(weathered('heron', true, { ...day, season: 'winter' })).toBe(1);
   });
 });
 
