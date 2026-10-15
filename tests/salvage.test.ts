@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { fresh } from './support/testWorld';
 import { TEST_SEEDS, TEST_MAP_SIZE } from './support/testWorld';
 import { GameModel } from '../src/model/GameModel';
+import { restore, snapshot } from '../src/model/save';
 import { betterThanWorn, gearKey, gearPower } from '../src/model/human/items/gear';
 import { BREAK_SECONDS, FINER_AT, FOUND_TRIES, PER_LEVEL, TOO_HARD, isSalvageable, makeOf, salvageOf, teachChance } from '../src/model/skills/salvage';
 import { RECIPES, RECIPE_IDS } from '../src/model/skills/woodworking';
@@ -15,7 +16,7 @@ import { LOOT } from '../src/model/loot/loot';
 import { ITEMS } from '../src/model/human/equipment';
 import { bagRoom, canCarry } from '../src/model/hero/bagSlots';
 import { slotsUsed } from '../src/model/hero/bagStacks';
-import { RISE, SKILL_TIERS, difficulty, skillOf } from '../src/model/skills/skills';
+import { RISE, SKILL_TIERS, difficulty, skillOf, stepsOf } from '../src/model/skills/skills';
 import { createSalvagePanel } from '../src/controller/skills/salvagePanel';
 
 describe('what gear is made of, and leaves', () => {
@@ -46,7 +47,7 @@ describe('what gear is made of, and leaves', () => {
   it("counts a piece found as many tries, the finer the more (a fighter's few drops carry the skill); junk and a crafter's own, one", () => {
     expect(FOUND_TRIES).toEqual({ common: 15, uncommon: 18, rare: 24, epic: 30, legendary: 36 });
     expect(salvageOf(gearKey({ item: 'mace', level: 9, rarity: 'rare', roll: 3 })).tries).toBe(24);
-    expect([salvageOf('rustyBuckle').tries, salvageOf(gearKey({ item: 'club', level: 24, rarity: 'uncommon', roll: 7 })).tries]).toEqual([1, 1]);
+    expect([salvageOf('rustyBuckle').tries, salvageOf(gearKey({ item: 'club', level: 24, rarity: 'uncommon', roll: 7 }), Infinity, true).tries]).toEqual([1, 1]);
   });
 
   it('teaches nothing from a piece too hard to learn from (more than TOO_HARD past the skill), broken down all the same', () => {
@@ -57,20 +58,21 @@ describe('what gear is made of, and leaves', () => {
     expect(club.gives).toEqual([['ironScrap', 5]]);
   });
 
-  it("makes a woodworker's or a smith's own piece no ladder: green at most, half its scrap, less than went into it, no finer thing", () => {
+  it("makes a piece the hero crafted (as a woodworker or a smith makes it) no ladder: green at most, half its scrap, less than went into it, no finer thing", () => {
     const warClub = gearKey({ item: 'club', level: 24, rarity: 'uncommon', roll: 7 }); // (woodworking's oak war club: three oak planks)
-    const made = salvageOf(warClub, 300);
+    const made = salvageOf(warClub, 300, true);
     expect([made.made, made.tries]).toEqual([true, 1]); // (one try: no ladder)
     expect(made.gives).toEqual([['oakPlank', 2]]);
     expect(teachChance(made, made.needs - 10)).toBe(RISE[2].chance); // (orange for anyone else's: green for this)
-    const shield = salvageOf(gearKey({ item: 'towerShield', level: 33, rarity: 'rare', roll: 1 }), 300); // (the heartwood tower shield: rare, but made)
+    const shield = salvageOf(gearKey({ item: 'towerShield', level: 33, rarity: 'rare', roll: 1 }), 300, true); // (the heartwood tower shield: rare, but made)
     expect(shield.gives.map(([item]) => item)).toEqual(['oakPlank']);
-    expect(salvageOf(gearKey({ item: 'club', level: 24, rarity: 'common', roll: 7 })).made).toBeUndefined(); // (not as any recipe makes it: a drop)
+    expect(salvageOf(gearKey({ item: 'club', level: 24, rarity: 'common', roll: 7 }), 300, true).made).toBeUndefined(); // (not as any recipe makes it: a drop)
+    expect(salvageOf(warClub, 300)).toMatchObject({ tries: FOUND_TRIES.uncommon }); // (the same, found on a foe: not the hero's own)
     for (const id of RECIPE_IDS) {
       const m = RECIPES[id].makes;
       if (typeof m === 'string') continue;
       const used = Object.values(RECIPES[id].from).reduce((n, k) => n + (k ?? 0), 0);
-      const back = salvageOf(gearKey({ ...m, roll: 0 })).gives.reduce((n, [, k]) => n + k, 0);
+      const back = salvageOf(gearKey({ ...m, roll: 0 }), Infinity, true).gives.reduce((n, [, k]) => n + k, 0);
       expect(back, id).toBeLessThan(used);
     }
   });
@@ -188,6 +190,67 @@ describe('breaking gear down', () => {
     expect(hero.bag.rustyBuckle).toBe(2);
   });
 
+  it("takes a piece found on a foe for found, though a recipe makes its like; only what the hero crafted for their own, a save and a load on", () => {
+    const { model } = atTheBench();
+    const { hero } = model;
+    model.random = () => 0;
+    skillOf(hero, 'salvaging').level = 10;
+    const found = gearKey({ item: 'shortSword', level: 8, rarity: 'common', roll: 517 }); // (the smith's short sword's level and rarity: a foe's)
+    hero.bag[found] = 1;
+    expect(breakNow(model, found)).toBe('started');
+    expect([hero.bag.ironScrap, skillOf(hero, 'salvaging').level]).toEqual([2, 10 + FOUND_TRIES.common]); // (as any found piece: its scrap, its tries)
+    const anvil = model.inside!.furniture.find((f) => f.kind === 'anvil')!;
+    Object.assign(hero, { x: anvil.x, z: anvil.z + 1 });
+    skillOf(hero, 'smithing').level = 60;
+    hero.bag.ironIngot = 2;
+    expect(model.smithing.start('shortSword')).toBe(true);
+    for (let t = 0; t < 5.2; t += 0.1) model.update(0, 0, 0.1);
+    const made = Object.keys(hero.bag).find((k) => k.startsWith('shortSword@8'))!;
+    expect(made).toBeTruthy();
+    const loaded = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    restore(loaded, snapshot(model));
+    expect(loaded.salvage.salvaged(made as never)).toMatchObject({ made: true, tries: 1, gives: [['ironScrap', 1]] }); // (the hero's own: one try, half its scrap)
+    expect(salvageOf(made as never, 10)).toMatchObject({ tries: FOUND_TRIES.common }); // (anyone else's, found)
+  });
+
+  it('forgets the wear on a piece broken down, the last of it; a second like it keeps its own', () => {
+    const { model } = atTheBench();
+    const { hero } = model;
+    hero.bag.hatchet = 2;
+    hero.wear = { hatchet: 100 };
+    expect(breakNow(model, 'hatchet')).toBe('started');
+    expect(hero.wear.hatchet).toBe(100); // (one left, as worn)
+    expect(breakNow(model, 'hatchet')).toBe('started');
+    expect(hero.wear.hatchet).toBeUndefined(); // (none left: a plain one found later, unworn)
+  });
+
+  it("tells a piece's rises at the bench in one, however many its tries raise the skill", () => {
+    const { model } = atTheBench();
+    model.random = () => 0;
+    model.hero.bag.armingSword = 1;
+    model.takeEvents();
+    expect(breakNow(model, 'armingSword')).toBe('started');
+    const rises = model.takeEvents().filter((e) => e.kind === 'skillUp');
+    expect(rises).toEqual([{ kind: 'skillUp', skill: 'Salvaging', level: 1 + FOUND_TRIES.common, gained: FOUND_TRIES.common }]);
+  });
+
+  it('tells, over the hero, how many more are to go; and why it stopped, the bag filled before the rest', () => {
+    const { model } = atTheBench();
+    const { hero } = model;
+    model.random = () => 0;
+    skillOf(hero, 'salvaging').level = FINER_AT.rare - 1;
+    hero.skills!.salvaging!.toward = stepsOf('salvaging', FINER_AT.rare - 1) - 1; // (the first broken down: the hand skilled enough for a cut gem from the next)
+    const rare = gearKey({ item: 'rubyRing', level: 9, rarity: 'rare', roll: 4 }); // (filings and a shard; then a cut gem besides, a slot of its own)
+    hero.bag[rare] = 3;
+    for (let i = 0; slotsUsed(hero.bag) < bagRoom(hero) - 2; i++) hero.bag[`dagger@${i + 2}c0` as never] = 1 as never; // (two slots free: the first's two, none for the next's gem)
+    expect(model.salvage.start(rare, Infinity)).toBe('started');
+    expect(castOf(model)?.label).toBe('Breaking down Ruby ring · 3 to go');
+    model.takeEvents();
+    for (let t = 0; t < BREAK_SECONDS + 0.1; t += 1 / 30) model.update(0, 0, 1 / 30);
+    expect([model.salvage.breaking, hero.bag[rare]]).toEqual([null, 2]);
+    expect(model.takeEvents()).toContainEqual({ kind: 'poor', text: 'Your bag is full' });
+  });
+
   it('never overfills the bag: a piece that leaves three new things, one slot free, isn\'t begun; the last of a piece leaves its slot', () => {
     const { model } = atTheBench();
     const { hero } = model;
@@ -225,6 +288,14 @@ describe('breaking gear down', () => {
     for (let t = 0; t < BREAK_SECONDS + 0.1 && model.salvage.breaking; t += 1 / 30) [model.update(0, 0, 1 / 30), panel.update()];
     expect(model.hero.bag.ironScrap).toBe(1);
     expect(model.hero.bag.armingSword).toBe(1);
+    model.hero.bag.armingSword = 3;
+    panel.menu.refresh();
+    window.querySelector<HTMLButtonElement>('.salvage-all')!.click(); // (the rest, one after another; and a button to stop them)
+    window.querySelector<HTMLButtonElement>('.salvage-sure')?.click();
+    panel.update();
+    expect(model.salvage.breaking?.key).toBe('armingSword');
+    window.querySelector<HTMLButtonElement>('.salvage-stop')!.click();
+    expect([model.salvage.breaking, model.hero.bag.armingSword]).toEqual([null, 3]);
     panel.menu.close();
   });
 
@@ -248,6 +319,26 @@ describe('breaking gear down', () => {
     window.querySelector<HTMLButtonElement>('.salvage-go')!.click();
     window.querySelector<HTMLButtonElement>('.salvage-sure')!.click();
     expect(model.salvage.breaking?.key).toBe('armingSword');
+    panel.menu.close();
+  });
+
+  it('asks first before the last axe carried for felling trees (none wielded), though a sword in hand is better', () => {
+    const { model } = atTheBench();
+    model.hero.equipment.mainHand = gearKey({ item: 'armingSword', level: 20, rarity: 'rare', roll: 0 });
+    expect([betterThanWorn('hatchet', model.hero), model.lumber.axeKey]).toEqual([false, 'hatchet']);
+    const panel = createSalvagePanel(model);
+    panel.open();
+    const window = Array.from(document.querySelectorAll('.menu[aria-label="Salvage bench"]')).at(-1)!;
+    window.querySelector<HTMLElement>('.menu-slot')!.click();
+    window.querySelector<HTMLButtonElement>('.salvage-go')!.click();
+    expect(model.salvage.breaking).toBeNull();
+    expect(window.querySelector('.salvage-warn')?.textContent).toContain('fell trees');
+    window.querySelector<HTMLButtonElement>('.salvage-keep')!.click();
+    model.hero.bag[gearKey({ item: 'hatchet', level: 9, rarity: 'common', roll: 0 })] = 1; // (another axe besides: not asked)
+    panel.menu.refresh();
+    window.querySelector<HTMLElement>('.menu-slot')!.click();
+    window.querySelector<HTMLButtonElement>('.salvage-go')!.click();
+    expect(model.salvage.breaking?.key).toBe('hatchet');
     panel.menu.close();
   });
 });

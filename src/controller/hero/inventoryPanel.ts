@@ -37,6 +37,7 @@ const SOCKET_ROW = BAG_SOCKETS; // the sockets, the first row; the bag's own slo
 // A shop the hero's trading with: what its keeper would buy, for how much, and selling it them.
 export interface Seller {
   wants(item: BagItem): boolean;
+  enough?(item: BagItem): string | null; // why they'll not take more of it just now (bought enough: shops/shopStock.ts WANTS), if so
   price(item: BagItem): number;
   sell(item: BagItem): void;
 }
@@ -55,11 +56,14 @@ function slotFor(model: GameModel, item: BagItem, count: number, seller: Seller 
   const slot = sale === null ? base : { ...base, lines: [...lines.filter((l) => !playing(l, 'hint')), toned('price', `Sells for ${coinWords(sale.price)} to ${sale.to}`), ...lines.filter((l) => playing(l, 'hint'))] }; // (its price and buyer before its hints: those last)
   if (!seller) return slot;
   if (!seller.wants(item)) return { ...slot, dim: true, lines: [...(slot.lines ?? []), toned('loss', 'Not bought here')] };
-  // Trading: right-click (or drag onto the shop) sells it, instead of what it'd do.
+  // Trading: right-click (or drag onto the shop) sells it, instead of what it'd do (had enough of: greyed out, and why;
+  // offered all the same, they say so).
   const dragOut = slot.dragOut;
+  const enough = seller.enough?.(item);
   return {
     ...slot,
-    lines: [...(slot.lines ?? []).filter((line) => !playing(line, 'hint', 'price')), toned('price', `Right-click to sell for ${coinWords(seller.price(item))}`)], // (its hints and price, for the keeper's)
+    ...(enough && { dim: true }),
+    lines: [...(slot.lines ?? []).filter((line) => !playing(line, 'hint', 'price')), enough ? toned('loss', enough) : toned('price', `Right-click to sell for ${coinWords(seller.price(item))}`)], // (its hints and price, for the keeper's)
     alt: () => seller.sell(item),
     dragOut: (over) => (ontoShop(over) ? seller.sell(item) : dragOut?.(over)),
   };

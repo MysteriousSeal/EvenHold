@@ -19,13 +19,14 @@ export interface KeeperDay {
   counter: FurnitureKind; // where they trade
   round: ReadonlyArray<{ at: FurnitureKind; for: number }>; // their work, and how long at each (seconds)
   spot(piece: Furniture): { x: number; z: number; face: number }; // where they stand to work a piece, and which way they face
+  near?: number; // tiles from the counter the hero draws them to it (none: SERVE_NEAR)
 }
 
 // Their counter, if the hero's at it (in their place, near it), else null.
 function served(npc: Npc, world: NpcWorld, day: KeeperDay): Furniture | null {
   const counter = layoutOf(world.seed, npc.home).furniture.find((f) => f.kind === day.counter);
   const hero = world.inside?.entrance === npc.home ? world.hero : null;
-  return counter && hero && distanceTo(counter, hero.x, hero.z) < SERVE_NEAR ? counter : null;
+  return counter && hero && distanceTo(counter, hero.x, hero.z) < (day.near ?? SERVE_NEAR) ? counter : null;
 }
 
 // Whether to put down their work (at it, or on their way to it: the counter's steps hold none), the hero come to

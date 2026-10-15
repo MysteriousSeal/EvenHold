@@ -56,6 +56,7 @@ export interface Hero extends Humanoid {
   spells?: SpellId[]; // the charms they know (spells/spells.ts): none, till taught
   spellWait?: Partial<Record<SpellId, number>>; // seconds before each may be cast again
   wear?: Record<string, number>; // how worn each piece of gear is, by its key (hero/wear.ts; none: unworn)
+  crafted?: Record<string, number>; // the gear they've made themselves, by its key, how many (skills/salvage.ts: their own, broken down)
   potionCooldown?: number; // seconds before another potion may be drunk (bag.ts drinkPotion) // food or drink from the bag (`item`), sat on the ground, restoring as it goes (bag.ts eatOrDrink); getting up (a step, a blow struck, a roll, the guard) or a blow taken stops it
 }
 
@@ -81,7 +82,7 @@ export type GameEvent =
   | { kind: 'village'; name: string; level: number } // a village come into: its name and level (villages/villageWelcome.ts)
   | { kind: 'shift'; job: string; served: number; walkedOut: number; tally: string; earned: number; bonus: number; early: boolean } // a shift of work over (jobs/work.ts): how it went (`tally`: the job's own, "3 cleared"), what it paid
   | { kind: 'jobRank'; job: string; rank: string } // risen a rank in a job (jobs/jobs.ts)
-  | { kind: 'skillUp'; skill: string; level: number } // a skill risen a level (skills/skills.ts)
+  | { kind: 'skillUp'; skill: string; level: number; gained?: number } // a skill risen a level (skills/skills.ts), or several at once (a piece broken down: salvage.ts)
   | { kind: 'felled'; x: number; z: number } // a tree chopped down, for good (skills/lumber.ts)
   | { kind: 'fished'; item: BagItem | null; x: number; z: number; dropped?: number; huge?: boolean } // a bite hooked and landed, or let get away (null), at the bobber (skills/fishing.ts); `dropped`: how many the bag hadn't room for, at the hero's feet; `huge`: a huge one
   | { kind: 'salvaged'; item: string; gives: Array<[string, number]> } // a piece broken down at a salvage bench (skills/salvage.ts): what it left

@@ -13,6 +13,7 @@ import { AWARD_POST } from './dungeons/dungeonRecord';
 import { isGear, slotOfGear } from './human/items/gear';
 import { readActionBar } from './hero/actionBar';
 import { readWear } from './hero/wear';
+import { readCrafted } from './skills/salvage';
 import { readStops, savedStops } from './villages/wagons';
 import { readSpellWait, readSpells } from './spells/spells';
 import { POTION_COOLDOWN } from './loot/potions';
@@ -61,6 +62,7 @@ export interface SaveData {
     spells?: string[]; // the charms it knows (spells/spells.ts)
     actionBar?: Array<string | null>; // its action bar's shortcuts (hero/actionBar.ts)
     wear?: Record<string, number>; // how worn each piece of gear is (hero/wear.ts; older saves: none)
+    crafted?: Record<string, number>; // the gear they made themselves (skills/salvage.ts; older saves: none)
     jobs?: Partial<Record<JobId, JobRecord>>; // their record in each job taken up (jobs/jobs.ts; older saves: none)
     skills?: Partial<Record<SkillId, SkillRecord>>; // their level in each skill (skills/skills.ts; older saves: none)
     bagCounts?: number[]; // how many in each slot (older saves: none, packed)
@@ -148,6 +150,7 @@ export function snapshot(model: GameModel): SaveData {
       eating: hero.eating ? { ...hero.eating } : null,
       potionCooldown: hero.potionCooldown ?? 0,
       wear: { ...hero.wear }, // (how worn each piece is: hero/wear.ts)
+      crafted: { ...hero.crafted }, // (the gear they made: skills/salvage.ts)
       spellWait: { ...hero.spellWait },
     },
     // Which foes the world has is the seed's: what's saved is who's been slain, and who's hurt or wandered.
@@ -244,6 +247,7 @@ export function restore(model: GameModel, data: SaveData): void {
     spells: readSpells(saved.spells), // (older saves: none)
     spellWait: readSpellWait(saved.spellWait), // (older saves: none waiting)
     wear: readWear(saved.wear), // (older saves: all unworn)
+    crafted: readCrafted(saved.crafted), // (older saves: none, all found)
     potionCooldown: typeof saved.potionCooldown === 'number' && Number.isFinite(saved.potionCooldown) ? Math.min(POTION_COOLDOWN, Math.max(0, saved.potionCooldown)) : 0,
     jobs: readJobs(saved.jobs), // (older saves: none)
     skills: readSkills(saved.skills), // (older saves: none)
@@ -321,7 +325,7 @@ export function restore(model: GameModel, data: SaveData): void {
     // What the hero last sold there, to buy back (a sale of something the game no longer knows, dropped).
     const sales = (Array.isArray(buyback) ? buyback : []).filter((s) => known(s?.id) && Number.isInteger(s.price) && s.price >= 0).slice(0, BUYBACK);
     const kinds = Object.entries(bought && typeof bought === 'object' ? bought : {}).filter(([, n]) => Number.isInteger(n) && (n as number) > 0); // (a trade's goods bought, by kind: none, none kept)
-    model.shops.set(data.version === 1 ? shopOfVersion1(model, inn) : inn, { money, stock: Object.fromEntries(Object.entries(stock && typeof stock === 'object' ? stock : {}).filter(([id, n]) => known(id) && Number.isInteger(n) && (n as number) >= 0)), restockedAt, buyback: sales.map(({ id, price, count }) => ({ id, price, count: Number.isInteger(count) && count > 0 ? count : 1 })), ...(kinds.length && { bought: Object.fromEntries(kinds) as Record<string, number> }) }); // (older saves: one of each; none bought)
+    model.shops.set(data.version === 1 ? shopOfVersion1(model, inn) : inn, { money, stock: Object.fromEntries(Object.entries(stock && typeof stock === 'object' ? stock : {}).filter(([id, n]) => known(id) && Number.isInteger(n) && (n as number) >= 0)), restockedAt, buyback: sales.map(({ id, price, count, wear }) => ({ id, price, count: Number.isInteger(count) && count > 0 ? count : 1, ...(typeof wear === 'number' && wear > 0 && wear <= 100 && { wear }) })), ...(kinds.length && { bought: Object.fromEntries(kinds) as Record<string, number> }) }); // (older saves: one of each; none bought)
   }
   if (data.quests) model.quests.load(data.quests, model.villages.length);
   if (data.travellers) model.travellers.load(data.travellers);

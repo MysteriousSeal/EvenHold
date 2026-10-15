@@ -21,6 +21,7 @@ export function castOf(model: GameModel): { progress: number; label: string } | 
   const cooked = cooking.making;
   if (cooked) return { progress: cooking.progress ?? 0, label: cooked.left > 1 ? `${COOK_RECIPES[cooked.recipe].name} · ${cooked.left} to cook` : COOK_RECIPES[cooked.recipe].name };
   if (model.fishing.biting) return { progress: model.fishing.progress ?? 0, label: 'Bite! E to hook it' }; // (its moment running out)
-  if (salvage.breaking) return { progress: salvage.progress ?? 0, label: `Breaking down ${nameOf(salvage.breaking.key)}` };
+  const broken = salvage.breaking;
+  if (broken) return { progress: salvage.progress ?? 0, label: broken.left > 0 ? `Breaking down ${nameOf(broken.key)} · ${broken.left + 1} to go` : `Breaking down ${nameOf(broken.key)}` };
   return null;
 }

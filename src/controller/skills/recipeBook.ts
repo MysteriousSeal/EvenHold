@@ -130,7 +130,7 @@ export function recipeBook(model: GameModel, state: BookState, redraw: () => voi
     const gear = typeof recipe.makes !== 'string';
     const title = el('h3', 'book-title', gear ? `${recipe.name}` : nameOf(item));
     title.style.color = gear ? QUALITY_INK[qualityOf(item)] : '';
-    const kind = gear ? gearLines(item as never).map((l, i) => el('span', i === 0 ? 'book-kind' : 'book-stat', lineText(l))) : [el('span', 'book-kind', LOOT[item as LootId] && craft.kind(id))];
+    const kind = gear ? gearLines(item as never, model.hero.level).map((l, i) => el('span', i === 0 ? 'book-kind' : 'book-stat', lineText(l))) : [el('span', 'book-kind', LOOT[item as LootId] && craft.kind(id))];
     const needs = needsLine(craft.name, recipe.needs, level, craft.rise?.(id, level));
     const materials = el('ul', 'book-materials');
     for (const [material, n] of Object.entries(recipe.from)) {

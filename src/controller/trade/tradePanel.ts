@@ -14,7 +14,7 @@ import './shopPanel.css';
 import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
 import { nameOf, qualityOf, type BagItem } from '../../model/hero/bag';
-import { BUYBACK, buyBack, restockIn, sellTo, type Sale, type Shop } from '../../model/shops/shopStock';
+import { BUYBACK, buyBack, restockIn, sellTo, wantsMore, type Sale, type Shop } from '../../model/shops/shopStock';
 import { isJunk, sellValue } from '../../model/shops/sellValue';
 import { TALK_RANGE } from '../../model/npcs/talk';
 import { coinParts, coinWords } from '../../view/ui/coins';
@@ -24,7 +24,7 @@ import { voxelIcon } from '../../view/ui/voxelIcon';
 import { humanBust } from '../../view/meshes/human/humanFigure';
 import type { Seller } from '../hero/inventoryPanel';
 import { line } from '../../view/ui/dom';
-import { plural } from '../../view/ui/words';
+import { counted, plural } from '../../view/ui/words';
 import { oneOf } from '../../util/random';
 
 // What a trade's keeper says, by occasion: on opening, and answering each trade.
@@ -42,7 +42,9 @@ export interface Trade {
   note?(): string | null; // a line at the foot of their window, if there's one to say (the inn's cupboard)
   service?(): { label: string; tip: string; can: boolean; act(): string } | null; // a button of theirs beside Sell junk (the smith's Mend: its label, a tip, whether it can be done, and done: their word)
   about(id: BagItem): string; // their word on one of their wares, just bought
-  offered(name: string): string; // their word on what the hero's just sold them
+  greet?(): string | null; // their word on opening, if they've one of their own just now (else one of their hellos)
+  offered(name: string, id: BagItem): string; // their word on what the hero's just sold them
+  enough?(name: string, wait: string): string; // and on what they've bought enough of for now (shopStock.ts WANTS; none: ENOUGH), till they'll want another ("4 minutes")
   junk(name: string | null, paid: string): string; // and on junk sold them: one thing (its name), or a whole lot at once (null), and what they paid ("5 copper")
   boughtBack(name: string, paid: string): string; // and on the hero buying back what they'd sold (its name, "3 wolf fangs"), for what
   blurb(id: BagItem): string; // what it is
@@ -60,6 +62,8 @@ export interface TradeBag {
 
 // What any keeper says to a hero with no room left in their bag.
 const BAG_FULL = ["Your bag's full, friend. Make some room first.", "Where would you put it? Your bag's bursting.", 'No room in that bag of yours.'];
+// …and to one selling them more of something than they've use for just now.
+const ENOUGH = ["I've plenty of those just now. Come back in {wait}.", "No more of that, I've enough to see me through.", "Not another. I'm still trying to shift the last ones."];
 
 export const pick = (lines: readonly string[]) => oneOf(lines, Math.random());
 
@@ -205,12 +209,16 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
   };
   // Selling from the bag beside the window: what the shop deals in at its price, and junk (anyone's) at what it's worth.
   const sellOne = (id: BagItem) => (isJunk(id) && !trade.wanted(id) ? sellTo(shop(), model.hero, id, sellValue(id)!) : trade.trade(id, true));
+  // Till they'll take one more of what they've had enough of: its next restock, "4 minutes".
+  const waitWords = () => counted(Math.max(1, Math.ceil(restockIn(shop()) / 60_000)), 'minute');
   const seller: Seller = {
     wants: (id) => trade.wanted(id) || isJunk(id),
+    enough: (id) => (trade.wanted(id) && !wantsMore(shop(), id) ? `${keeper?.name ?? 'They'} has enough of these for now · more wanted in ${clock(restockIn(shop()))}` : null),
     price: (id) => (isJunk(id) && !trade.wanted(id) ? sellValue(id)! : trade.price(id, true)), // (what they want of the junk: at their own price)
     sell: (id) => {
       const result = sellOne(id);
-      answer(result, result === 'sold' ? (isJunk(id) ? trade.junk(nameOf(id).toLowerCase(), coinWords(sellValue(id)!)) : trade.offered(nameOf(id))) : undefined);
+      const word = result === 'sold' ? (isJunk(id) ? trade.junk(nameOf(id).toLowerCase(), coinWords(sellValue(id)!)) : trade.offered(nameOf(id), id)) : result === 'not wanted' ? (trade.enough?.(nameOf(id), waitWords()) ?? pick(ENOUGH).replace('{wait}', waitWords())) : undefined;
+      answer(result, word);
     },
   };
   // Every bit of junk in the bag, sold while the keeper's purse holds.
@@ -268,7 +276,7 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
       if (menu.isOpen && keeper === npc) return; // already trading with them
       keeper = npc;
       for (const page of pages) page.at = 0;
-      says = pick(trade.lines.hello);
+      says = trade.greet?.() ?? pick(trade.lines.hello);
       menu.setTitle(`${npc.name}'s ${trade.title.toLowerCase()}`);
       menu.open(0); // on Buy, whichever tab it was left on
     },

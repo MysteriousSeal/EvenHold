@@ -6,7 +6,6 @@ import { pedlarShopAt } from '../src/model/travellers/pedlarShop';
 import { bagRoom } from '../src/model/hero/bagSlots';
 import { slotsUsed } from '../src/model/hero/bagStacks';
 import { SMITH_PICK, SMITH_WARES, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../src/model/smithy/smithShop';
-import { WOODWORKS } from '../src/model/shops/shopStock';
 import { ITEMS, ITEM_IDS } from '../src/model/human/equipment';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
@@ -135,7 +134,7 @@ describe("the smith's shop", () => {
     expect(SMITH_WARES.length).toBeGreaterThan(20);
     for (const id of SMITH_WARES) {
       expect(gearPrice(id)).toBe(ITEMS[id].value);
-      expect(gearSellPrice(id)).toBe(Math.floor(ITEMS[id].value! / (WOODWORKS.has(id) ? 8 : 2))); // (a woodworker's make: an eighth)
+      expect(gearSellPrice(id)).toBe(Math.floor(ITEMS[id].value! / 2)); // (his own make, a spear and shields too: half; the hero's own wooden make, an eighth: smithTrade.test.ts)
     }
     const plain = ITEM_IDS.find((id) => !ITEMS[id].value && smithBuys(id))!;
     expect(gearSellPrice(plain)).toBeLessThan(gearSellPrice('breastplate'));

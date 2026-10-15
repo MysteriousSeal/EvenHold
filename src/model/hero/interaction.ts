@@ -92,6 +92,12 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield mine?.kind === 'mine' ? { kind: 'mine', action: mine } : null;
   const fish = fishing.action;
   yield fish?.kind === 'fish' ? { kind: 'fish', action: fish } : null;
+  // Stood before a smithy's salvage bench or anvil: to work at it, before a word with the smith passing or behind his
+  // counter (within a word of either in most smithies; a step off, he's spoken to).
+  const bench = model.salvage.benchInReach;
+  yield bench ? { kind: 'bench', bench } : null;
+  const anvil = model.smithing.anvilInReach;
+  yield anvil ? { kind: 'anvil', anvil } : null;
   const talker = talkingTo(model.folk, inside, hero) ?? model.story.askerInReach; // the barmaid, the smith (of the villagers round about); else a villager with something to ask
   const seated = model.seated;
   const atTheBar = seated?.seat.piece.kind === 'barStool';
@@ -108,10 +114,6 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield traveller ? { kind: 'traveller', traveller } : null;
   const board = model.boardInReach;
   yield board !== null ? { kind: 'board', board } : null;
-  const bench = model.salvage.benchInReach;
-  yield bench ? { kind: 'bench', bench } : null;
-  const anvil = model.smithing.anvilInReach;
-  yield anvil ? { kind: 'anvil', anvil } : null;
   const fire = model.cooking.fireInReach;
   yield fire ? { kind: 'fire', fire } : null;
   const well = model.wellInReach;

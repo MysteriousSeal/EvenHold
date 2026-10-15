@@ -6,7 +6,8 @@
 // last sold can be bought back at what they got for it (saved too). A trade's
 // goods (what's gathered, cooked or made: skills/*) it buys only while it has
 // fewer than it wants of each kind (WANTS), selling one of each on every
-// restock: so many a while, not a cartload at once.
+// restock: so many a while, not a cartload at once. A piece of gear sold goes with its wear (hero/wear.ts), back with
+// it if it's bought back (and the mark of the hero's own make: skills/salvage.ts); bought off the shelf, it's no longer to buy back too.
 
 import { bagRoom, canCarry } from '../hero/bagSlots';
 import { slotsUsed, stacksOf } from '../hero/bagStacks';
@@ -17,6 +18,8 @@ import { isMeal } from '../loot/meals';
 import { baseOf, isGear } from '../human/items/gear';
 import type { ItemId } from '../human/equipment';
 import { RECIPES } from '../skills/woodworking';
+import { wearGone } from '../hero/wear';
+import { isCrafted, markCrafted, unmarkCrafted } from '../skills/salvage';
 
 export interface Shop {
   money: number; // copper in the keeper's purse
@@ -31,6 +34,8 @@ export interface Sale {
   id: BagItem;
   price: number;
   count: number;
+  wear?: number; // a piece of gear's, worn when sold (the last of it the hero had: hero/wear.ts)
+  crafted?: boolean; // made by the hero (skills/salvage.ts isCrafted): theirs again, bought back
 }
 
 export const BUYBACK = 12;
@@ -94,6 +99,17 @@ export function restockIn(shop: Shop, now = Date.now()): number {
   return Math.max(0, shop.restockedAt + RESTOCK_EVERY - now);
 }
 
+// A piece gone from the hero for good (sold): one of their own make let go of, as the one gone (skills/salvage.ts),
+// and its wear, the last of it gone (hero/wear.ts wearGone); what went, to come back with it if it's bought
+// back. (Not dropped: picked up again, it's theirs as it was.)
+export function parted(hero: Hero, key: string): { crafted: boolean; wear?: number } {
+  const crafted = isCrafted(hero, key);
+  unmarkCrafted(hero, key);
+  const wear = hero.wear?.[key];
+  wearGone(hero, key);
+  return { crafted, ...(wear !== undefined && hero.wear?.[key] === undefined && { wear }) };
+}
+
 // The hero buys one of `id` at `price`: why not, if they can't (none left, they're short).
 // So many of `id` taken off the shelves (as many as there are): how many were.
 export function takeStock(shop: Shop, id: BagItem, wanted: number): number {
@@ -112,6 +128,11 @@ export function buyFrom(shop: Shop, hero: Hero, id: BagItem, price: number): 'bo
   shop.money += price;
   shop.stock[id] = (shop.stock[id] ?? 0) - 1;
   addToBag(hero.bag, id);
+  // Fewer left on the shelf than the hero's sold here to buy back: what they've bought was one of those (not to be
+  // had twice), off the latest sale.
+  let over = (shop.buyback ?? []).filter((s) => s.id === id).reduce((n, s) => n + s.count, 0) - shop.stock[id];
+  for (const sale of shop.buyback ?? []) if (over > 0 && sale.id === id) [sale.count, over] = [sale.count - Math.min(over, sale.count), over - Math.min(over, sale.count)];
+  if (shop.buyback) shop.buyback = shop.buyback.filter((s) => s.count > 0);
   return 'bought';
 }
 
@@ -121,6 +142,7 @@ export function sellTo(shop: Shop, hero: Hero, id: BagItem, price: number): 'sol
   if (!wantsMore(shop, id)) return 'not wanted';
   if (shop.money < price) return 'short';
   takeFromBag(hero.bag, id);
+  const { wear, crafted } = isGear(id) ? parted(hero, id) : { wear: undefined, crafted: false }; // (its wear, the last of it, and the mark of their make, with it)
   hero.money += price;
   shop.money -= price;
   shop.stock[id] = (shop.stock[id] ?? 0) + 1;
@@ -128,8 +150,8 @@ export function sellTo(shop: Shop, hero: Hero, id: BagItem, price: number): 'sol
   if (kind !== null) (shop.bought ??= {})[kind] = (shop.bought[kind] ?? 0) + 1;
   // Stacked with the same thing sold at the same price (junk sold a handful at a time), to the front.
   const sales = shop.buyback ?? [];
-  const same = sales.find((s) => s.id === id && s.price === price);
-  shop.buyback = [same ? { ...same, count: same.count + 1 } : { id, price, count: 1 }, ...sales.filter((s) => s !== same)].slice(0, BUYBACK);
+  const same = sales.find((s) => s.id === id && s.price === price && s.wear === wear && !!s.crafted === crafted);
+  shop.buyback = [same ? { ...same, count: same.count + 1 } : { id, price, count: 1, ...(wear !== undefined && { wear }), ...(crafted && { crafted }) }, ...sales.filter((s) => s !== same)].slice(0, BUYBACK);
   return 'sold';
 }
 
@@ -148,5 +170,7 @@ export function buyBack(shop: Shop, hero: Hero, index: number): 'bought' | 'none
   if (kind !== null && shop.bought?.[kind]) shop.bought[kind] = Math.max(0, shop.bought[kind] - sale.count); // (back with the hero: room for them again)
   shop.buyback!.splice(index, 1);
   for (let i = 0; i < sale.count; i++) addToBag(hero.bag, sale.id);
+  if (sale.wear !== undefined) (hero.wear ??= {})[sale.id] = sale.wear; // (as worn as it went)
+  if (sale.crafted) for (let i = 0; i < sale.count; i++) markCrafted(hero, sale.id); // (their own make still)
   return 'bought';
 }

@@ -16,7 +16,7 @@ const FALL = 12; // a fall, on everything that wears
 const MEND_SHARE = 0.35; // of what a piece costs at a smith, mending it from broken (less, less worn)
 const NO_PRICE = 20; // copper, what a piece no smith sells is priced at (smithy/smithShop.ts gearPrice's)
 
-type Wearer = Pick<Hero, 'equipment'> & { wear?: Record<string, number> };
+type Wearer = Pick<Hero, 'equipment'> & { wear?: Record<string, number>; bag?: Hero['bag'] };
 const GUARDING: readonly EquipSlot[] = [...ARMOR_SLOTS, 'offHand'];
 const WEARING: readonly EquipSlot[] = [...ARMOR_SLOTS, ...HELD_SLOTS];
 
@@ -50,9 +50,10 @@ export function mendCost(hero: Wearer, key: string): number {
   return Math.max(1, Math.ceil(gearWorth(key as GearKey, ITEMS[baseOf(key as GearKey)].value ?? NO_PRICE) * MEND_SHARE * (wear / BROKEN)));
 }
 
-// What they wear that's worn at all, each with its mending's cost; all of it.
+// What they wear (or carry, taken off worn) that's worn at all, each with its mending's cost; all of it.
 export function mendBill(hero: Wearer): { pieces: Array<{ key: GearKey; wear: number; cost: number }>; total: number } {
-  const pieces = WEARING.map((slot) => hero.equipment[slot]).filter((k): k is GearKey => !!k && isGear(k) && wearOf(hero, k) > 0).map((key) => ({ key, wear: wearOf(hero, key), cost: mendCost(hero, key) }));
+  const held = new Set([...WEARING.map((slot) => hero.equipment[slot]), ...Object.keys(hero.bag ?? {})]);
+  const pieces = [...held].filter((k): k is GearKey => !!k && isGear(k) && wearOf(hero, k) > 0).map((key) => ({ key, wear: wearOf(hero, key), cost: mendCost(hero, key) }));
   return { pieces, total: pieces.reduce((n, p) => n + p.cost, 0) };
 }
 
@@ -64,6 +65,12 @@ export function mendAll(hero: Wearer & Pick<Hero, 'money'>): 'mended' | 'none' |
   hero.money -= total;
   for (const { key } of pieces) delete hero.wear![key];
   return 'mended';
+}
+
+// A piece's wear forgotten once the hero holds none of it (sold, given up): one like it got again comes whole.
+export function wearGone(hero: Wearer, key: string): void {
+  if (hero.wear?.[key] === undefined || (hero.bag?.[key as keyof Hero['bag']] ?? 0) > 0 || Object.values(hero.equipment).includes(key as GearKey)) return;
+  delete hero.wear[key];
 }
 
 // A piece's wear as its tooltip tells it: nothing unworn; "Worn 40%"; badly worn; broken.

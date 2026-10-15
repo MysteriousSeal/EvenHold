@@ -25,12 +25,13 @@ function atTheSmithy(): GameModel {
 }
 
 describe('the smithy', () => {
-  it("pays little for what a woodworker could make (an eighth of its worth), and takes only so many wooden arms of any shape; a woodworker's wares not junk, but a pedlar's and the inn's", () => {
+  it("pays little for what the hero's made of wood (an eighth of its worth), and takes only so many wooden arms of any shape; a woodworker's wares not junk, but a pedlar's and the inn's", () => {
     const made = gearKey({ item: 'broadAxe', level: 22, rarity: 'uncommon', roll: 0 }); // (a woodworker's)
     const sword = gearKey({ item: 'armingSword', level: 25, rarity: 'uncommon', roll: 0 });
-    expect(gearSellPrice(made)).toBeLessThan(gearPrice(made) / 5);
-    expect(gearSellPrice(sword)).toBeGreaterThan(gearPrice(sword) / 3); // (his own trade: at half)
     const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    model.hero.crafted = { [made]: 1 };
+    expect(gearSellPrice(made, model.hero)).toBeLessThan(gearPrice(made) / 5);
+    expect(gearSellPrice(sword)).toBeGreaterThan(gearPrice(sword) / 3); // (his own trade: at half)
     const shop: Shop = openShop(new Map(), 1, { money: 99999, stock: {} }, 0);
     Object.assign(model.hero.bag, { [made]: 1, quarterstaff: 1, plankShield: 1 });
     expect([sellTo(shop, model.hero, made, 1), sellTo(shop, model.hero, 'quarterstaff', 1)]).toEqual(['sold', 'sold']);

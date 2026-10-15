@@ -19,7 +19,7 @@ import type { Entrance } from '../interiors/interiors';
 import type { Furniture } from '../interiors/furniture';
 import type { LootId } from '../loot/loot';
 import type { GameEvent, Hero } from '../types';
-import { beforeBench } from './salvage';
+import { HAMMER_BLOW, beforeBench, markCrafted } from './salvage';
 import { practise, skillOf } from './skills';
 import { materialRise } from './woodworking';
 
@@ -92,12 +92,24 @@ export const SMITH_RECIPE_IDS = Object.keys(SMITH_RECIPES) as SmithRecipeId[];
 const recipeOf = (id: SmithRecipeId): SmithRecipe => SMITH_RECIPES[id];
 export const smithRise = (id: SmithRecipeId, level: number) => materialRise(SMITH_RECIPES, ['Smelting', 'Fittings'], id, level); // (an ingot or a fitting green while what's made of it teaches, as a plank is)
 
+// What smithing would teach the hero next (the smith's word to a hand at it: smithy/smithPanel.ts): of the recipes
+// they've reached, the likeliest still to raise the skill; of those as likely, one the bag would make now, then the
+// hardest. None, if nothing they know teaches any more.
+export function nextToLearn(hero: Hero): SmithRecipeId | null {
+  const level = skillOf(hero, SKILL).level;
+  const chance = (id: SmithRecipeId) => smithRise(id, level).chance;
+  const can = (id: SmithRecipeId) => Object.entries(recipeOf(id).from).every(([item, n]) => (hero.bag[item as LootId] ?? 0) >= n!);
+  const teaching = SMITH_RECIPE_IDS.filter((id) => recipeOf(id).needs <= level && chance(id) > 0);
+  return teaching.sort((a, b) => chance(b) - chance(a) || Number(can(b)) - Number(can(a)) || recipeOf(b).needs - recipeOf(a).needs)[0] ?? null;
+}
+
 export interface SmithingHost {
   readonly hero: Hero;
   readonly inside: { entrance: Entrance; furniture: readonly Furniture[]; below?: unknown } | null;
   readonly lumber: { readonly chopping: unknown; stop(): void };
   readonly woodworking: { readonly making: unknown; stop(): void };
   readonly cooking: { readonly making: unknown; stop(): void };
+  readonly salvage: { readonly breaking: unknown; stop(): void };
   readonly work: { readonly shift: unknown };
   report(event: GameEvent): void;
 }
@@ -134,10 +146,14 @@ export class Smithing {
   }
 
   // `count` of a recipe begun (Infinity: all the materials make); whether it was (known, at the anvil, the materials
-  // for one, room for it). Chopping, woodworking and cooking stop for it; at work, nothing's begun.
+  // for one, room for it). The hero turns to the anvil; chopping, woodworking, cooking and the salvage bench stop for
+  // it; at work, nothing's begun.
   start(id: SmithRecipeId, count = 1): boolean {
-    if (this.host.work.shift || !this.anvilInReach || this.canMake(id) === 0 || count < 1 || !this.roomFor(id)) return false;
-    [this.host.lumber.stop(), this.host.woodworking.stop(), this.host.cooking.stop()];
+    const anvil = this.anvilInReach;
+    if (this.host.work.shift || !anvil || this.canMake(id) === 0 || count < 1 || !this.roomFor(id)) return false;
+    [this.host.lumber.stop(), this.host.woodworking.stop(), this.host.cooking.stop(), this.host.salvage.stop()];
+    const { hero } = this.host;
+    hero.facing = Math.atan2(anvil.x - hero.x, anvil.z - hero.z); // (facing it)
     const left = Math.min(count, this.canMake(id));
     this.making = { recipe: id, left, of: left, t: 0 };
     return true;
@@ -152,12 +168,17 @@ export class Smithing {
     return this.making ? Math.min(1, this.making.t / recipeOf(this.making.recipe).seconds) : null;
   }
 
-  // A moment of it: stopped by walking off (or from the anvil), chopping, woodworking, cooking, going to work; else on,
-  // one made each recipe's seconds.
+  // How far through a blow of the hammer the hero is (0..1), forging; else null (their arm swinging it).
+  get swing(): number | null {
+    return this.making ? (this.making.t % HAMMER_BLOW) / HAMMER_BLOW : null;
+  }
+
+  // A moment of it: stopped by walking off (or from the anvil), chopping, woodworking, cooking, the salvage bench,
+  // going to work; else on, one made each recipe's seconds.
   update(dt: number, moving: boolean): void {
     const making = this.making;
     if (!making) return;
-    if (moving || !this.anvilInReach || this.host.lumber.chopping || this.host.woodworking.making || this.host.cooking.making || this.host.work.shift) return this.stop();
+    if (moving || !this.anvilInReach || this.host.lumber.chopping || this.host.woodworking.making || this.host.cooking.making || this.host.salvage.breaking || this.host.work.shift) return this.stop();
     if ((making.t += dt) < recipeOf(making.recipe).seconds) return;
     making.t = 0;
     if (!this.makeOne(making.recipe) || --making.left <= 0) this.stop();
@@ -176,6 +197,7 @@ export class Smithing {
     if (!canSwap(hero, recipe.from, [item])) return this.host.report({ kind: 'poor', text: 'Your bag is full' }), false;
     for (const [material, n] of Object.entries(recipe.from)) for (let i = 0; i < n!; i++) takeFromBag(hero.bag, material as LootId);
     addToBag(hero.bag, item);
+    markCrafted(hero, item); // (a piece of gear: their own, at the salvage bench)
     gainXp(hero, HERO_XP);
     this.host.report({ kind: 'crafted', item });
     practise(hero, SKILL, recipe.needs, roll(701), this.host.report, smithRise(id, level).chance);
