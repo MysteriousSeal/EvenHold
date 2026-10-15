@@ -24,6 +24,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
   let armed: string | null = null; // the quest whose Abandon was clicked once: a second click abandons it
   let told = ''; // why tracking was refused, until the next try or another quest is picked
   let toldFor = '';
+  const NONE = "No quests taken. Read the notice board in a village to find some, or look for a gold “!” over someone's head.";
   const FULL = `You can track ${MAX_TRACKED} quests at once. Untrack one first.`;
   // Tracks a quest, or stops: refused (and told why) with three tracked already.
   const toggle = (t: TakenQuest) => {
@@ -58,8 +59,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
     const pane = document.createElement('div');
     const t = slot && shown.get(slot);
     if (!t) {
-      pane.append(line('menu-detail-hint', "No quests taken. Read the notice board in a village to find some, or look for a gold “!” over someone's head."));
-      return pane;
+      return pane; // (none taken: said in the list, where the eye goes: header)
     }
     if (armed !== t.quest.key) armed = null;
     if (toldFor !== t.quest.key) told = '';
@@ -99,6 +99,11 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
       pins.append(pin);
     }
     row.append(line('quest-board-lead', "Hand a board's quests in at that board; someone's, to them."), pins, line('quest-taken', `${quests.taken.length}/${MAX_ACTIVE} · ${quests.tracked + model.story.trackedCount}/${MAX_TRACKED} tracked`));
+    // None taken: the pins and the count make way for what to do next, large, in the middle of the list.
+    if (!quests.taken.length && !story.taken().length && !story.done().length) {
+      row.className = 'journal-head journal-none';
+      row.replaceChildren(line('quest-board-lead', "Hand a board's quests in at that board; someone's, to them."), line('journal-empty', NONE));
+    }
     return row;
   };
 

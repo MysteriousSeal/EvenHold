@@ -39,6 +39,11 @@
 .menu-backdrop.place-left .menu:has(.journal-head) { width: min(640px, 100%); }
 .menu:has(.journal-head) .menu-detail { flex-basis: 250px; width: 250px; min-height: 440px; }
 .menu:has(.journal-head) .menu-grid.rows { max-height: 480px; overflow-y: auto; padding-right: 4px; } /* ten quests: the list scrolls, the panel stays */
+/* None taken: what to do next, large, in the middle of the window, as tall as with quests in it (no pins, no count,
+   no empty list and blank pane beside it). */
+.journal-none { flex: 1; display: flex; flex-direction: column; min-height: 440px; }
+.menu:has(.journal-none) .menu-split { display: none; }
+.journal-empty { margin: auto 0; padding: 0 24px 40px; font-size: 15px; line-height: 1.5; text-align: center; color: var(--ink); }
 .quest-abandon.armed { color: #fff; background: var(--clay); border-color: var(--clay-dark); }
 /* With the hero's sheet open too (it holds the left, 420px wide), the
    journal moves over to sit beside it, at once. */

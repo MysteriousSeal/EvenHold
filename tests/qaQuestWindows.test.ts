@@ -152,7 +152,7 @@ describe('the journal', () => {
     const model = new GameModel(1, TEST_MAP_SIZE);
     const journal = createJournal(model);
     journal.menu.open();
-    expect(within('Journal', '.menu-detail-hint')[0]?.textContent).toContain('Read the notice board in a village');
+    expect(within('Journal', '.journal-empty')[0]?.textContent).toContain('Read the notice board in a village');
     const board = model.boardOf(model.villages[0]);
     const [a, b] = model.quests.offersAt(board).filter((q) => q.kind === 'kill');
     model.quests.accept(a);
