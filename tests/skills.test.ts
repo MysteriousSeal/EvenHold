@@ -143,14 +143,14 @@ describe('the skills window', () => {
 
   it("opens a skill's own window, clicked: where they stand across the top (their title, level, ruler, what's next), what it offers under it", () => {
     const model = new GameModel(1, TEST_MAP_SIZE);
-    raiseSkill(model.hero, 'lumberjacking', 120); // (121: three short of ancient pines)
+    raiseSkill(model.hero, 'lumberjacking', 120); // (121: nineteen short of ancient pines)
     const panel = createSkillsPanel(model);
     panel.menu.open();
     cardsOf()[0].click();
     expect([panel.window.menu.isOpen, panel.window.skill, panel.menu.isOpen]).toEqual([true, 'lumberjacking', true]);
     expect(q('.skill-band-title').textContent).toBe('Journeyman lumberjack');
     expect(q('.skill-band-level').textContent).toBe('121 / 300 · 29 to Expert');
-    expect(q('.skill-band-next').textContent).toBe('Next at 125: Fell ancient pines: two logs a chop · 4 levels to go');
+    expect(q('.skill-band-next').textContent).toBe('Next at 140: Fell ancient pines: two logs a chop, rich in resin · 19 levels to go');
     expect(Array.from(q('.skill-band').querySelectorAll('.skill-rule-tier')).map((b) => b.className)).toEqual(['skill-rule-tier past', 'skill-rule-tier here', 'skill-rule-tier', 'skill-rule-tier']);
     expect(q('.skill-rule-notch').textContent).toBe('121');
     expect(q('.book-detail .book-title').textContent).toBe('Oak'); // (the trees: the best to learn from, picked)
