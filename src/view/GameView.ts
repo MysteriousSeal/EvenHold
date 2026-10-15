@@ -367,7 +367,7 @@ export class GameView {
     (this.purse ??= new PurseView(this.scene)).update(model.purse, null, (x, z) => model.getGroundY(x, z), dt); // (their purse, where they fell)
     this.campFires.update(model, this.elapsed);
     this.kindledFire.update(model, this.elapsed);
-    (this.herbPatches ??= new HerbPatches(this.scene)).update(model);
+    (this.herbPatches ??= new HerbPatches(this.scene)).update(model, this.elapsed);
     this.campChests.update(model);
     this.boardMarks.update(hero.x, hero.z, this.elapsed);
     this.mist.update(hero.x, hero.z, model.minutes, dt);
