@@ -1,7 +1,9 @@
 /* Hazard's window (dicePanel.ts), over menu.css's look and the shop's talk (shopPanel.css). */
 .menu:has(.dice-board), .menu:has(.dice-rules) { width: min(560px, 100%); }
 
-.dice-purses { justify-content: space-between; margin-bottom: 10px; }
+/* (ui-detail) Spread out, theirs and yours at either end, tonight's tally between (over menu.css's .menu-purse, its
+   flex-end otherwise winning by order). */
+.menu-purse.dice-purses { justify-content: space-between; gap: 16px; margin-bottom: 10px; }
 .dice-net { font-size: 14px; font-weight: 700; color: var(--ink-soft); }
 .dice-net.up { color: #3f7a2e; }
 .dice-net.down { color: var(--clay-dark); }
