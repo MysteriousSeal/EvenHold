@@ -309,6 +309,20 @@ export class Patrols {
   endHunts(): void {
     for (const hunt of [...this.hunts]) this.giveUp(hunt, false);
   }
+
+  // Kept in the save: the roads a party was cut down on, and each hunt under way counted as got away from (where it
+  // was, for the word to go round as it's taken up: its foes aren't saved).
+  save(): { cut: Array<[string, number]>; fled: Array<[number, number]> } {
+    return { cut: [...this.cutDown], fled: this.hunts.map(({ foes: [e] }) => [Math.round(e.x), Math.round(e.z)]) };
+  }
+
+  // As saved (an older save's, or anything amiss: none cut down, none got away from).
+  load(saved: unknown): void {
+    this.cutDown.clear();
+    const { cut, fled } = (saved && typeof saved === 'object' ? saved : {}) as Partial<ReturnType<Patrols['save']>>;
+    for (const e of Array.isArray(cut) ? cut : []) if (Array.isArray(e) && typeof e[0] === 'string' && Number.isFinite(e[1])) this.cutDown.set(e[0], e[1]);
+    for (const e of Array.isArray(fled) ? fled : []) if (Array.isArray(e) && Number.isFinite(e[0]) && Number.isFinite(e[1])) this.model.heat.raise({ x: e[0], z: e[1] }, 1, 'got away from the bishop\'s men');
+  }
 }
 
 // Whether `a` is at least `d` tiles from `b`.

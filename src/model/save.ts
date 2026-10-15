@@ -112,7 +112,7 @@ export interface SaveData {
   quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
   bounties?: unknown; // the wanted posters handed in, and those taken (quests/bounties.ts; older saves: none)
   heat?: unknown; // what the witch-finders have heard of the hero, by village, and the blood on their hands (roads/heat.ts; older saves: nothing)
-  roads?: unknown; // the night's dead: which crypts' bands are spent tonight (roads/roads.ts; older saves: none)
+  roads?: unknown; // the night's dead: which crypts' bands are spent tonight; the roads a party was cut down on, a hunt under way (roads/roads.ts; older saves: none)
   dice?: unknown; // the dice sharps caught out, and when they're back (inn/diceHall.ts; older saves: none)
   atlas?: unknown; // the land seen and the places come upon (atlas/atlas.ts; older saves: the land round the hero and the villages been to)
   story?: unknown; // (as Story.save gives it; an older save's: its states alone) // the quests people gave: taken, done (story/story.ts)

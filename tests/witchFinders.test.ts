@@ -256,6 +256,24 @@ describe('running and fighting', () => {
     expect(model.roads.patrols.parties.size).toBe(1);
   });
 
+  it('a save taken mid-chase: the hunt counted as got away from, the roads they were cut down on kept', () => {
+    const { model, party } = withParty();
+    near(model, party, 5, 2);
+    pick(stopped(model), 'Run');
+    const before = model.heat.known(party.members[0]);
+    const again = fresh();
+    restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(again.heat.known(party.members[0])).toBe(before + 1);
+    expect(model.roads.patrols.hunts).toHaveLength(1); // (the game saved from goes on as it was)
+    const hunt = model.roads.patrols.hunts[0];
+    for (const e of hunt.foes) [e.hp, e.state] = [0, 'dead'];
+    step(model, 0.1);
+    const cut = fresh();
+    restore(cut, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(snapshot(cut).roads).toEqual(snapshot(model).roads);
+    expect(JSON.stringify(snapshot(model).roads)).toContain(party.key);
+  });
+
   it('a fight won: every one cut down, blood on the hero\'s hands, the next party a man more', () => {
     const { model, party } = withParty();
     near(model, party, 5, 1);

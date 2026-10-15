@@ -91,11 +91,12 @@ export class Roads {
     return true;
   }
 
-  save(): { night: ReturnType<NightDead['save']> } {
-    return { night: this.night.save() };
+  save(): { night: ReturnType<NightDead['save']>; patrols: ReturnType<Patrols['save']> } {
+    return { night: this.night.save(), patrols: this.patrols.save() };
   }
 
   load(saved: unknown): void {
     this.night.load((saved as { night?: unknown } | null)?.night);
+    this.patrols.load((saved as { patrols?: unknown } | null)?.patrols); // (after the heat's: a hunt under way, got away from)
   }
 }
