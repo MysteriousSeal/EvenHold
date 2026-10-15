@@ -116,7 +116,7 @@ export class InnShift extends Shift {
   update(npcs: readonly Npc[], dt: number): void {
     this.left = Math.max(0, this.left - dt);
     this.drawIn(npcs, dt, 'table', RUSH, MOST);
-    const patrons = npcs.filter((n) => n.where === this.inn && n.seat?.piece.kind === 'chair');
+    const patrons = npcs.filter((n) => n.role === 'villager' && n.where === this.inn && n.seat?.piece.kind === 'chair'); // (not the server, on her break in a chair by the fire)
     for (const npc of patrons) {
       if (npc.drinking) {
         if ((npc.drinking.left -= dt) <= 0) this.finished(npc);
