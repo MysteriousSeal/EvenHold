@@ -33,7 +33,7 @@ export function salvageGuide(model: GameModel, state: { picked: Make | null }, r
     el('dt', undefined, 'Gear of it'),
     el('dd', undefined, MAKES[picked].gear),
     el('dt', undefined, 'Leaves'),
-    el('dd', undefined, `${nameOf(SCRAP_OF[picked])}: one, and one more every six levels of the piece`),
+    el('dd', undefined, `${picked === 'wood' ? 'Planks (birch to level 5, pine to 12, oak above)' : nameOf(SCRAP_OF[picked])}: one, and one more every six levels of the piece`),
     el('dt', undefined, 'A rare piece'),
     el('dd', undefined, `${MAKES[picked].finer} besides (two from an epic, three from a legendary)`),
     el('dt', undefined, 'Asks'),
@@ -42,7 +42,7 @@ export function salvageGuide(model: GameModel, state: { picked: Make | null }, r
   const detail = el(
     'div',
     'book-detail',
-    el('div', 'book-head', el('span', 'book-icon', bagIcon(SCRAP_OF[picked])(56)), el('div', 'book-what', el('h3', 'book-title', MAKE_NAMES[picked]), el('span', 'book-kin', `Leaves ${nameOf(SCRAP_OF[picked]).toLowerCase()}, and ${nameOf(FINER_OF[picked]).toLowerCase()} from the rare`))),
+    el('div', 'book-head', el('span', 'book-icon', bagIcon(SCRAP_OF[picked])(56)), el('div', 'book-what', el('h3', 'book-title', MAKE_NAMES[picked]), el('span', 'book-kind', `Leaves ${nameOf(SCRAP_OF[picked]).toLowerCase()}, and ${nameOf(FINER_OF[picked]).toLowerCase()} from the rare`))),
     facts,
     el('p', 'book-tool had', 'The bench: in every smithy, out on the floor, its vice toward the door.'),
     el('p', 'book-why', 'Stand by it and press E: your gear in cases, the piece picked told of, and a button to break it down. It takes a moment; walking off drops it.'),
