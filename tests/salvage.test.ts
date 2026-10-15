@@ -213,6 +213,17 @@ describe('breaking gear down', () => {
     expect(salvageOf(made as never, 10)).toMatchObject({ tries: FOUND_TRIES.common }); // (anyone else's, found)
   });
 
+  it('forgets the wear on a piece broken down, the last of it; a second like it keeps its own', () => {
+    const { model } = atTheBench();
+    const { hero } = model;
+    hero.bag.hatchet = 2;
+    hero.wear = { hatchet: 100 };
+    expect(breakNow(model, 'hatchet')).toBe('started');
+    expect(hero.wear.hatchet).toBe(100); // (one left, as worn)
+    expect(breakNow(model, 'hatchet')).toBe('started');
+    expect(hero.wear.hatchet).toBeUndefined(); // (none left: a plain one found later, unworn)
+  });
+
   it("tells a piece's rises at the bench in one, however many its tries raise the skill", () => {
     const { model } = atTheBench();
     model.random = () => 0;
