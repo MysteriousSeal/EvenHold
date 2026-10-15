@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { DAY_MINUTES, SEASON_DAYS, seasonAt, yearAt } from '../src/model/clock';
-import { dampAt, daylightAt, TURN_HOURS, WEATHER_HOURS, weatherAt, type WeatherKind } from '../src/model/world/weather';
+import { dampAt, daylightAt, forcedMinutes, skyAt, TURN_HOURS, WEATHER_HOURS, weatherAt, type WeatherKind } from '../src/model/world/weather';
 import type { Tiles } from '../src/model/map/tiles';
 
 const H = 60;
@@ -100,5 +100,22 @@ describe('the damp', () => {
     expect(dampAt(lakeEast, 50, 50)).toBe(0);
     expect(dampAt(lakeEast, 100, 50)).toBeCloseTo(3 / 9);
     expect(dampAt(lakeEast, 200, 50)).toBe(1);
+  });
+});
+
+describe('a forced sky (a look at it)', () => {
+  it('moves the clock to the hour and the season asked for, the same day of the week', () => {
+    const now = 9 * WEEK + 3 * DAY_MINUTES + 10 * H; // the third week round, summer, its fourth day
+    expect(seasonAt(now)).toBe('summer');
+    expect(forcedMinutes(now, {})).toBe(now);
+    expect(forcedMinutes(now, { hour: 18 })).toBe(9 * WEEK + 3 * DAY_MINUTES + 18 * H);
+    expect(forcedMinutes(now, { season: 'winter' })).toBe(11 * WEEK + 3 * DAY_MINUTES + 10 * H);
+    expect(forcedMinutes(now, { season: 'spring', hour: 0 })).toBe(8 * WEEK + 3 * DAY_MINUTES);
+  });
+
+  it('takes the weather asked for, whole', () => {
+    const sky = skyAt(7, 1000, { weather: 'snow', season: 'autumn' });
+    expect(sky.season).toBe('autumn');
+    expect(sky.weather).toMatchObject({ kind: 'snow', snow: 1, rain: 0 });
   });
 });
