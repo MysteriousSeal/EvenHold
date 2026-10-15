@@ -6,6 +6,7 @@ import { roomFor, type Entrance } from '../../src/model/interiors/interiors';
 import { furnish } from '../../src/model/interiors/furnish';
 import { upstairsInside } from '../../src/model/interiors/upstairs';
 import { buildRoomScene } from '../../src/view/interior/roomView';
+import { buildBuildingGeometry } from '../../src/view/meshes/building/buildingMesh';
 import { CAMERA_OFFSET, FRUSTUM_SIZE } from '../../src/view/constants';
 
 const q = new URLSearchParams(location.search);
@@ -22,7 +23,22 @@ if (up) {
   furniture = inside.furniture;
   floorRoom = inside.room;
 }
-const view = buildRoomScene(floorRoom, furniture, !up);
+const view = q.get('out') ? outside(Number(q.get('turn') ?? 0)) : buildRoomScene(floorRoom, furniture, !up);
+// The inn from outside (?out=1&turn=0..3), on a patch of grass, by day.
+function outside(turn: number) {
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x6a8a5a);
+  for (const glowing of [false, true]) { // (its plain voxels and its glowing ones: lit/litBuildings.ts)
+    const mesh = new THREE.Mesh(buildBuildingGeometry('inn', glowing), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, ...(glowing && { emissive: 0xffb050, emissiveIntensity: 0.6 }) }));
+    mesh.rotation.y = (turn * Math.PI) / 2;
+    scene.add(mesh);
+  }
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x445533, 1.6));
+  const sun = new THREE.DirectionalLight(0xfff0d0, 1.6);
+  sun.position.set(4, 8, 6);
+  scene.add(sun);
+  return { scene, update() {}, seeHero() {}, dispose() {}, showMugs: undefined, showTableMugs: undefined };
+}
 (window as unknown as { layout: unknown }).layout = { room, furniture };
 // Figures for scale: the hero's height indoors (0.45 x 1.8), at the bar and by a table.
 const body = new THREE.CapsuleGeometry(0.16, 0.5, 4, 8).translate(0, 0.41, 0);
@@ -32,7 +48,8 @@ const add = (x: number, z: number, color: number) => {
   m.castShadow = true;
   view.scene.add(m);
 };
-if (!up) {
+if (q.get('out')) { /* (outdoors: no stand-in, the hero's half as tall there) */ }
+else if (!up) {
   add(room.door, room.depth - 1.5, 0x3355aa);
   const stool = furniture.find((f) => f.kind === 'barStool');
   if (stool) add(stool.x + 0.6, stool.z, 0xaa3333);
