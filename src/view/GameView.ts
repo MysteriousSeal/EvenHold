@@ -193,6 +193,7 @@ export class GameView {
     renderer.domElement.style.imageRendering = upscale > 1 && Number.isInteger(upscale) ? 'pixelated' : 'auto';
     renderer.domElement.style.filter = graphics().brightness === 1 ? '' : `brightness(${graphics().brightness})`;
     this.world.loadRadius = p.loadRadius;
+    this.world.refit(); // (the grass as thick, the trees as fine, as the quality draws them)
     this.post?.setPasses(options.bloom && p.bloom, options.shafts && p.shafts, Math.min(options.msaa, p.msaa));
     this.resize();
   }

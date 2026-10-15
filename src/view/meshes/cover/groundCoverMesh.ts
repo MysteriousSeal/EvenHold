@@ -64,6 +64,7 @@ const WILD: Record<WildKind, { grid: [number, number, number]; shapes: number; b
   thistle: { grid: THISTLE_GRID, shapes: THISTLE_SHAPES, build: buildThistle, sway: 'moor' },
 };
 const wildShape = (w: WildItem) => w.variant % WILD[w.kind].shapes;
+const SMALL = { small: true }; // (all of it: thinned, and none far off, at a lower quality: voxel/voxelInstances.ts)
 
 function geometry(grid: ReturnType<typeof buildTuft>, size: [number, number, number]): THREE.BufferGeometry {
   // Centered on its spot in X/Z, standing on the ground in Y.
@@ -129,6 +130,8 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
     (s) => buildSprigGeometry(itemHash(s) % SPRIG_SHAPES),
     (s) => place(s, grassTint(s)),
     grassMaterial,
+    undefined,
+    SMALL,
   ));
   scene.layer(voxelLayer(
     keys,
@@ -137,6 +140,8 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
     (t) => buildTuftGeometry(tuftSize(t.scale), itemHash(t) % TUFT_SHAPES),
     (t) => place(t, grassTint(t)),
     grassMaterial,
+    undefined,
+    SMALL,
   ));
   scene.layer(voxelLayer(
     keys,
@@ -145,6 +150,8 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
     (f) => buildFlowerGeometry(f.variant, itemHash(f) % FLOWER_HEIGHTS),
     (f) => place(f),
     still(),
+    undefined,
+    SMALL,
   ));
   // The meadow patches' wildflowers, swaying as the grass does (a little less: their heads are heavier).
   const bloomMaterial = plain();
@@ -156,6 +163,8 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
     (b) => greedyMesh(buildBloom(BLOOM_KINDS[b.variant], itemHash(b) % BLOOM_SHAPES), BLOOM_PALETTE, COVER_VOXEL_SIZE, new THREE.Vector3((-BLOOM_GRID[0] * COVER_VOXEL_SIZE) / 2, -SINK, (-BLOOM_GRID[2] * COVER_VOXEL_SIZE) / 2)),
     (b) => place(b),
     bloomMaterial,
+    undefined,
+    SMALL,
   ));
   scene.layer(voxelLayer(
     keys,
@@ -164,6 +173,8 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
     (p) => buildPebbleGeometry(itemHash(p) % PEBBLE_SHAPES),
     (p) => place(p),
     still(),
+    undefined,
+    SMALL,
   ));
 
   // The country's own plants: those that sway (ferns a little, heather and reeds more), and those that don't.
@@ -186,6 +197,8 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
       },
       (w) => place(w),
       material,
+      undefined,
+      SMALL,
     ));
   }
 
