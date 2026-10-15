@@ -49,11 +49,15 @@ export const FURNITURE_PALETTE = [
   0x74406e, // 54 plum
   0x522c50, // 55 plum, shadow
   0x965e90, // 56 plum, light
+  // The smithy's (smithyVoxels.ts): its quench water dark with scale, glinting; iron glowing from the fire.
+  0x2c403e, // 57 quench water
+  0x5a7a74, // 58 quench water, glinting
+  0xff5a1e, // 59 hot iron
 ];
 export const [WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, FIRE, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, WATER, COAL, STONE, STONE_DARK] = FURNITURE_PALETTE.map((_, i) => 14 + i);
 export const [RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK] =
   FURNITURE_PALETTE.slice(16, 34).map((_, i) => 30 + i);
-export const [INDIGO, INDIGO_DARK, INDIGO_LIGHT, MOSS, MOSS_DARK, MOSS_LIGHT, PLUM, PLUM_DARK, PLUM_LIGHT] = FURNITURE_PALETTE.slice(34).map((_, i) => 48 + i);
+export const [INDIGO, INDIGO_DARK, INDIGO_LIGHT, MOSS, MOSS_DARK, MOSS_LIGHT, PLUM, PLUM_DARK, PLUM_LIGHT, QUENCH, QUENCH_LIGHT, HOT_IRON] = FURNITURE_PALETTE.slice(34).map((_, i) => 48 + i);
 
 // A tankard standing at (u, y, v): a wooden body with iron hoops and a
 // handle on its side; full, a white head of foam on top; empty, open at the
