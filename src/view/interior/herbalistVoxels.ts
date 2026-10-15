@@ -17,6 +17,8 @@ import {
   EMBER,
   FIRE,
   COAL,
+  BRASS,
+  BRASS_DARK,
   RED,
   RED_LIGHT,
   CLAY,
@@ -109,19 +111,28 @@ export const HERBALIST_PAINTERS: Record<HerbalistKind, (box: Box, len: number, d
     for (let k = 0; k < 7; k++) box(c - 2 - k, top - 2 + k, c - 2 - (k >> 1), c - 2 - k, top - 2 + k, c - 2 - (k >> 1), WOOD_DARK); // the ladle's handle, leaning on the rim
   },
   // Two tiles of oak, its front toward the door: on it a stone mortar and
-  // its pestle, three flasks (red, blue, green), the herbal open, a bunch
-  // of herbs.
+  // its pestle, three flasks (red, blue, green), the herbal open, a brass
+  // balance, a bunch of herbs.
   herbCounter: (box, len) => {
     box(1, 1, 7, len - 2, 2, 19, WOOD_DARK); // plinth
     box(2, 3, 8, len - 3, 12, 18, (u, y, v) => (v === 18 && (u % 12 === 2 || y === 7) ? WOOD_DARK : WOOD)); // body, panelled
     box(0, 13, 6, len - 1, 14, 20, (_u, y, v) => (y === 13 ? WOOD_DARK : v === 20 ? WOOD_LIGHT : WOOD)); // the top, its edge lit
-    box(5, 15, 11, 10, 17, 16, (u, y, v) => (y > 15 && u > 5 && u < 10 && v > 11 && v < 16 ? (y === 17 ? MOSS : 0) : STONE)); // the mortar, herbs in it
+    box(5, 15, 11, 10, 17, 16, (u, y, v) => ((u === 5 || u === 10) && (v === 11 || v === 16) ? 0 : y > 15 && u > 5 && u < 10 && v > 11 && v < 16 ? (y === 16 ? MOSS : 0) : y === 17 ? STONE : STONE_DARK)); // the mortar, round, herbs in it
     box(8, 16, 13, 10, 21, 13, WOOD_LIGHT); // the pestle, standing in it
     flask(box, 15, 15, 12, RED);
     flask(box, 19, 15, 14, INDIGO_LIGHT);
     flask(box, 23, 15, 12, GLASS_GREEN);
     box(29, 15, 10, 40, 15, 17, (u, _y, v) => (u === 34 || u === 35 ? CLAY_DARK : (v === 12 || v === 14 || v === 16) && u !== 29 && u !== 40 ? INK : PARCHMENT)); // the herbal, open
-    for (let u = 43; u <= 46; u++) box(u, 15, 12 + (u % 2), u, 15, 15 + (u % 2), u % 2 ? MOSS_LIGHT : MOSS); // a bunch of herbs, lying
+    // A brass balance to weigh out the herbs: its foot, its post, its beam, a pan hung at each end, a pinch in one.
+    box(44, 15, 13, 46, 15, 15, BRASS_DARK);
+    box(45, 16, 14, 45, 21, 14, BRASS_DARK);
+    box(42, 22, 14, 48, 22, 14, BRASS);
+    for (const u of [42, 48]) {
+      box(u, 19, 14, u, 21, 14, BRASS_DARK); // its cords
+      box(u - 1, 18, 13, u + 1, 18, 15, BRASS); // its pan
+    }
+    box(42, 19, 14, 42, 19, 14, MOSS_LIGHT);
+    for (let u = 2; u <= 4; u++) box(u, 15, 15 + (u % 2), u, 15, 18, u % 2 ? MOSS_LIGHT : MOSS); // a bunch of herbs, lying
   },
   // Their worktable, sturdy and worn: legs braced by stretchers, an apron
   // under its top, the planks' grooves sunk into it, its edge worn pale. On
