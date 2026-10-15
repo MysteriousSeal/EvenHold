@@ -1,10 +1,10 @@
 // The inn's own furniture in voxels (see furnitureVoxels.ts for how pieces
 // are painted): the bar (bottle shelves, the counter, stools, kegs), the
-// hearth corner's armchairs and bear rug, tavern tables laid for a meal, and
+// hearth corner's armchairs and bear rug, tavern tables (a meal, dice, wine), and
 // what hangs on its walls (antlers, a shield, lanterns, a notice board). Its
 // stairs and the floor above are upstairsVoxels.ts'.
 
-import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, STONE, STONE_DARK, WATER, type Box } from './furniturePalette';
+import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, goblet, STONE, STONE_DARK, WATER, type Box } from './furniturePalette';
 import type { Furniture } from '../../model/interiors/furniture';
 
 export type InnKind = 'counter' | 'keg' | 'sink' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
@@ -165,14 +165,36 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
     }
   },
   // A tavern table laid for a meal: two pewter plates, a loaf and a roast, a tankard and a mug, a candle.
-  tavernTable: (box) => {
+  // Each laid its own way (by where it stands, the same every visit), round a
+  // candle: a meal (a loaf and a roast on plates, a tankard and a mug), a game
+  // of dice (two tankards, the dice, the stakes in coin), or wine (a clay jug,
+  // two goblets, a bowl of stew).
+  tavernTable: (box, _len, _dep, item) => {
     for (const [u, v] of [[3, 3], [20, 3], [3, 20], [20, 20]]) box(u, 1, v, u + 1, 8, v + 1, WOOD_DARK);
     box(1, 9, 1, 23, 10, 23, (u) => (u % 6 === 0 ? WOOD_DARK : WOOD));
-    for (const [u, v] of [[3, 3], [15, 15]]) box(u, 11, v, u + 5, 11, v + 5, IRON_LIGHT); // plates
-    box(4, 12, 4, 7, 13, 6, (u, y) => (y === 13 && u % 2 === 1 ? BREAD : y === 13 ? WOOD_LIGHT : BREAD)); // a loaf on one, scored
-    box(16, 12, 16, 19, 13, 18, (_u, y) => (y === 13 ? ROAST : CLAY_DARK)); // a roast on the other,
-    box(20, 13, 17, 21, 13, 17, BONE); // its bone sticking out
-    [[17, 4], [4, 17]].forEach(([u, v], i) => drink(box, u, 11, v, i)); // a full tankard and an empty mug
+    const laid = ((Math.imul(item.x, 73856093) ^ Math.imul(item.z, 19349663)) >>> 0) % 3;
+    if (laid === 0) {
+      for (const [u, v] of [[3, 3], [15, 15]]) box(u, 11, v, u + 5, 11, v + 5, IRON_LIGHT); // plates
+      box(4, 12, 4, 7, 13, 6, (u, y) => (y === 13 && u % 2 === 1 ? BREAD : y === 13 ? WOOD_LIGHT : BREAD)); // a loaf on one, scored
+      box(16, 12, 16, 19, 13, 18, (_u, y) => (y === 13 ? ROAST : CLAY_DARK)); // a roast on the other,
+      box(20, 13, 17, 21, 13, 17, BONE); // its bone sticking out
+      [[17, 4], [4, 17]].forEach(([u, v], i) => drink(box, u, 11, v, i)); // a full tankard and an empty mug
+    } else if (laid === 1) {
+      [[4, 4], [17, 17]].forEach(([u, v]) => drink(box, u, 11, v, 0)); // a full tankard each side
+      for (const [u, v] of [[15, 5], [7, 16]]) {
+        box(u, 11, v, u + 1, 12, v + 1, BONE); // a die,
+        box(u, 12, v, u, 12, v, INK); // a pip up
+      }
+      box(17, 11, 6, 19, 12, 8, (_u, y) => (y === 11 ? BRASS_DARK : BRASS)); // the stakes, stacked
+      box(4, 11, 15, 5, 11, 16, BRASS); // and a few loose
+    } else {
+      box(4, 11, 15, 7, 16, 18, (u, y, v) => (y === 16 && u > 4 && u < 7 && v > 15 && v < 18 ? CLAY_DARK : y === 14 ? CLAY_DARK : CLAY)); // a jug, banded, its mouth dark
+      box(8, 13, 16, 8, 15, 17, CLAY_DARK); // its handle
+      goblet(box, 16, 11, 4, true);
+      goblet(box, 4, 11, 5, false);
+      box(15, 11, 15, 19, 12, 19, (u, y, v) => (u > 15 && u < 19 && v > 15 && v < 19 ? (y === 12 ? 0 : ROAST) : y === 11 ? CLAY_DARK : CLAY)); // a bowl of stew, sunk in its rim
+      box(17, 12, 16, 17, 12, 16, BREAD); // a dumpling in it
+    }
     box(11, 11, 11, 12, 15, 12, LINEN); // candle
     box(11, 16, 11, 11, 16, 11, EMBER);
   },
