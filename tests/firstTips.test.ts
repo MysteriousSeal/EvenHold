@@ -8,6 +8,7 @@ import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
 import { FirstTips, TIPS, reloadTips, setTipsOn, tipsOn } from '../src/controller/tips/firstTips';
 import { TIRED } from '../src/model/hero/heroStats';
+import { liveOn } from '../src/model/hero/setbacks';
 import { maxHpOf } from '../src/model/hero/attributes';
 import { WORN } from '../src/model/hero/wear';
 import { BAG_ROOM } from '../src/model/hero/bagSlots';
@@ -43,9 +44,23 @@ describe('the first hour\'s tips', () => {
     expect(JSON.parse(localStorage.getItem('evenhold.tips')!)).toEqual({ off: false, seen: ['hurt', 'tired'] });
   });
 
+  it('knocked down: only for a fall that dropped a purse, shown at once though another was just shown', () => {
+    const model = fresh();
+    const tips = new FirstTips(model);
+    model.hero.hp = maxHpOf(model.hero) * 0.4;
+    expect(shown(tips)).toBe('hurt');
+    model.hero.money = 100;
+    model.fall();
+    expect(shown(tips, 2)).toBe('fallen'); // (not lost in the wait after the last)
+    const spent = fresh();
+    [spent.hero.money, spent.hero.energy] = [100, 0];
+    expect(liveOn(spent, 0.1)).toBe(true); // (passed out: Weary, no purse dropped)
+    expect(shown(new FirstTips(spent), 30)).not.toBe('fallen');
+  });
+
   it('each the moment it first matters', () => {
     const cases: Array<[string, (m: GameModel) => void]> = [
-      ['fallen', (m) => m.fall()],
+      ['fallen', (m) => ((m.hero.money = 100), m.fall())],
       ['breath', (m) => (m.moves.breath = 5)],
       ['worn', (m) => ((m.hero.equipment.mainHand = 'hatchet' as never), (m.hero.wear = { hatchet: WORN }))],
       ['food', (m) => (m.hero.bag.bread = 2)],

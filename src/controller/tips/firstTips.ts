@@ -9,7 +9,6 @@ import type { GameModel } from '../../model/GameModel';
 import { TIRED } from '../../model/hero/heroStats';
 import { maxHpOf } from '../../model/hero/attributes';
 import { WORN, wearOf } from '../../model/hero/wear';
-import { WEARY_TIME } from '../../model/hero/blessing';
 import { slotsUsed } from '../../model/hero/bagStacks';
 import { bagRoom } from '../../model/hero/bagSlots';
 import { isProvision } from '../../model/loot/provisions';
@@ -24,6 +23,7 @@ export interface Tip {
   title: string;
   due: (model: GameModel) => boolean;
   text: (key: (action: KeyAction) => string, model: GameModel) => string;
+  now?: true; // shown though another was just shown (gone again before the wait's out)
 }
 
 const BREATHLESS = 20; // breath left (of 100): out of it
@@ -36,8 +36,9 @@ export const TIPS: readonly Tip[] = [
   {
     id: 'fallen',
     title: 'Knocked down',
-    due: (m) => !!m.hero.blessings?.some((b) => b.kind === 'weary' && b.left > WEARY_TIME - 3),
-    text: () => 'You woke at an inn, Weary a while. Fell in a fight? Half your coin lies where you fell, under a shaft of gold light: fetch it before you fall again.',
+    due: (m) => !!m.purse && !!m.hero.blessings?.some((b) => b.kind === 'weary'), // (a fall in a fight, its purse still lying: not passing out, nor the stocks)
+    text: () => 'You woke at an inn, Weary a while. Half your coin lies where you fell in the fight, under a shaft of gold light: fetch it before you fall again.',
+    now: true,
   },
   {
     id: 'hurt',
@@ -151,8 +152,8 @@ export class FirstTips {
 
   next(dt: number): Tip | null {
     this.wait = Math.max(0, this.wait - dt);
-    if (kept.off || this.wait > 0) return null;
-    const tip = TIPS.find((t) => !kept.seen.includes(t.id) && t.due(this.model));
+    if (kept.off) return null;
+    const tip = TIPS.find((t) => !kept.seen.includes(t.id) && (this.wait === 0 || t.now) && t.due(this.model));
     if (!tip) return null;
     kept = { ...kept, seen: [...kept.seen, tip.id] };
     keep();
