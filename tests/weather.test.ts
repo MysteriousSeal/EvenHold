@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { DAY_MINUTES, SEASON_DAYS, seasonAt, yearAt } from '../src/model/clock';
-import { dampAt, daylightAt, forcedMinutes, skyAt, TURN_HOURS, WEATHER_HOURS, weatherAt, type WeatherKind } from '../src/model/world/weather';
+import { CLEAR_SPELLS, dampAt, daylightAt, forcedMinutes, skyAt, TURN_HOURS, WEATHER_HOURS, weatherAt, type WeatherKind } from '../src/model/world/weather';
 import type { Tiles } from '../src/model/map/tiles';
 
 const H = 60;
@@ -74,6 +74,10 @@ describe('the weather', () => {
     const now = weatherAt(seed, into);
     if (now.kind === 'rain') expect(now.rain).toBe(1);
     if (now.kind === 'clear') expect(now.cloud).toBe(0);
+  });
+
+  it('is clear on a new game\'s first day till the afternoon, in every world', () => {
+    for (let s = 0; s < 50; s++) for (let m = 0; m < CLEAR_SPELLS * WEATHER_HOURS * H; m += 30) expect(weatherAt(s, m)).toMatchObject({ kind: 'clear', cloud: 0, rain: 0 });
   });
 
   it('gusts now and then, between nothing and full', () => {
