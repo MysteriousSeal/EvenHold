@@ -230,6 +230,12 @@ describe('what bites', () => {
     for (let level = 160; level < 210; level++) expect(yellow(NARROWS, level), `${level}`).toBe(true);
   });
 
+  it('is salmon in any water from 240: an orange or yellow fish for an artisan, whatever the lake', () => {
+    for (const spot of [OPEN, NARROWS, DEEP]) expect(items(spot, 240)).toContain('salmon');
+    const yellow = (spot: typeof OPEN, level: number) => catchesAt(spot, level).some((c) => isFish(c.item) && riseOf(c, level).chance >= 0.6);
+    for (let level = 240; level < 290; level++) for (const spot of [OPEN, NARROWS, DEEP]) expect(yellow(spot, level), `${level}`).toBe(true);
+  });
+
   it('is eels in the narrows from 110, char in open water from 180, sturgeon in the deep from 250', () => {
     expect(items(NARROWS, 110)).toContain('eel');
     expect(items(OPEN, 110)).not.toContain('eel');
