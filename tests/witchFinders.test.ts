@@ -66,6 +66,15 @@ describe('heat', () => {
     expect(model.heat.of(model.heat.nearest(npc)!)).toBe(MOST);
   });
 
+  it('is told as it crosses each mark, the highest crossed', () => {
+    const model = fresh();
+    const v = model.villages[0];
+    model.heat.raise(v, 1);
+    model.heat.raise(v, 6);
+    const told = model.takeEvents().flatMap((e) => (e.kind === 'banner' ? [e.title] : []));
+    expect(told).toEqual(['Talk of witchcraft', 'To be seized on sight']);
+  });
+
   it('fades with distance from where it was heard of', () => {
     const model = fresh();
     const v = model.villages[0];
