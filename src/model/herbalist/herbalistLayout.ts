@@ -46,7 +46,7 @@ export function furnishHerbalist(plan: Planner, room: Room, _seed: number, _entr
   const tableSpots: Array<[number, number]> = [[0, D - 3], [0, D - 2], [W - 2, D - 3], [W - 2, D - 2], ...inside()];
   before(place('herbTable', 2, 1, 'none', tableSpots.filter(([x, z]) => fits(x, z, 2, 1) && open(x, z + 1, 2)), false));
   // Their stores (baskets, a sack) heaped in a front corner, and a barrel in another.
-  place('herbStores', 1, 1, 'none', [[W - 1, D - 1], [0, D - 1], [W - 1, D - 2]], false);
+  place('herbStores', 1, 1, 'none', [[0, D - 1], [W - 1, D - 1], [0, D - 2]], false); // (by the worktable's candle, where they show)
   place('barrel', 1, 1, 'none', [[W - 1, D - 1], [0, D - 1], [W - 1, 0]]);
   for (let pocket = walledIn(); pocket; pocket = walledIn()) fillPocket(...pocket);
 }
