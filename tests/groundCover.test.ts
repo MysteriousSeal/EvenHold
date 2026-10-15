@@ -30,7 +30,8 @@ describe('ground cover scatter', () => {
     const solid = solidCells(model);
     const { tufts, sprigs, flowers, pebbles } = cover(model);
     expect(tufts.length).toBeGreaterThan(0);
-    expect(sprigs.length).toBeGreaterThan(tufts.length); // on all grass, not just meadows
+    const tilesOf = (items: typeof sprigs) => new Set(items.map((i) => `${Math.round(i.x)},${Math.round(i.z)}`)).size;
+    expect(tilesOf(sprigs)).toBeGreaterThan(tilesOf(tufts)); // on all grass, not just meadows (one a tile where the country's own plants grow)
 
     const misplaced = [...tufts, ...sprigs, ...flowers, ...pebbles].filter((item) => {
       const [x, z] = tileOf(item);
