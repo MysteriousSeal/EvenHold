@@ -208,7 +208,8 @@ describe('the creation screen, in the menu', () => {
   const open = () => {
     document.body.innerHTML = '<div id="loading" class="title"><h1>EvenHold</h1></div>';
     const menu = showMainMenu(hooks);
-    document.querySelector<HTMLButtonElement>('.title-slot')!.click();
+    // (the new-hero slot with heroes kept; with none, Create Hero is the way in)
+    (document.querySelector<HTMLButtonElement>('.title-slot') ?? document.querySelector<HTMLButtonElement>('.title-enter'))!.click();
     return menu;
   };
 
