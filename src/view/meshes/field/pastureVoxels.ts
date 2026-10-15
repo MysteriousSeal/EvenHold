@@ -9,7 +9,7 @@
 // - Trough: a long plank trough on two trestles, water in it, the ground
 //   round it trodden bare.
 
-import { hashUnit } from '../../../util/random';
+import { hashUnit, smoothNoise } from '../../../util/random';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox, setColor } from '../voxel/voxelShapes';
 
@@ -28,16 +28,15 @@ export const PASTURE_PALETTE = [
 ];
 const [GRASS, SUNLIT, GRAZED, EARTH, TUFT, WOOD, WOOD_DARK, WATER] = [1, 2, 3, 4, 5, 6, 7, 8];
 
-// The turf, in drifts five voxels across (so it meshes into few faces): mostly green, grazed in places, now and
-// then bare; `variant`: which of the few looks (tiles turned and mixed so it doesn't repeat).
+// The turf, in soft-edged drifts (so it meshes into few faces, and doesn't read as a chequer): mostly green, grazed
+// in places, now and then bare; `variant`: which of the few looks (tiles turned and mixed so it doesn't repeat).
 export function buildPastureTile(variant: number, bare = 0): VoxelGrid {
   const grid = createGrid(PASTURE_GRID);
-  const drift = (x: number, z: number, salt: number) => hashUnit(Math.floor(x / 5) + variant * 7, Math.floor(z / 5), salt);
   for (let x = 0; x < N; x++) {
     for (let z = 0; z < N; z++) {
-      const r = drift(x, z, 71);
+      const r = smoothNoise(x, z, 71 + variant * 13, 7);
       const worn = Math.hypot(x - 12, z - 12) < bare; // (trodden round the middle: the trough's tile)
-      setColor(grid, x, 0, z, worn ? (hashUnit(x, z, 72) < 0.6 ? EARTH : GRAZED) : r < 0.02 ? EARTH : r < 0.3 ? GRAZED : r < 0.75 ? GRASS : SUNLIT);
+      setColor(grid, x, 0, z, worn ? (hashUnit(x, z, 72) < 0.6 ? EARTH : GRAZED) : r < 0.1 ? EARTH : r < 0.38 ? GRAZED : r < 0.68 ? GRASS : SUNLIT); // (the noise keeps mostly to its middle: these split it by about a quarter each, the bare least)
     }
   }
   // A few tufts left standing.
