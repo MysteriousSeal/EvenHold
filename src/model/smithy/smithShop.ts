@@ -8,6 +8,7 @@ import { hashUnit } from '../../util/random';
 import { LOOT } from '../loot/loot';
 import { TOOL_ITEMS, type ToolId } from '../loot/tools';
 import { COPPER_PER_SILVER } from '../hero/money';
+import { wearGone } from '../hero/wear';
 import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
 import { baseOf, gearKey, gearWorth, isGear, slotOfGear, type GearKey, levelOf } from '../human/items/gear';
 import type { Hero } from '../types';
@@ -46,11 +47,12 @@ export const smithTakesPick = (id: string): id is ToolId => PICKS.has(id) && id 
 export const pickPrice = (id: ToolId, selling: boolean): number => (selling ? Math.floor(TOOL_ITEMS[id].value / 2) : TOOL_ITEMS[id].value);
 
 // What he starts with, and restocks toward: his usual few of each (now and
-// then one short, from the seed), and a purse of several silver.
+// then one short of a piece he keeps two of, from the seed: never none, a ware sold out for good), and a purse of
+// several silver.
 function usual(seed: number, smithy: number, level?: number): Usual {
   const roll = (salt: number) => hashUnit(smithy, seed % 1_000_003, salt);
   const forged = (id: ItemId, i: number): GearKey => (level === undefined ? id : gearKey({ item: id, level, rarity: roll(300 + i) < 0.33 ? 'uncommon' : 'common', roll: Math.floor(roll(400 + i) * 1000) }));
-  const stock: Usual['stock'] = Object.fromEntries(SMITH_WARES.map((id, i) => [forged(id, i), Math.max(0, ITEMS[id].soldBy!.smith! - (roll(200 + i) < 0.3 ? 1 : 0))]));
+  const stock: Usual['stock'] = Object.fromEntries(SMITH_WARES.map((id, i) => [forged(id, i), ITEMS[id].soldBy!.smith! - (ITEMS[id].soldBy!.smith! > 1 && roll(200 + i) < 0.3 ? 1 : 0)]));
   stock[SMITH_PICK] = 1; // (every smith has a pickaxe)
   return { money: Math.round((6 + roll(199) * 6) * COPPER_PER_SILVER), stock };
 }
@@ -75,6 +77,9 @@ export function smithShopIn(model: { shops: Map<number, Shop>; seed: number; siz
     for (const key of Object.keys(shop.stock) as GearKey[]) if (isGear(key) && key.includes('@') && levelOf(key) !== village && levelOf(key) !== level) delete shop.stock[key];
     for (const [key, n] of Object.entries(fresh)) if (!(key in shop.stock)) shop.stock[key as GearKey] = n;
   }
+  // What's gone that he'll not forge again (what the hero sold him, his village's wares they've outgrown) off his
+  // wall, not shown sold out for ever.
+  for (const key of Object.keys(shop.stock) as GearKey[]) if (!shop.stock[key] && !(key in fresh)) delete shop.stock[key];
   return shop;
 }
 
@@ -99,6 +104,7 @@ export const UNDER_COUNTER = 2.5;
 export const smithPriceFor = (hero: Pick<Hero, 'level'>, key: GearKey): number => (smithSellsTo(hero, key) ? gearPrice(key) : Math.ceil(gearPrice(key) * UNDER_COUNTER));
 
 export function buyGear(shop: Shop, hero: Hero, id: GearKey | ToolId): 'bought' | 'sold out' | 'too poor' | 'full' {
+  wearGone(hero, id); // (one like it they had, sold: this one's new)
   return buyFrom(shop, hero, id, smithTakesPick(id) ? pickPrice(id, false) : smithPriceFor(hero, id as GearKey));
 }
 
