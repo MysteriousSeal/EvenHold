@@ -43,12 +43,13 @@ export const ENEMY_STATS = {
   // the hero: walking slower). A bat: frail, fast, flitting, biting and off again, in flocks. A cave worm: underground
   // (unseen, unstruck), coming on under the hero, then bursting up beneath them (told: the ground heaving), up a while,
   // then down again; tough. A hatchling: the brood mother's young, called from her egg sacs, weak. The brood mother:
-  // the nest's own, huge; still on her silk till the hero comes into her nest (or strikes her); webs, a charge, her brood.
+  // the nest's own, huge; still on her silk till the hero comes into her nest (or strikes her); webs, a charge, her brood;
+  // standing in as close as a crypt's lord for her size (stood off further, a step back never took them out of her reach).
   caveSpider: { family: 'vermin', passive: false, hp: 4, damage: 2, xp: 20, coins: 3, radius: 0.17, walk: 0.9, run: 2.6, sight: 5, giveUp: 10, wander: 2.5, stop: 0.55, swing: 0.55, cooldown: 1.2, rest: [2, 3], shove: 0.9, loot: 1 },
   caveBat: { family: 'vermin', passive: false, hp: 2, damage: 1, xp: 12, coins: 1, radius: 0.12, walk: 1.5, run: 3.4, sight: 6, giveUp: 8, wander: 3, stop: 0.45, swing: 0.35, cooldown: 1.1, rest: [0.6, 1.2], shove: 1.3, loot: 0.6 },
   caveWorm: { family: 'vermin', passive: false, hp: 8, damage: 3, xp: 35, coins: 4, radius: 0.2, walk: 0.6, run: 1.6, sight: 7, giveUp: 12, wander: 2, stop: 0.7, swing: 0.8, cooldown: 1.6, rest: [3, 4], shove: 0.2, loot: 1.2 },
   hatchling: { family: 'vermin', passive: false, hp: 2, damage: 1, xp: 5, coins: 0, radius: 0.11, walk: 1.2, run: 3, sight: 7, giveUp: 15, wander: 1.5, stop: 0.45, swing: 0.4, cooldown: 1, rest: [1, 2], shove: 1.2, loot: 0.2 },
-  broodMother: { family: 'vermin', passive: true, hp: 45, damage: 4, xp: 220, coins: 45, radius: 0.36, walk: 0.7, run: 2.2, sight: 10, giveUp: 30, wander: 0, stop: 0.95, swing: 0.9, cooldown: 1.3, rest: [3, 3], shove: 0.25, loot: 2 },
+  broodMother: { family: 'vermin', passive: true, hp: 45, damage: 4, xp: 220, coins: 45, radius: 0.36, walk: 0.7, run: 2.2, sight: 10, giveUp: 30, wander: 0, stop: 0.85, swing: 0.9, cooldown: 1.3, rest: [3, 3], shove: 0.25, loot: 2 },
   // A bandit stronghold's (strongholds/strongholdFoes.ts), each with a way of fighting of its own (strongholds/
   // strongholdPack.ts its packs' roles, strongholdBosses.ts and strongholdKing.ts its bosses'). Its packs: a bruiser
   // tough, slow, hardly moved; a crossbowman, a firebrand and a sawbones frail, fighting from afar (`stop`: where each

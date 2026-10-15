@@ -99,6 +99,19 @@ describe('gear wears', () => {
     expect(hero.blessings!.map((b) => b.kind)).not.toContain('tempered'); // (no well's)
   });
 
+  it('not Tempered for a scratch mended off a piece carried with nothing worn (the floor counts what the bill mends)', () => {
+    const { hero } = fresh();
+    hero.money = 10_000;
+    hero.bag = { brigandine: 1 };
+    hero.wear = { brigandine: 1 };
+    expect(mendBill(hero).total).toBe(1);
+    expect(mendAll(hero)).toBe('mended');
+    expect(hero.blessings ?? []).toEqual([]);
+    hero.wear = { brigandine: 60 };
+    expect(mendAll(hero)).toBe('mended');
+    expect(hero.blessings!.map((b) => b.kind)).toEqual(['tempered']);
+  });
+
   it('Tempered kept in the save, its time left; an older save, without it, loads untempered', () => {
     const model = fresh();
     model.hero.blessings = [{ kind: 'tempered', left: 600 }];
