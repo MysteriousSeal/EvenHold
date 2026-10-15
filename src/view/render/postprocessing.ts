@@ -91,12 +91,16 @@ export class PostProcessing {
     }
     this.composer.addPass(new OutputPass());
 
-    // The camera never rotates, so its screen axes and the sun's on-screen
-    // direction are fixed.
+    // The camera never rotates, so its screen axes are fixed.
     camera.updateMatrixWorld();
     camera.matrixWorld.extractBasis(this.right, this.up, new THREE.Vector3());
-    const light = SUN_DIRECTION.clone().negate();
-    this.shafts.uniforms.uBeamDir.value.set(light.dot(this.right), light.dot(this.up)).normalize();
+    this.setSun(SUN_DIRECTION);
+  }
+
+  // The way toward the sun (it moves through the day: skyView.ts), its beams falling the other way on screen.
+  setSun(direction: THREE.Vector3): void {
+    const [x, y] = [-direction.dot(this.right), -direction.dot(this.up)];
+    if (Math.hypot(x, y) > 1e-4) this.shafts.uniforms.uBeamDir.value.set(x, y).normalize();
   }
 
   setSize(width: number, height: number, pixelRatio: number): void {
@@ -105,9 +109,10 @@ export class PostProcessing {
     this.shafts.uniforms.uViewSize.value.set(this.camera.right - this.camera.left, this.camera.top - this.camera.bottom);
   }
 
-  // How much of the light shafts shows (0..1).
-  setShafts(strength: number): void {
+  // How much of the light shafts shows (0..1), and their colour (the sun's, warmer low down).
+  setShafts(strength: number, color?: THREE.Color): void {
     this.shafts.uniforms.uStrength.value = strength;
+    if (color) this.shafts.uniforms.uColor.value.copy(color);
   }
 
   render(elapsedSeconds: number): void {
