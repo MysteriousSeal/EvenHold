@@ -19,7 +19,7 @@ import { baseOf, isGear, levelOf, rarityOf, type GearKey, type Rarity } from '..
 import type { IngredientId } from '../loot/ingredients';
 import type { JUNK_ITEMS } from '../loot/junk';
 import { LOOT } from '../loot/loot';
-import { RISE, SKILLS, SKILL_MAX, difficulty, practise, skillOf } from './skills';
+import { MATERIAL_RISE, SKILLS, SKILL_MAX, difficulty, practise, skillOf } from './skills';
 import { gearSellPrice } from '../smithy/smithShop';
 import { RECIPES } from './woodworking';
 import { SMITH_RECIPES } from './smithing';
@@ -128,11 +128,11 @@ const madeFrom = (item: string, level: number, rarity: Rarity): number | null =>
 };
 
 // How likely breaking a piece down teaches a hand at `skill` (skills.ts difficulty): nothing from one too hard to
-// learn from (TOO_HARD past it), green at the most from one as a recipe makes it.
+// learn from (TOO_HARD past it), a material's little at the most from one as a recipe makes it (no ladder).
 export function teachChance(salvaged: Salvaged, skill: number): number {
   if (salvaged.needs > skill + TOO_HARD) return 0;
   const chance = difficulty(salvaged.needs, skill).chance;
-  return salvaged.made ? Math.min(chance, RISE[2].chance) : chance;
+  return salvaged.made ? Math.min(chance, MATERIAL_RISE.chance) : chance;
 }
 
 // What breaking `key` down gives a hand at `skill` (none said: a master's), and the skill it asks: more of its scrap

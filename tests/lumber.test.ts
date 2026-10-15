@@ -143,7 +143,7 @@ describe('chopping', () => {
     expect(difficulty(WOOD.birch.needs, 30)).toBe(RISE[1]);
     expect(difficulty(WOOD.birch.needs, 60)).toBe(RISE[2]);
     expect(difficulty(WOOD.birch.needs, 200)).toBe(RISE[3]);
-    expect(RISE.map((r) => r.chance)).toEqual([1, 0.6, 0.25, 0]);
+    expect(RISE.map((r) => r.chance)).toEqual([1, 0.75, 0.4, 0]);
   });
 
   it('never has the oak go grey: green at the least, so there is always a tree to learn from, to the top', () => {

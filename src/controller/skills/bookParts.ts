@@ -3,12 +3,13 @@
 // if it's the best to learn from, a count; picked, framed; not reached yet, faded), the colours' key under the list,
 // and the line of what it wants of the skill ("Requires Woodworking 150 · Often teaches").
 
-import { RISE, difficulty } from '../../model/skills/skills';
+import { MATERIAL_RISE, RISE, difficulty } from '../../model/skills/skills';
 import { el } from '../../view/ui/dom';
 
-// What each colour of difficulty says it teaches, in full (the line) and in short (the key).
-const TEACHES = ['Always teaches', 'Often teaches', 'Rarely teaches', 'Teaches nothing more'];
-const SHORT = ['Always', 'Often', 'Rarely', 'Never'];
+// What each colour of difficulty says it teaches, in full (the line) and in short (the key); a material's, less.
+const TEACHES = ['Always teaches', 'Often teaches', 'Sometimes teaches', 'Teaches nothing more'];
+const SHORT = ['Always', 'Often', 'Sometimes', 'Never'];
+const teachesOf = (rise: Rise): string => (rise === MATERIAL_RISE ? 'Rarely teaches' : TEACHES[RISE.findIndex((r) => r.name === rise.name)]);
 
 type Rise = (typeof RISE)[number]; // (a thing's own, where it isn't its difficulty's: lumber.ts riseOf)
 
@@ -40,7 +41,7 @@ export function needsLine(skill: string, needs: number, level: number, its?: Ris
   const line = el('p', known ? 'book-needs' : 'book-needs short', `Requires ${skill} ${needs}`);
   if (known) {
     const rise = its ?? difficulty(needs, level);
-    const teach = el('span', 'book-teach', ` · ${TEACHES[RISE.indexOf(rise)]}`);
+    const teach = el('span', 'book-teach', ` · ${teachesOf(rise)}`);
     teach.style.color = rise.color;
     line.append(teach);
   }

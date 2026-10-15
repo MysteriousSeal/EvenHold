@@ -12,7 +12,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { RECIPES, RECIPE_IDS, woodRise } from '../src/model/skills/woodworking';
 import { ANCIENT, ELDER, WOOD, chopsIn, gradeOf, woodOf } from '../src/model/skills/lumber';
-import { RISE, difficulty, skillOf, stepsOf } from '../src/model/skills/skills';
+import { MATERIAL_RISE, RISE, difficulty, skillOf, stepsOf } from '../src/model/skills/skills';
 import { gearOf } from '../src/model/human/items/gear';
 import { bagRoom } from '../src/model/hero/bagSlots';
 import type { Tree } from '../src/model/types';
@@ -75,8 +75,8 @@ describe('woodworking', () => {
 
   it('keeps a material teaching (green, never grey) while what it makes is still orange or yellow; grey once nothing is', () => {
     expect(difficulty(RECIPES.oakPlank.needs, 200).chance).toBe(0); // (by its own: grey from 175)
-    expect(woodRise('oakPlank', 200)).toBe(RISE[2]); // (the varnished staff, at 200, orange: oak planks still teach a little)
-    expect(woodRise('oakPlank', 100)).toBe(RISE[2]); // (and no more, however new: green, never the ladder itself)
+    expect(woodRise('oakPlank', 200)).toBe(MATERIAL_RISE); // (the varnished staff, at 200, orange: oak planks still teach a little)
+    expect(woodRise('oakPlank', 100)).toBe(MATERIAL_RISE); // (and no more, however new: green, never the ladder itself)
     expect(woodRise('birchPlank', 200)).toBe(RISE[3]); // (nothing of birch near it: grey)
     expect(woodRise('oakWarStaff', 245)).toBe(difficulty(245, 245)); // (not a material: its own)
   });
@@ -235,8 +235,9 @@ describe("a skill window's list parts", () => {
     row.click();
     expect(picked).toBe(true);
     expect(bookRow({ id: 'oak', kind: 'grade', name: 'Oak', needs: 50, level: 10, picked: false, best: false, count: '50', onPick: () => {} }).className).toBe('book-row locked');
-    expect(Array.from(bookLegend().querySelectorAll('span')).map((s) => s.textContent)).toEqual(['Always', 'Often', 'Rarely', 'Never']);
+    expect(Array.from(bookLegend().querySelectorAll('span')).map((s) => s.textContent)).toEqual(['Always', 'Often', 'Sometimes', 'Never']);
     expect(needsLine('Lumberjacking', 50, 60).textContent).toBe('Requires Lumberjacking 50 · Always teaches');
+    expect(needsLine('Lumberjacking', 50, 110).textContent).toBe('Requires Lumberjacking 50 · Sometimes teaches'); // (green: a fair chance now)
     expect([needsLine('Lumberjacking', 50, 10).className, needsLine('Lumberjacking', 50, 10).textContent]).toEqual(['book-needs short', 'Requires Lumberjacking 50']);
   });
 });

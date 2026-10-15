@@ -36,7 +36,7 @@ export const SKILL_TIERS: readonly SkillTier[] = [
 export const SKILLS: Record<SkillId, Skill> = {
   lumberjacking: {
     name: 'Lumberjacking',
-    steps: [11, 11, 10, 9], // (the ancient and elder trees, fewer: a walk between)
+    steps: [12, 14, 11, 11], // (the ancient and elder trees, fewer: a walk between)
     kind: 'main',
     verb: 'chop',
     practice: 'Chop trees with an axe in hand (a hatchet, from the smith): E by a trunk.',
@@ -125,7 +125,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   fishing: {
     name: 'Fishing',
-    steps: [5, 3, 4, 4], // (what teaches, half what bites)
+    steps: [6, 3, 5, 5], // (what teaches, half what bites)
     kind: 'secondary',
     verb: 'fish',
     practice: 'Fish from a lake shore with a rod in your bag (pedlars sell them): E facing the water, and E again when it bites.',
@@ -146,7 +146,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   mining: {
     name: 'Mining',
-    steps: [9, 9, 9, 10],
+    steps: [10, 10, 10, 13],
     kind: 'main',
     verb: 'mine',
     practice: 'Strike the veins in the rocks of the wilds with a pickaxe in your bag (the smith sells them): E by a rock.',
@@ -204,11 +204,14 @@ export function raiseSkill(hero: Skilled, skill: SkillId, by = 1): number {
 // at it raises the skill: orange (always), yellow, green, grey (never; nothing more to learn from it).
 export const RISE: ReadonlyArray<{ within: number; chance: number; color: string; name: string }> = [
   { within: 25, chance: 1, color: '#ff8040', name: 'orange' },
-  { within: 50, chance: 0.6, color: '#ffd23f', name: 'yellow' },
-  { within: 75, chance: 0.25, color: '#58c060', name: 'green' },
+  { within: 50, chance: 0.75, color: '#ffd23f', name: 'yellow' }, // (a hand off the best try loses little: tests/skillPace.test.ts)
+  { within: 75, chance: 0.4, color: '#58c060', name: 'green' },
   { within: Infinity, chance: 0, color: '#9a9a9a', name: 'grey' },
 ];
 export const difficulty = (needs: number, level: number) => RISE.find((r) => level < needs + r.within)!;
+// A crafter's material (a plank, an ingot, a fitting: woodworking.ts materialRise), while what's made of it still
+// teaches: a little, less than a green thing made, never the trade's ladder itself.
+export const MATERIAL_RISE = { ...RISE[2], chance: 0.25 };
 
 // A try at something wanting `needs` (a tree felled at, a thing made): whether it taught, as its difficulty allows
 // (`roll`: 0..1, the try's own; `chance`: its own, where it isn't the difficulty's), toward the next level (`worth`

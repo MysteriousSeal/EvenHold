@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { SMITH_RECIPES, SMITH_RECIPE_IDS, nextToLearn, smithRise } from '../src/model/skills/smithing';
 import { isCrafted } from '../src/model/skills/salvage';
-import { RISE, skillOf, stepsOf } from '../src/model/skills/skills';
+import { MATERIAL_RISE, RISE, skillOf, stepsOf } from '../src/model/skills/skills';
 import { gearOf } from '../src/model/human/items/gear';
 import { ITEMS } from '../src/model/human/equipment';
 import { LOOT } from '../src/model/loot/loot';
@@ -88,7 +88,7 @@ describe('smithing', () => {
   });
 
   it('teaches by its forging: an ingot or a fitting green while what is made of it teaches, never the ladder itself', () => {
-    expect([smithRise('copperIngot', 1), smithRise('ironIngot', 90), smithRise('copperRivets', 10)]).toEqual([RISE[2], RISE[2], RISE[2]]);
+    expect([smithRise('copperIngot', 1), smithRise('ironIngot', 90), smithRise('copperRivets', 10)]).toEqual([MATERIAL_RISE, MATERIAL_RISE, MATERIAL_RISE]);
     expect(smithRise('copperIngot', 200)).toBe(RISE[3]); // (nothing of copper teaches there: grey)
     expect(smithRise('dagger', 20)).toBe(RISE[0]);
   });

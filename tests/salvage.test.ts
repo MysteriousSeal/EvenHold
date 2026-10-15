@@ -17,7 +17,7 @@ import { LOOT } from '../src/model/loot/loot';
 import { ITEMS } from '../src/model/human/equipment';
 import { bagRoom, canCarry } from '../src/model/hero/bagSlots';
 import { slotsUsed } from '../src/model/hero/bagStacks';
-import { RISE, SKILL_TIERS, difficulty, skillOf, stepsOf } from '../src/model/skills/skills';
+import { MATERIAL_RISE, SKILL_TIERS, difficulty, skillOf, stepsOf } from '../src/model/skills/skills';
 import { createSalvagePanel } from '../src/controller/skills/salvagePanel';
 
 const RARITY_ODDS: Record<Rarity, number> = { common: 0.6, uncommon: 0.26, rare: 0.1, epic: 0.035, legendary: 0.005 }; // (gear.ts rollRarity's)
@@ -103,7 +103,7 @@ describe('what gear is made of, and leaves', () => {
     const made = salvageOf(warClub, 300, true);
     expect([made.made, made.tries]).toEqual([true, 1]); // (one try: no ladder)
     expect(made.gives).toEqual([['oakPlank', 2]]);
-    expect(teachChance(made, made.needs - 10)).toBe(RISE[2].chance); // (orange for anyone else's: green for this)
+    expect(teachChance(made, made.needs - 10)).toBe(MATERIAL_RISE.chance); // (orange for anyone else's: a material's little for this)
     const shield = salvageOf(gearKey({ item: 'towerShield', level: 33, rarity: 'rare', roll: 1 }), 300, true); // (the heartwood tower shield: rare, but made)
     expect(shield.gives.map(([item]) => item)).toEqual(['oakPlank']);
     expect(salvageOf(gearKey({ item: 'club', level: 24, rarity: 'common', roll: 7 }), 300, true).made).toBeUndefined(); // (not as any recipe makes it: a drop)

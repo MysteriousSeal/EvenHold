@@ -17,7 +17,7 @@ import type { ItemId } from '../human/equipment';
 import type { LootId } from '../loot/loot';
 import type { GameEvent, Hero } from '../types';
 import { markCrafted } from './salvage';
-import { RISE, difficulty, practise, skillOf } from './skills';
+import { MATERIAL_RISE, RISE, difficulty, practise, skillOf } from './skills';
 
 const SKILL = 'woodworking';
 const HERO_XP = 2; // the hero's own experience, a thing made
@@ -122,15 +122,16 @@ export const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];
 // smith's ingots and fittings) green, no more and no less, while anything made of it is still orange or yellow (known
 // yet or not), and grey once nothing is: sawing planks or smelting ingots on the way teaches a little, never the
 // whole trade.
-type Rise = (typeof RISE)[number];
+type Rise = (typeof RISE)[number] | typeof MATERIAL_RISE;
 export function materialRise(recipes: Readonly<Record<string, { needs: number; from: Partial<Record<string, number>>; makes: unknown; group: string }>>, materials: readonly string[], id: string, level: number): Rise {
   const recipe = recipes[id];
   if (!materials.includes(recipe.group) || typeof recipe.makes !== 'string') return difficulty(recipe.needs, level);
   const made = recipe.makes;
   const users = Object.values(recipes).filter((r) => made in r.from);
-  return users.some((r) => difficulty(r.needs, level).chance >= RISE[1].chance) ? RISE[2] : RISE[3];
+  return users.some((r) => difficulty(r.needs, level).chance >= RISE[1].chance) ? MATERIAL_RISE : RISE[3];
 }
 export const woodRise = (id: RecipeId, level: number): Rise => materialRise(RECIPES, ['Materials'], id, level);
+
 
 export interface WoodworkingHost {
   readonly hero: Hero;
