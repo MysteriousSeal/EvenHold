@@ -28,7 +28,7 @@ export const REINFORCE_IN = 5; // seconds after one's slain before the next come
 export const REINFORCE_GENTLY = 8; // and on a board near the start (quests.ts GENTLE): a breath more for a fresh hero
 const FROM_AFAR: [number, number] = [5, 8]; // tiles off the spot it comes in from (out of sight, walking in), not sprung on the hero
 export const FIRST_MOB_ID = 1_000_000; // marked foes' ids, clear of the world's own
-const STREAMED_QUEST_ID = 2 ** 46; // a streamed world's (its slots without end in a long sitting): past a classic world's (1e13 at most) and every dungeon's, short of the bounties'
+const STREAMED_QUEST_ID = 2 ** 45; // a streamed world's (its slots without end in a long sitting): past a classic world's (1e13 at most) and every dungeon's, short of the witch-finders' on the road (2 ** 46) and the bounties'
 
 export interface TakenQuest {
   quest: Quest;
