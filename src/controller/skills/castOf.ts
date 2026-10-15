@@ -5,6 +5,7 @@
 import type { GameModel } from '../../model/GameModel';
 import { RECIPES } from '../../model/skills/woodworking';
 import { COOK_RECIPES } from '../../model/skills/cooking';
+import { SMITH_RECIPES } from '../../model/skills/smithing';
 import { nameOf } from '../../model/hero/bag';
 import { counted } from '../../view/ui/words';
 
@@ -13,6 +14,8 @@ export function castOf(model: GameModel): { progress: number; label: string } | 
   if (lumber.chopping) return { progress: lumber.progress ?? 0, label: `${counted(lumber.left(lumber.chopping.tree), 'chop')} left` };
   const making = woodworking.making;
   if (making) return { progress: woodworking.progress ?? 0, label: making.left > 1 ? `${RECIPES[making.recipe].name} · ${making.left} to make` : RECIPES[making.recipe].name };
+  const forging = model.smithing.making;
+  if (forging) return { progress: model.smithing.progress ?? 0, label: forging.left > 1 ? `${SMITH_RECIPES[forging.recipe].name} · ${forging.left} to make` : SMITH_RECIPES[forging.recipe].name };
   const cooked = cooking.making;
   if (cooked) return { progress: cooking.progress ?? 0, label: cooked.left > 1 ? `${COOK_RECIPES[cooked.recipe].name} · ${cooked.left} to cook` : COOK_RECIPES[cooked.recipe].name };
   if (model.fishing.biting) return { progress: model.fishing.progress ?? 0, label: 'Bite! E to hook it' }; // (its moment running out)

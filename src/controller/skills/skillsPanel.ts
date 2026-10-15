@@ -16,6 +16,7 @@ import { SKILL_ICONS } from '../../view/ui/skillIcons';
 import { el } from '../../view/ui/dom';
 import { counted } from '../../view/ui/words';
 import { nameOf } from '../../model/hero/bag';
+import { SMITH_RECIPES } from '../../model/skills/smithing';
 import { createSkillWindow } from './skillWindow';
 import { skillRuler } from './skillRuler';
 
@@ -25,6 +26,8 @@ export function statusOf(model: GameModel, id: SkillId): string | null {
   if (id === 'lumberjacking' && lumber.chopping) return `Chopping ${woodOf(lumber.chopping.tree, model.seed).name} · ${counted(lumber.left(lumber.chopping.tree), 'chop')} left`;
   const making = woodworking.making;
   if (id === 'woodworking' && making) return `Crafting ${RECIPES[making.recipe].name} · ${making.of - making.left + 1} of ${making.of}`;
+  const forging = model.smithing.making;
+  if (id === 'smithing' && forging) return `Forging ${SMITH_RECIPES[forging.recipe].name} · ${forging.of - forging.left + 1} of ${forging.of}`;
   const cooked = model.cooking.making;
   if (id === 'cooking' && cooked) return `Cooking ${COOK_RECIPES[cooked.recipe].name} · ${cooked.of - cooked.left + 1} of ${cooked.of}`;
   const breaking = model.salvage.breaking;

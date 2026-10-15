@@ -280,6 +280,8 @@ async function boot(): Promise<void> {
       }
       case 'bench':
         return { label: 'Break down gear', x: found.bench.x, y: 0.75, z: found.bench.z };
+      case 'anvil':
+        return { label: 'Work metal', x: found.anvil.x, y: 0.9, z: found.anvil.z };
       case 'fire': // (a hearth: over its middle; a campfire, over it)
         return { label: 'Cook', x: found.fire.x, y: found.fire.kind === 'hearth' ? 1 : model.getGroundY(found.fire.x, found.fire.z) + 0.6, z: found.fire.z };
       case 'well':
@@ -350,7 +352,7 @@ async function boot(): Promise<void> {
   };
   const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item, count) => floatingText.spawn({ x: model.hero.x, y: model.hero.y + (model.inside ? 0.95 : 0.6) + 0.2, z: model.hero.z }, [`+ ${count > 1 ? `${count} ` : ''}${nameOf(item)} (${kindOf(item)})`], QUALITY_INK[qualityOf(item)]), onTraveller: (t) => talk.open(t) || trade(t), onCarter: (carter) => void talk.open(carter),
     // (A word with a herbalist: the pox first, if the hero has it; then her quests, her wares.)
-    onTalk: (npc) => (npc.role === 'herbalist' && talk.show(npc, poxTalk(model, npc, () => model.story.talk(npc)))) || talk.open(npc) || (npc.role === 'villager' && talk.show(npc, chat(model, npc))) || trade(npc), onMeet: (who, told) => void talk.show(who, told), onRead: (at) => board.open(at), onSalvage: () => salvage.open(), onCook: () => skills.window.open('cooking'), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
+    onTalk: (npc) => (npc.role === 'herbalist' && talk.show(npc, poxTalk(model, npc, () => model.story.talk(npc)))) || talk.open(npc) || (npc.role === 'villager' && talk.show(npc, chat(model, npc))) || trade(npc), onMeet: (who, told) => void talk.show(who, told), onRead: (at) => board.open(at), onSalvage: () => salvage.open(), onCook: () => skills.window.open('cooking'), onSmith: () => skills.window.open('smithing'), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
     onSleep: () => {
       if (!model.seated) model.sitOrStand(); // (into the bed)
       sleepFade(

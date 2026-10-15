@@ -1,4 +1,5 @@
-// A crafting skill's recipes (model/skills/woodworking.ts; and cooking.ts's, by its own Craft: cookBook.ts), as WoW's
+// A crafting skill's recipes (model/skills/woodworking.ts; and cooking.ts's and smithing.ts's, by their own Crafts:
+// cookBook.ts, smithBook.ts), as WoW's
 // tradeskill window has them, in the skill's own window (skillWindow.ts): on the left, the recipes under what they make (materials, goods, weapons, shields), each
 // in the colour of how much it'd still teach (skills.ts difficulty), how many the bag would make now, the best to
 // learn from starred; those not reached faded, the level they want; a "can make now" filter, the colours' key. On the
@@ -48,7 +49,7 @@ export interface Crafter {
   stop(): void;
 }
 export interface Craft {
-  skill: 'woodworking' | 'cooking';
+  skill: 'woodworking' | 'cooking' | 'smithing';
   name: string; // the skill's ("Woodworking")
   recipes: Readonly<Record<string, CraftRecipe>>;
   ids: readonly string[];
@@ -178,7 +179,7 @@ export function craftStatus(model: GameModel, redraw: () => void, craft: Craft =
   return el(
     'div',
     'craft-status',
-    el('div', 'craft-status-head', el('span', 'book-material-icon', bagIcon(makes)(30)), el('span', 'craft-status-text', el('b', undefined, `${craft.verb === 'Cook' ? 'Cooking' : 'Crafting'} ${recipe.name}`), el('span', undefined, `${making.of - making.left + 1} of ${making.of}`)), stop),
+    el('div', 'craft-status-head', el('span', 'book-material-icon', bagIcon(makes)(30)), el('span', 'craft-status-text', el('b', undefined, `${craft.verb === 'Cook' ? 'Cooking' : craft.verb === 'Forge' ? 'Forging' : 'Crafting'} ${recipe.name}`), el('span', undefined, `${making.of - making.left + 1} of ${making.of}`)), stop),
     el('span', 'craft-progress', el('i')),
   );
 }
