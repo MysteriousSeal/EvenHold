@@ -71,6 +71,7 @@ describe('out of energy', () => {
     const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
     enterNearest(model, 'house', new Set());
     const house = model.inside!.entrance;
+    for (const n of model.folk) if (n.home === house) Object.assign(n, { where: null, x: -999, z: -999, steps: [], path: null }); // (its owner away, out of the world: else turned out of their bed, hero/setbacks.ts)
     const bed = model.inside!.furniture.find((f) => f.kind === 'bed')!;
     Object.assign(model.hero, { x: bed.x + 0.8, z: bed.z + 0.5 }); // beside it, within reach
     expect(model.sitOrStand()).toBe(true);
