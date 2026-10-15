@@ -43,6 +43,12 @@ describe('what gear is made of, and leaves', () => {
     expect(difficulty(salvageOf(gearKey({ item: 'dagger', level: 26, rarity: 'common', roll: 0 })).needs, 299).chance).toBeGreaterThan(0); // (something teaches to the top)
   });
 
+  it("counts a piece found as many tries, the finer the more (a fighter's few drops carry the skill); junk and a crafter's own, one", () => {
+    expect(FOUND_TRIES).toEqual({ common: 10, uncommon: 12, rare: 16, epic: 20, legendary: 24 });
+    expect(salvageOf(gearKey({ item: 'mace', level: 9, rarity: 'rare', roll: 3 })).tries).toBe(16);
+    expect([salvageOf('rustyBuckle').tries, salvageOf(gearKey({ item: 'club', level: 24, rarity: 'uncommon', roll: 7 })).tries]).toEqual([1, 1]);
+  });
+
   it('teaches nothing from a piece too hard to learn from (more than TOO_HARD past the skill), broken down all the same', () => {
     const club = salvageOf(gearKey({ item: 'mace', level: 26, rarity: 'common', roll: 0 }), 1);
     expect(club.needs).toBe(300);
