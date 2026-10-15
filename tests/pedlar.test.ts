@@ -125,7 +125,7 @@ describe("a pedlar's word", () => {
   });
 
   // All a pedlar has to tell at an act of the second arc (and its ending).
-  const told = (act: 0 | 1 | 2 | 3 | 4, ending: 'exposed' | 'kept' | null = null) => Array.from({ length: 20 }, (_, n) => pedlarNews({ act, ending }, n)).join(' ');
+  const told = (act: 0 | 1 | 2 | 3 | 4, ending: 'exposed' | 'kept' | null = null, witch: 'freed' | 'handed' | 'left' | null = null) => Array.from({ length: 20 }, (_, n) => pedlarNews({ act, ending, witch }, n)).join(' ');
 
   it("the news of the road: the cathedral's once the long road's been taken, never before", () => {
     expect(told(0)).not.toMatch(/grey|Greyminster|Aldous|bishop/i);
@@ -140,6 +140,15 @@ describe("a pedlar's word", () => {
     expect(told(4, 'exposed')).toMatch(/bishop in the stocks/);
     expect(told(4, 'kept')).toMatch(/miracles stopped, but the pilgrims still come/);
     expect(told(2)).not.toMatch(/new saint heals|knuckle|stocks!/);
+    expect(told(3)).not.toMatch(/fists/); // (Captain Grey writes names down; he'd never use them)
+    expect(told(3)).toMatch(/little book/);
+  });
+
+  it("the hero's own doings, talked of on the road: the witch they freed, or sold", () => {
+    expect(told(3, null, 'freed')).toMatch(/slipped her chain/);
+    expect(told(3, null, 'handed')).toMatch(/sold a hedge-witch/);
+    expect(told(3, null, 'left')).not.toMatch(/slipped her chain|sold a hedge-witch/);
+    expect(told(0, null, 'freed')).not.toMatch(/slipped her chain/); // (the road's own news before)
   });
 });
 

@@ -62,7 +62,7 @@ const CATHEDRAL = [
   "A pilgrim wept the whole road to the Minster. Said she'd felt something there. Who am I to say she didn't?",
   "Bishop Osric's men are buying up relics. They pay in blessings. I take coin.",
   "There's a pardoner in Greyminster, Gil, selling Saint Aldous's toenails. Nine feet, that saint had, by Gil's count.",
-  'Keep your charms in your boot when the greycoats ride by. Captain Grey asks his questions with his fists.',
+  "Captain Grey never raises his voice. He writes your name in a little book, very neat, and a month later you're a witch.",
 ];
 // The act's own word (story/saint/saintState.ts: the empty wagon, the road of fires, Greyminster), and the ending's.
 const BY_ACT: Record<1 | 2 | 3, string> = {
@@ -70,14 +70,20 @@ const BY_ACT: Record<1 | 2 | 3, string> = {
   2: 'The greycoats are chaining hedge-witches along the north road. Whole villages watching, and none saying a word.',
   3: "There's a man in the bishop's cells shouting the saint's a knuckle. A pig's knuckle. They'll not let him shout long.",
 };
+// And the hero's own doing, once it's done (the witch chained to her hearth, on the road of fires: quests/saintQuests.ts).
+const DEEDS = {
+  freed: "A hedge-witch slipped her chain on the north road. Somebody kicked the staple clean out of the wall. The greycoats are turning over every hen-house.",
+  handed: "Some stranger sold a hedge-witch to the greycoats up north. Two silver, I heard. Cheap, for a soul.",
+};
 const ENDED = {
   exposed: "Heard the news? They put the bishop in the stocks! I threw a turnip. Everyone threw a turnip.",
   kept: 'The miracles stopped, but the pilgrims still come. Faith is a stubborn mule, friend.',
 };
-export const pedlarNews = (saint: Pick<SaintState, 'act' | 'ending'>, n: number): string => {
-  const { act, ending } = saint;
+export const pedlarNews = (saint: Pick<SaintState, 'act' | 'ending' | 'witch'>, n: number): string => {
+  const { act, ending, witch } = saint;
+  const deed = act === 0 || !witch || witch === 'left' ? null : DEEDS[witch];
   const word = act === 0 ? null : act === 4 ? (ending ? ENDED[ending] : null) : BY_ACT[act];
-  const lines = act === 0 ? ROAD : [...(word ? [word] : []), ...CATHEDRAL, ...ROAD.slice(0, 2)];
+  const lines = act === 0 ? ROAD : [...(word ? [word] : []), ...(deed ? [deed] : []), ...CATHEDRAL, ...ROAD.slice(0, 2)];
   return lines[((n % lines.length) + lines.length) % lines.length];
 };
 
