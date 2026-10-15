@@ -2,13 +2,14 @@
 // (a boulder or an outcrop: scenery/scenery.ts) starts the hero striking at its vein, swing after swing, on their own; each
 // strike (a few swings) breaks a lump of ore loose onto the ground beside it, to be picked up, and the hero strikes on
 // till the vein's worked out. Every rock is seamed with a vein of its own, by where it lies (copper the commonest, gold
-// the rarest; star-iron only in the rocks of the high ground), and gives so many strikes (a boulder 4 to 6, an outcrop
-// twice that); worked out, the rock stays, its vein gone for good. Walking off, or E again, stops them. The veins want the
+// the rarest; star-iron only in the rocks of the high ground), and gives so many strikes (a boulder 12 to 18, an outcrop
+// twice that); worked out, the rock stays, its vein gone; a day after it was last struck at it's back whole (REGROW: a
+// miner keeps a round of rocks, and no land's ever mined out). Walking off, or E again, stops them. The veins want the
 // skill (copper anyone's, tin at 40, iron at 90, silver at 140, gold at 190, star-iron at 240); the skill rises as they
 // strike, the surer the harder the vein is for them (skills.ts difficulty: orange always, yellow often, green now and then,
 // grey never; iron never grey, nor any vein harder than it), and a higher tier strikes quicker. Past the first tiers, more:
 // a second lump now and then (from 100, likelier the better they are), and gem shards in the silver and richer, for the
-// salvage bench's and the smith's work. What's mined is kept (saved).
+// salvage bench's and the smith's work. What's mined is kept (saved), and when each vein was worked out.
 
 import { hashUnit } from '../../util/random';
 import { Nearby } from '../../util/nearby';
@@ -39,11 +40,12 @@ export const VEINS: Record<Vein, Ore> = {
   starIron: { name: 'star-iron', ore: 'starIronOre', needs: 240, finds: [{ item: 'gemShard', from: 240, chance: 0.08 }] },
 };
 // Of the rocks (by where each lies), how many are seamed with each (the rest of the high ground's: STAR_IRON of them star-iron).
-const SHARE: ReadonlyArray<[Vein, number]> = [['copper', 0.24], ['tin', 0.22], ['iron', 0.2], ['silver', 0.18], ['gold', 0.16]];
+const SHARE: ReadonlyArray<[Vein, number]> = [['copper', 0.22], ['tin', 0.2], ['iron', 0.2], ['silver', 0.19], ['gold', 0.19]];
 export const STAR_IRON = 0.4; // of the rocks of the high ground, star-iron
 const HIGH = 3; // the ground's tier from which it's the high ground
-const STRIKES: Record<'boulder' | 'outcrop', [number, number]> = { boulder: [4, 6], outcrop: [8, 12] }; // least and most, by the rock
-const MOST_STRIKES = 12;
+const STRIKES: Record<'boulder' | 'outcrop', [number, number]> = { boulder: [12, 18], outcrop: [24, 36] }; // least and most, by the rock
+const MOST_STRIKES = 36;
+export const REGROW = 24 * 60; // game minutes (a day) till a worked-out vein's back
 const SECOND_ORE: [number, number] = [100, 0.5]; // from this level a second lump now and then, the chance growing to this at the top
 export const SWING = 0.7; // seconds a swing of the pick
 const SWINGS = 4; // swings a strike, at the skill's first tier
@@ -63,7 +65,8 @@ export const rockKey = (rock: { x: number; z: number }): string => `${rock.x},${
 export const middleOf = (rock: Rock): { x: number; z: number } => ({ x: rock.x + (rock.w - 1) / 2, z: rock.z + (rock.d - 1) / 2 });
 
 // Whether a rock lies on the hills or the moor, where star-iron's found. A seam: the high ground (HIGH and up) stands in for
-// the hills and the moor of the land's biomes (scenery/biomes.ts, flora's: 'hills', 'moor') till they're in.
+// the land's biomes till they're in (scenery/biomes.ts: createBiomes(seed).at(x, z) is 'hills' or 'heath', the moor; the
+// pure one, not the view's aroundVillages).
 export const upland = (tiles: { height(x: number, z: number): number }, rock: Rock): boolean => tiles.height(rock.x, rock.z) >= HIGH;
 
 // A rock's vein, by where it lies.
@@ -94,6 +97,7 @@ export interface MiningHost {
   readonly scenery: readonly Scenery[];
   readonly tiles: { height(x: number, z: number): number };
   readonly inside: unknown | null;
+  readonly minutes: number; // the game's clock (a vein worked out comes back a day after)
   // The hero's other trades: one begun, the striking's stopped; striking begun, they are.
   readonly lumber: { readonly chopping: unknown; stop(): void };
   readonly woodworking: { readonly making: unknown; stop(): void };
@@ -109,6 +113,7 @@ export type MineAction = { kind: 'mine'; rock: Rock } | { kind: 'cannot'; rock: 
 
 export class Mining {
   readonly mined = new Map<string, number>(); // strikes taken at each rock (by rockKey); all of its strikes: worked out
+  readonly emptied = new Map<string, number>(); // when each was last struck at (game minutes), to come back whole REGROW after
   version = 0; // bumped at each strike (what's drawn of the veins, redrawn)
   striking: { rock: Rock; t: number } | null = null; // the rock being struck, and seconds into the strike
 
@@ -220,6 +225,7 @@ export class Mining {
   // A moment of it: stopped if they've walked off (or lost their pick, or gone in, or taken up another trade); else on, a
   // strike each strikeSeconds.
   update(dt: number, moving: boolean): void {
+    this.regrow();
     const striking = this.striking;
     if (!striking) return;
     const { hero, lumber, woodworking, cooking, fishing, salvage } = this.host;
@@ -244,6 +250,7 @@ export class Mining {
     const key = rockKey(rock);
     const mined = (this.mined.get(key) ?? 0) + 1;
     this.mined.set(key, mined);
+    this.emptied.set(key, this.host.minutes);
     this.version++;
     const { hero } = this.host;
     const vein = this.veinOf(rock);
@@ -255,7 +262,17 @@ export class Mining {
     for (const [i, item] of drops.entries()) this.dropBeside(rock, item, mined * 5 + i);
     gainXp(hero, HERO_XP);
     practise(hero, SKILL, ore.needs, roll(603), this.host.report, riseOf(vein, level).chance);
-    if (mined >= strikesIn(rock, this.host.seed)) this.striking = null; // (worked out: the rock left, its vein gone)
+    if (mined >= strikesIn(rock, this.host.seed)) this.striking = null; // (worked out: the rock left, its vein gone, for a day)
+  }
+
+  // The veins last struck at a day ago and more, back whole.
+  private regrow(): void {
+    if (this.emptied.size === 0) return;
+    for (const [key, at] of this.emptied) {
+      if (this.host.minutes - at < REGROW) continue;
+      [this.mined.delete(key), this.emptied.delete(key)];
+      this.version++;
+    }
   }
 
   // Something broken loose beside a rock, toward the hero, a little apart from the rest (`n`: which, to spread them).
@@ -269,19 +286,28 @@ export class Mining {
     this.host.dropLoot(item, m.x + ux * out - uz * spread, m.z + uz * out + ux * spread);
   }
 
-  // What's mined, from a save (a sound count for each: as many as there are, at most).
-  restore(saved: unknown): void {
-    this.mined.clear();
+  // What's mined, from a save (a sound count for each: as many as there are, at most), and when each was last struck at (a
+  // sound time for each, no later than now; none saved, as an older save's: from now, so it's back a day on).
+  restore(saved: unknown, emptied?: unknown): void {
+    [this.mined.clear(), this.emptied.clear()];
+    const now = this.host.minutes;
+    const times = emptied && typeof emptied === 'object' ? (emptied as Record<string, unknown>) : {};
     if (saved && typeof saved === 'object') {
       for (const [key, n] of Object.entries(saved as Record<string, unknown>)) {
-        if (/^-?\d+,-?\d+$/.test(key) && typeof n === 'number' && Number.isFinite(n) && n > 0) this.mined.set(key, Math.min(MOST_STRIKES, Math.floor(n)));
+        if (!/^-?\d+,-?\d+$/.test(key) || typeof n !== 'number' || !Number.isFinite(n) || n <= 0) continue;
+        this.mined.set(key, Math.min(MOST_STRIKES, Math.floor(n)));
+        const at = times[key];
+        this.emptied.set(key, typeof at === 'number' && Number.isFinite(at) ? Math.min(now, at) : now);
       }
     }
     this.version++;
   }
 
-  // For a save.
+  // For a save: the strikes taken at each rock, and when each was last struck at.
   saved(): Record<string, number> {
     return Object.fromEntries(this.mined);
+  }
+  savedTimes(): Record<string, number> {
+    return Object.fromEntries(this.emptied);
   }
 }

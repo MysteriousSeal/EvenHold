@@ -119,6 +119,10 @@ export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
     for (let x = 2; x <= 5; x++) setColor(g, x, 2, 1, 4); // the sail along its back
     for (const [x, z] of [[2, 0], [3, 2]]) setColor(g, x, 1, z, 6); // dark specks on its flanks
   }),
+  // A salmon, long and silver, its back blue-grey and black-spotted, a blush of pink along its flank.
+  salmon: fish([0x4a5a6e, 0xd0b8c0, 0xeef0f2, 0x3a4250, 0x1a1a1a, 0x1e2026], 10, (g) => {
+    for (const x of [2, 4, 6, 7]) setColor(g, x, 2, 1, 6); // black spots along its back
+  }),
   char: fish([0x3e5248, 0x6a7a68, 0xe0562a, 0xc84a2a, 0x1a1a1a, 0xf0e8c8], 8, (g) => {
     for (const [x, z] of [[2, 1], [5, 1]]) setColor(g, x, 2, z, 6); // pale spots on its back and flanks
     setColor(g, 3, 1, 0, 6);

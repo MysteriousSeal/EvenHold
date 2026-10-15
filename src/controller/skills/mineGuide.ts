@@ -49,7 +49,7 @@ export function mineGuide(model: GameModel, state: { picked: Vein | null }, redr
       'dl',
       'book-facts',
       el('dt', undefined, 'Strikes in a rock'),
-      el('dd', undefined, '4–6 a boulder, 8–12 an outcrop'),
+      el('dd', undefined, '12–18 a boulder, 24–36 an outcrop'),
       el('dt', undefined, 'Ore a strike'),
       el('dd', undefined, `1 ${nameOf(ore.ore)}`),
       el('dt', undefined, 'A second lump'),
@@ -64,7 +64,7 @@ export function mineGuide(model: GameModel, state: { picked: Vein | null }, redr
       needs,
       facts,
       el('p', pick ? 'book-tool had' : 'book-tool short', pick ? 'You have a pickaxe in your bag.' : 'You need a pickaxe in your bag: the smith sells them.'),
-      el('p', 'book-why', 'Stand by a boulder or an outcrop and press E. You strike on your own; walk away or press E again to stop. A rock worked out keeps its shape, its vein gone.'),
+      el('p', 'book-why', 'Stand by a boulder or an outcrop and press E. You strike on your own; walk away or press E again to stop. A rock worked out keeps its shape, its vein gone; a day after you last struck it, it\'s back.'),
     );
   }
 }

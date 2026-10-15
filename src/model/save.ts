@@ -102,7 +102,8 @@ export interface SaveData {
   story?: unknown; // (as Story.save gives it; an older save's: its states alone) // the quests people gave: taken, done (story/story.ts)
   kindled?: unknown; // the campfire the hero's lit, while it burns (skills/cooking.ts)
   trees?: Record<string, number>; // the trees chopped at, by where they stand: the chops taken (all of them: felled for good; skills/lumber.ts)
-  rocks?: Record<string, number>; // the rocks struck at, by where they lie: the strikes taken (all of them: worked out for good; skills/mining.ts)
+  rocks?: Record<string, number>; // the rocks struck at, by where they lie: the strikes taken (all of them: worked out; skills/mining.ts)
+  rocksStruck?: Record<string, number>; // and when each was last struck at (game minutes: back whole a day after; an older save's: none, from its loading)
 }
 
 const MAX_BAG_SLOTS = 256; // a saved bag order longer than any bag is cut there
@@ -174,6 +175,7 @@ export function snapshot(model: GameModel): SaveData {
     crypts: [...model.cryptsCleared].map(([crypt, slain]) => ({ crypt, slain: [...slain] })), // each crypt's guards slain for good
     trees: model.lumber.saved(), // the trees chopped at, felled for good
     rocks: model.mining.saved(), // the rocks struck at, their veins worked out
+    rocksStruck: model.mining.savedTimes(), // and when
     kindled: model.cooking.saved(), // the campfire lit, and its firewood with it
     story: model.story.save(),
     doors: model.entrances.map((e) => ({ inn: doorNumber(e), open: openDoorsAt(e) })).filter((d) => d.open.length > 0),
@@ -274,7 +276,6 @@ export function restore(model: GameModel, data: SaveData): void {
   }
   model.cooking.restore(data.kindled); // (an older save's: none lit)
   model.lumber.restore(data.trees); // (the felled out of the way; an older save's: none)
-  model.mining.restore(data.rocks); // (an older save's: none struck)
   model.story.load(data.story); // (an older save's: nothing taken yet)
   // Where they were: a position saved lost (not a number: never written so now, but an older save's may be) costs only
   // the spot, never the save: the hero's put somewhere sound instead.
@@ -319,13 +320,15 @@ export function restore(model: GameModel, data: SaveData): void {
     // Its wares, those the game still knows, each how many (none left of one: kept so, sold out).
     // What the hero last sold there, to buy back (a sale of something the game no longer knows, dropped).
     const sales = (Array.isArray(buyback) ? buyback : []).filter((s) => known(s?.id) && Number.isInteger(s.price) && s.price >= 0).slice(0, BUYBACK);
-    model.shops.set(data.version === 1 ? shopOfVersion1(model, inn) : inn, { money, stock: Object.fromEntries(Object.entries(stock && typeof stock === 'object' ? stock : {}).filter(([id, n]) => known(id) && Number.isInteger(n) && (n as number) >= 0)), restockedAt, buyback: sales.map(({ id, price, count }) => ({ id, price, count: Number.isInteger(count) && count > 0 ? count : 1 })), bought: Object.fromEntries(Object.entries(bought && typeof bought === 'object' ? bought : {}).filter(([, n]) => Number.isInteger(n) && (n as number) > 0)) as Record<string, number> }); // (older saves: one of each; none bought)
+    const kinds = Object.entries(bought && typeof bought === 'object' ? bought : {}).filter(([, n]) => Number.isInteger(n) && (n as number) > 0); // (a trade's goods bought, by kind: none, none kept)
+    model.shops.set(data.version === 1 ? shopOfVersion1(model, inn) : inn, { money, stock: Object.fromEntries(Object.entries(stock && typeof stock === 'object' ? stock : {}).filter(([id, n]) => known(id) && Number.isInteger(n) && (n as number) >= 0)), restockedAt, buyback: sales.map(({ id, price, count }) => ({ id, price, count: Number.isInteger(count) && count > 0 ? count : 1 })), ...(kinds.length && { bought: Object.fromEntries(kinds) as Record<string, number> }) }); // (older saves: one of each; none bought)
   }
   if (data.quests) model.quests.load(data.quests, model.villages.length);
   if (data.travellers) model.travellers.load(data.travellers);
   model.chickens.load(data.chickens); // (before the villagers' day: those lost are gone)
   model.swaps.load(data.swaps);
   if (typeof data.minutes === 'number' && Number.isFinite(data.minutes) && data.minutes >= 0) model.minutes = data.minutes;
+  model.mining.restore(data.rocks, data.rocksStruck); // (by the clock just read; an older save's: none struck, or none when)
   // Villagers pick up their day where they were in it.
   const npcs = new Map(model.npcs.map((n) => [n.id, n]));
   for (const saved of records<SaveData['npcs'][number]>(data.npcs)) {
