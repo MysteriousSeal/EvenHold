@@ -2,10 +2,10 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { TEST_MAP_SIZE, fresh } from './support/testWorld';
-import { buyGear, gearPrice, sellGear, smithAsks, smithShopIn } from '../src/model/smithy/smithShop';
+import { buyGear, gearPrice, gearSellPrice, sellGear, smithAsks, smithShopIn } from '../src/model/smithy/smithShop';
 import { gearKey, isGear, levelOf, type GearKey } from '../src/model/human/items/gear';
 import { RESTOCK_EVERY, buyBack } from '../src/model/shops/shopStock';
-import { mendBill, wearOf } from '../src/model/hero/wear';
+import { mendBill, mendCost, wearOf } from '../src/model/hero/wear';
 
 const atSmith = () => {
   const model = fresh();
@@ -25,18 +25,6 @@ describe('trading with the smith', () => {
     expect(buyGear(smithShopIn(model), model.hero, found)).toBe('bought');
     const later = Date.now() + 3 * RESTOCK_EVERY;
     expect(found in smithShopIn(model, later).stock).toBe(false);
-  });
-
-  it("drops his village's wares the hero's outgrown once they're sold out, as they'll not be forged again", () => {
-    const model = atSmith();
-    smithShopIn(model); // (first seen at level 1)
-    model.hero.level = 9;
-    const shop = smithShopIn(model);
-    const old: string[] = Object.keys(shop.stock).filter(isGear).filter((k) => levelOf(k) !== 8);
-    expect(old.length).toBeGreaterThan(0);
-    for (const key of old) shop.stock[key as never] = 0;
-    const later = Date.now() + 3 * RESTOCK_EVERY;
-    expect(Object.keys(smithShopIn(model, later).stock).filter((k) => old.includes(k))).toEqual([]);
   });
 
   it("has none of his wares forever sold out: what he's one short of is a piece he keeps two of", () => {
@@ -59,7 +47,7 @@ describe('trading with the smith', () => {
     expect(buyGear(shop, model.hero, ware as GearKey)).toBe('bought');
     model.hero.wear = { [ware]: 100 }; // (worn to bits, and taken off)
     expect(sellGear(shop, model.hero, ware)).toBe('sold');
-    expect(wearOf(model.hero, ware)).toBe(100); // (sold, and bought back as it was: no mending for nothing)
+    expect(wearOf(model.hero, ware)).toBe(0); // (gone with it, and bought back as it was: no mending for nothing)
     expect(buyBack(shop, model.hero, 0)).toBe('bought');
     expect(wearOf(model.hero, ware)).toBe(100);
     expect(sellGear(shop, model.hero, ware)).toBe('sold');
@@ -79,5 +67,68 @@ describe('trading with the smith', () => {
     expect(gearPrice(uncommon)).toBeGreaterThanOrEqual(gearPrice('chainMail'));
     expect(smithAsks(uncommon)).toBeGreaterThanOrEqual(smithAsks('chainMail'));
     expect(smithAsks(gearKey({ item: 'dagger', level: 9, rarity: 'common', roll: 1 }))).toBe(1); // (a dagger of any level, a dagger)
+  });
+
+  it('pays for a worn piece its price less its mending, never under its scrap', () => {
+    const model = atSmith();
+    const { hero } = model;
+    hero.bag.mailCoif = 1;
+    const whole = gearSellPrice('mailCoif', hero);
+    hero.wear = { mailCoif: 40 };
+    expect(gearSellPrice('mailCoif', hero)).toBe(whole - mendCost(hero, 'mailCoif'));
+    hero.wear = { dagger: 100 };
+    expect(gearSellPrice('dagger', hero)).toBe(10); // (a broken dagger: its scrap)
+  });
+
+  it("forges one of each piece: once the hero's outgrown his village, at their level only", () => {
+    const model = atSmith();
+    smithShopIn(model);
+    model.hero.level = 9;
+    const levels = new Set(Object.keys(smithShopIn(model).stock).filter(isGear).map(levelOf));
+    expect([...levels]).toEqual([8]);
+  });
+
+  it('has a purse to match his forging: dearer wares, more coin to buy with', () => {
+    const model = atSmith();
+    const low = smithShopIn(model).money;
+    const later = new GameModel(model.seed, TEST_MAP_SIZE);
+    const smithy = later.entrances.find((e) => e.type === 'smithy')!;
+    later.teleport(smithy.x, smithy.z);
+    later.useDoor();
+    later.hero.level = 9;
+    expect(smithShopIn(later).money).toBe(Math.round(low * (1 + 7 * 0.15)));
+  });
+
+  it("keeps back a piece by what it's worth, at its own level and rarity", () => {
+    const dagger = gearKey({ item: 'dagger', level: 1, rarity: 'common', roll: 1 });
+    expect(smithAsks(dagger)).toBe(1);
+    const keen = gearKey({ item: 'armingSword', level: 8, rarity: 'common', roll: 1 });
+    expect(gearPrice(keen)).toBeGreaterThanOrEqual(240);
+    expect(smithAsks(keen)).toBe(7);
+  });
+
+  it("can't be bought twice: a piece sold him and bought off his wall is no longer to buy back", () => {
+    const model = atSmith();
+    const found = gearKey({ item: 'mace', level: 4, rarity: 'common', roll: 7 });
+    model.hero.bag[found] = 1;
+    model.hero.money = 100_000;
+    model.hero.level = 20;
+    const shop = smithShopIn(model);
+    expect(sellGear(shop, model.hero, found)).toBe('sold');
+    expect(buyGear(shop, model.hero, found)).toBe('bought');
+    expect(shop.buyback ?? []).toEqual([]);
+  });
+
+  it('keeps the wear of a piece sold him with it: bought back, it comes as it went', () => {
+    const model = atSmith();
+    model.hero.bag.mailCoif = 1;
+    model.hero.wear = { mailCoif: 60 };
+    const shop = smithShopIn(model);
+    shop.money = 100_000;
+    model.hero.money = 100_000;
+    expect(sellGear(shop, model.hero, 'mailCoif')).toBe('sold');
+    expect(wearOf(model.hero, 'mailCoif')).toBe(0); // (gone from the hero)
+    expect(buyBack(shop, model.hero, 0)).toBe('bought');
+    expect(wearOf(model.hero, 'mailCoif')).toBe(60);
   });
 });
