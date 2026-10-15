@@ -150,6 +150,7 @@ export interface Enemy {
   buried?: boolean; // underground (a cave worm, burrowing: caves/caveFoes.ts): not to be seen, struck or bumped into
   quest?: string; // the quest it was gathered for (quests/questBook.ts), by key
   champion?: ChampionId; // a dungeon's named champion (champions/champions.ts): its name its own, its trait, its poise and drop the better
+  drops?: number; // what its drops are rolled with besides its id (a ruin's risen ghost's: when it rose; hero/fighting.ts)
   phases?: readonly number[]; // where its fight turns, over its kind's (a champion's: enemies/bossPhases.ts)
 }
 

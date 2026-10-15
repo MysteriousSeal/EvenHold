@@ -7,6 +7,7 @@ import { intoBed } from '../hero/setbacks';
 import { bumpsNpc } from '../npcs/npcs';
 import { dungeonAt, dungeonBarred, dungeonBlocks, dungeonRun, dungeonWalls } from '../dungeons/dungeons';
 import { goesUnder } from '../dungeons/dungeonTypes';
+import { hashCell } from '../../util/random';
 import { dungeonHooks } from '../hero/fighting';
 import { benchSeatInReach, squareBenches } from '../worldgen/benches';
 import type { GameModel } from '../GameModel';
@@ -66,7 +67,7 @@ export function enterRoom(m: GameModel, entrance: Entrance): void {
   m.inside = { entrance, room, furniture, seated: null, ...(place && { walls: dungeonWalls(dungeonBlocks(m.seed, entrance), () => m.below?.run), exitAt: () => m.below?.run.exitOpen ?? null }) };
   if (place) m.events.push({ kind: 'arrive', name: place.name, level: place.level }); // (its name and level, as the hero comes down)
   if (place && m.clearedShare(entrance) === 1) m.events.push({ kind: 'banner', title: place.name, line: `Level ${place.level} · cleared: its foes slain for good` }); // (told over its arrival: none here to rise again, dungeons/dungeonRecord.ts)
-  m.below = place && { key: place.key, run: dungeonRun(m.seed, entrance, m.cleared(place.key), m.hero, dungeonHooks(m)), ground: m.floors.of(place.key) };
+  m.below = place && { key: place.key, run: dungeonRun(m.seed, entrance, m.cleared(place.key), m.hero, dungeonHooks(m)), ground: m.floors.of(place.key), salt: hashCell([...place.key].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 7), Math.floor(m.minutes), m.seed) }; // (its foes' drops rolled with the dungeon and the time down: hero/fighting.ts)
   m.outdoors.seated = null;
   if (entrance.type === 'inn') m.lastInn = entrance; // to wake in, after a fall
   m.focus(null);

@@ -19,7 +19,8 @@ import { type Scenery } from './scenery/scenery';
 import { freshHero, tiredPace } from './hero/heroStats';
 import type { Obstacles } from './map/obstacles';
 import { stepHop, type Hop } from './hero/hop';
-import type { GroundLoot } from './loot/loot';
+import type { GroundLoot, LootId, LootSource } from './loot/loot';
+import { DropMercy } from './loot/dropMercy';
 import { drinkPotion, eatOrDrink, type BagItem } from './hero/bag';
 import * as hands from './hero/hands';
 import { Ground } from './loot/ground';
@@ -118,7 +119,7 @@ export class GameModel {
   // The enemy the hero has focused (clicked, or the first to hit them since
   // focus last cleared), shown in the HUD; null when none.
   private readonly focusOn = new Focus(() => this.foes); // (the foe the hero's focused on: hero/focus.ts)
-  below: { key: string; run: DungeonRun; ground: Ground } | null = null; // down in a dungeon (dungeons/): its foes, and its floor's loot (set going in and out: interiors/goingIn.ts)
+  below: { key: string; run: DungeonRun; ground: Ground; salt: number } | null = null; // down in a dungeon (dungeons/): its foes, and its floor's loot (set going in and out: interiors/goingIn.ts)
   readonly cryptsCleared = new Map<string, Set<number>>(); // each dungeon's foes slain for good, by post, by its key (saved: a crypt's, a cave's)
 
   private readonly obstacles: Obstacles;
@@ -330,6 +331,9 @@ export class GameModel {
   // The hero knocked (dx, dz) indoors (a draugr's cleave), never into the walls, still facing as they were.
   push = (dx: number, dz: number, facing = this.hero.facing): void => void [this.inside ? walkInside(this.inside, this.hero, dx, dz, Math.hypot(dx, dz), () => false) : this.stepOut(dx, dz), (this.hero.facing = facing)];
   report = (event: GameEvent): void => void [this.events.push(event), this.story.onEvent(event)]; // (and what the quests people give ask for, counted: story/story.ts)
+  get lootSalt(): number | null { return this.below?.salt ?? null; } // (a dungeon's foes' drops: the dungeon, the time down)
+  mercy = (source: LootSource, dropped: LootId | null, rolled: number): LootId | null => this.dropMercy.roll(source, this.story.wantedItems(), dropped, rolled);
+  private readonly dropMercy = new DropMercy();
   slayGuard = (enemy: Enemy): void => void this.events.push(...(this.below?.run.slay(enemy, this.hero) ?? [])); // (its run's: what's told of it)
   // How much of a dungeon is cleared (0..1): its foes slain and its boss, of all of them (by its way in).
   clearedShare = (entrance: Entrance): number => dungeonShare(this.seed, entrance, this.cleared);
