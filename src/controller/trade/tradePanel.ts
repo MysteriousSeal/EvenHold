@@ -278,7 +278,7 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
       if (menu.isOpen && keeper === npc) return; // already trading with them
       keeper = npc;
       for (const page of pages) page.at = 0;
-      says = trade.greet?.() ?? storyWord(model, npc) ?? pick(trade.lines.hello);
+      says = storyWord(model, npc) ?? trade.greet?.() ?? pick(trade.lines.hello); // (the story first: not lost to a remark of theirs)
       menu.setTitle(`${npc.name}'s ${trade.title.toLowerCase()}`);
       menu.open(0); // on Buy, whichever tab it was left on
     },
