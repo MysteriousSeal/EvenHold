@@ -32,7 +32,7 @@ export function salvageGuide(model: GameModel, state: { picked: Make | null }, r
     el('dt', undefined, 'Gear of it'),
     el('dd', undefined, MAKES[picked].gear),
     el('dt', undefined, 'Leaves'),
-    el('dd', undefined, `${picked === 'wood' ? 'Planks (birch to level 5, pine to 12, oak above)' : nameOf(SCRAP_OF[picked])}: one, and one more every six levels of the piece; the more skilled your hand, more (to ${SCRAP_MOST} times over) and its finer thing besides, a master's near what the piece sells for whole`),
+    el('dd', undefined, `${picked === 'wood' ? 'Planks (birch to level 5, pine to 12, oak above)' : nameOf(SCRAP_OF[picked])}: one, and one more every six levels of the piece; the more skilled your hand, more (to ${SCRAP_MOST} times over) and gem shards besides, a master's near what the piece sells for whole`),
     el('dt', undefined, 'A rare piece'),
     el('dd', undefined, `${MAKES[picked].finer} besides (two from an epic, three from a legendary), from Salvaging ${FINER_AT.rare} (an epic's ${FINER_AT.epic}, a legendary's ${FINER_AT.legendary})`),
     el('dt', undefined, 'Teaches'),

@@ -48,7 +48,13 @@ describe('what gear is made of, and leaves', () => {
     const got = [1, 100, 200, 300].map((skill) => worth(salvageOf(sword, skill).gives));
     expect(salvageOf(sword, 1).gives).toEqual([['ironScrap', 3]]);
     for (let i = 1; i < got.length; i++) expect(got[i]).toBeGreaterThan(got[i - 1]); // (more at each)
-    expect(salvageOf(sword, 300).gives).toEqual([['ironScrap', 3 * SCRAP_MOST], ['temperedIngot', 3]]); // (its scrap four times over, the rest in its finer thing: 168c of 210c sold whole)
+    expect(salvageOf(sword, 300).gives).toEqual([['ironScrap', 3 * SCRAP_MOST], ['gemShard', 6]]); // (its scrap four times over, the rest in stones: 168c of 210c sold whole)
+    // Never more of the finer things than a rare piece's own (a tempered ingot's a steel ingot at the forge: no mint of them).
+    for (const [item, level, rarity] of [['chainMail', 20, 'rare'], ['greatHelm', 28, 'rare'], ['armingSword', 15, 'uncommon'], ['shortSword', 8, 'common']] as const)
+      for (const skill of [100, 200, 300]) {
+        const finer = salvageOf(gearKey({ item, level, rarity, roll: 0 }), skill).gives.filter(([it]) => it === 'temperedIngot' || it === 'cutGem');
+        expect(finer.reduce((n, [, k]) => n + k, 0), `${item} ${rarity} @${skill}`).toBeLessThanOrEqual(rarity === 'rare' ? 1 : 0);
+      }
     const ring = gearKey({ item: 'rubyRing', level: 7, rarity: 'common', roll: 1 });
     expect(salvageOf(ring, 300).gives).toEqual(salvageOf(ring, 1).gives); // (its silver and stone worth more than it sells for already: no more)
     // A bag of what's found, levels 1 to 20, as its rarities fall: a master's broken down near it sold whole, under.

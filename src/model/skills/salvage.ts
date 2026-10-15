@@ -79,18 +79,23 @@ export function makeOf(base: ItemId): Make {
 // What a skilled hand gets out of a piece found: worth more the more skilled, from what a green hand gets to
 // MASTER_SHARE of what the piece fetches whole at the top of the skill, evenly (its finer things counted), so selling
 // it stays the better coin (and what it leaves sells for half that again). Its scrap (and a ring's gem shard) so many
-// times over, SCRAP_MOST at the most; the rest in its finer thing (a tempered ingot, a cut gem), whole ones, from the
-// skill a rare piece's wants.
+// times over, SCRAP_MOST at the most; the rest in gem shards (the stones and good fittings a skilled hand keeps), whole
+// ones, from the skill a rare piece's wants. Never more of its finer thing than its rarity gives (a tempered ingot's a
+// steel ingot at the forge: no mint of them past the mines).
 export const MASTER_SHARE = 0.85;
 export const SCRAP_MOST = 4;
 export const shareAt = (skill: number): number => (MASTER_SHARE * (Math.min(SKILL_MAX, Math.max(1, skill)) - 1)) / (SKILL_MAX - 1);
 const worthOf = (gives: ReadonlyArray<[IngredientId, number]>): number => gives.reduce((c, [item, n]) => c + n * LOOT[item].value, 0);
-function skilled(key: GearKey, make: Make, own: Array<[IngredientId, number]>, finer: number, skill: number): { own: Array<[IngredientId, number]>; finer: number } {
-  const want = shareAt(skill) * gearSellPrice(key) - finer * LOOT[FINER_OF[make]].value; // (what's left to give, past the finer things it leaves)
+function skilled(key: GearKey, own: Array<[IngredientId, number]>, finer: ReadonlyArray<[IngredientId, number]>, skill: number): Array<[IngredientId, number]> {
+  const want = shareAt(skill) * gearSellPrice(key) - worthOf(finer); // (what's left to give, past the finer things it leaves)
   const times = Math.max(1, Math.min(SCRAP_MOST, want / worthOf(own)));
   const more = own.map(([item, n]): [IngredientId, number] => [item, Math.max(n, Math.floor(n * times))]);
-  const rest = skill >= FINER_AT.rare ? Math.max(0, Math.floor((want - worthOf(more)) / LOOT[FINER_OF[make]].value)) : 0;
-  return { own: more, finer: finer + rest };
+  const stones = skill >= FINER_AT.rare ? Math.max(0, Math.floor((want - worthOf(more)) / LOOT.gemShard.value)) : 0;
+  if (!stones) return more;
+  const shard = more.find(([item]) => item === 'gemShard');
+  if (shard) shard[1] += stones;
+  else more.push(['gemShard', stones]);
+  return more;
 }
 
 export interface Salvaged {
@@ -147,9 +152,9 @@ export function salvageOf(key: Salvageable, skill = Infinity, crafted = false): 
   let gives: Array<[IngredientId, number]> = [[scrapOf(make, level), used === null ? scrap : Math.max(1, Math.min(Math.floor(scrap / 2), used - 1))]]; // (one made: half, and less than went in)
   if (make === 'silver' && GEMMED.test(base) && used === null) gives.push(['gemShard', 1]);
   const finerAt = RARE_EXTRA[rarity] && used === null ? FINER_AT[rarity] : undefined;
-  let finer = finerAt !== undefined && skill >= finerAt ? RARE_EXTRA[rarity] : 0;
-  if (used === null) ({ own: gives, finer } = skilled(key, make, gives, finer, skill)); // (their own make: as it was, no ladder)
-  if (finer) gives.push([FINER_OF[make], finer]);
+  const finer: Array<[IngredientId, number]> = finerAt !== undefined && skill >= finerAt ? [[FINER_OF[make], RARE_EXTRA[rarity]]] : [];
+  if (used === null) gives = skilled(key, gives, finer, skill); // (their own make: as it was, no ladder)
+  gives.push(...finer);
   return { make, needs: Math.max(1, (level - 1) * PER_LEVEL) + RARE_NEEDS[rarity], gives, tries: used === null ? FOUND_TRIES[rarity] : 1, ...(finerAt !== undefined && skill < finerAt ? { finerAt } : {}), ...(used !== null ? { made: true } : {}) }; // (a level 1 piece from the start; a level 20, the artisan's)
 }
 
