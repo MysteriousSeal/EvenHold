@@ -21,6 +21,7 @@ import {
   RED_DARK,
   SCALE,
   SOOT,
+  SOOT_LIGHT,
   STONE,
   STONE_DARK,
   WOOD,
@@ -141,6 +142,17 @@ const PAINT: Record<TrophyId, (at: Cell) => void> = {
     at(7, 10, 3, 7, 10, 3, SOOT);
     for (const [u, y] of [[5, 3], [7, 4], [6, 6], [4, 5], [8, 6], [6, 2]]) at(u, y, 3, u, y, 3, FUR_DARK); // spots
     at(6, 1, 2, 6, 1, 2, SOOT); // the stub of a tail
+  },
+  // A witch-finder's hat: a tall charcoal felt capotain, stepped in at its top, a narrow stiff brim, a black band and
+  // a pewter buckle at its front.
+  finderHat: (at) => {
+    at(2, 2, 2, 10, 2, 6, SCALE); // the brim
+    at(2, 2, 6, 10, 2, 6, SOOT); // its edge
+    at(4, 3, 3, 8, 7, 5, SCALE); // the crown
+    at(5, 8, 3, 7, 9, 4, SCALE); // stepped in at the top
+    at(4, 3, 5, 8, 4, 5, SOOT); // the band
+    at(6, 3, 6, 6, 4, 6, IRON_LIGHT); // the buckle
+    at(5, 6, 5, 5, 7, 5, SOOT_LIGHT); // the felt's shade
   },
   // A pack leader's pelt: grey, darker down the back, the head with its ears up and its muzzle down.
   wolfPelt: (at) => {

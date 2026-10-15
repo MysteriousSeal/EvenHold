@@ -1,4 +1,4 @@
-// Trophies over the hearth: from the bosses, the strongholds' captains and the bounties' targets, one taken off each as
+// Trophies over the hearth: from the bosses, the strongholds' captains, the witch-finders and the bounties' targets, one taken off each as
 // it falls (or, a bounty's, as its target does), counted, and hung on the trophy wall of the hero's cottage once it has
 // one (cottage.ts: each kind once, in TROPHY_IDS' order; how each looks: view/interior/trophyVoxels.ts). No bonus:
 // they're to be looked at, and shown off. Kept in the save.
@@ -6,7 +6,7 @@
 import type { EnemyKind, GameEvent, Hero } from '../types';
 import type { BountyKind } from '../quests/bountyNames';
 
-export type TrophyId = 'lordSkull' | 'broodFangs' | 'kingCrown' | 'captainBlade' | 'outlawPoster' | 'bearHead' | 'boarHead' | 'lynxPelt' | 'wolfPelt';
+export type TrophyId = 'lordSkull' | 'broodFangs' | 'kingCrown' | 'captainBlade' | 'outlawPoster' | 'bearHead' | 'boarHead' | 'lynxPelt' | 'wolfPelt' | 'finderHat';
 export type Trophies = Partial<Record<TrophyId, number>>; // how many of each taken
 
 export const TROPHIES: Record<TrophyId, { name: string }> = {
@@ -19,12 +19,14 @@ export const TROPHIES: Record<TrophyId, { name: string }> = {
   boarHead: { name: "A boar's head" },
   lynxPelt: { name: "A lynx's pelt" },
   wolfPelt: { name: "A pack leader's pelt" },
+  finderHat: { name: "A witch-finder's hat" },
 };
 export const TROPHY_IDS = Object.keys(TROPHIES) as TrophyId[];
 export const WALL_PEGS = 10; // trophies a wall holds (two rows of five)
 
-// Each boss's (and captain's), by the kind of foe it is.
-const OFF: Partial<Record<EnemyKind, TrophyId>> = {
+// Each boss's (and captain's, and a witch-finder's), by the kind of foe it is. (By name: a witch-finder's kind is the
+// roads' own, v0.9, known once they're in.)
+const OFF: Partial<Record<EnemyKind | 'witchFinder', TrophyId>> = {
   cryptLord: 'lordSkull',
   broodMother: 'broodFangs',
   banditKing: 'kingCrown',
@@ -32,8 +34,9 @@ const OFF: Partial<Record<EnemyKind, TrophyId>> = {
   quartermaster: 'captainBlade',
   gaoler: 'captainBlade',
   captain: 'captainBlade',
+  witchFinder: 'finderHat',
 };
-export const trophyOff = (kind: EnemyKind): TrophyId | null => OFF[kind] ?? null;
+export const trophyOff = (kind: EnemyKind): TrophyId | null => OFF[kind as keyof typeof OFF] ?? null;
 
 // A bounty target's, by its poster's kind and its kind of foe.
 export function bountyTrophy(kind: BountyKind, foe: EnemyKind): TrophyId {

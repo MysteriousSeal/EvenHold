@@ -136,6 +136,7 @@ describe('a cottage of your own', () => {
     expect(trophyOff('cryptLord')).toBe('lordSkull');
     expect(trophyOff('captain')).toBe('captainBlade');
     expect(trophyOff('wolf')).toBeNull();
+    expect(trophyOff('witchFinder' as Parameters<typeof trophyOff>[0])).toBe('finderHat'); // (the roads' own: v09-roads)
     expect(bountyTrophy('beast', 'bear')).toBe('bearHead');
     expect(bountyTrophy('outlaw', 'bandit')).toBe('outlawPoster');
     model.report({ kind: 'slain', on: 'cryptLord', x: 0, y: 0, z: 0 });
