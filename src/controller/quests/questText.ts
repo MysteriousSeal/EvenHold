@@ -53,6 +53,7 @@ const WANTED: Record<QuestItemId, readonly string[]> = {
 const ORDERED: Record<InnWant, readonly string[]> = {
   carvedTankard: ['The bar is short of tankards again: the patrons walk off with them. Carved ones, oak, as many as asked.', 'Tankards wanted for the inn. The innkeeper pays well for good carving.'],
   woodenBowl: ['The kitchen is down to its last bowls. Turned wooden ones, plain and sound.', 'Bowls for the inn: stew is served in them, and they crack. Bring a few.'],
+  oakCask: ['The cellar has more ale than casks to hold it. Sound oak casks, tight-hooped.', 'Casks wanted for the inn: the brewer keeps the old ones too long.'],
 };
 
 export const notice = (q: Quest, seed: number) => {
