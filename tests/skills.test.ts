@@ -137,7 +137,7 @@ describe('the skills window', () => {
     expect(cardsOf()[1].querySelector('.skill-card-status.live')?.textContent).toBe('Crafting Birch plank · 1 of 3');
     panel.menu.close();
     model.woodworking.stop();
-    model.salvage.breaking = { key: 'armingSword', t: 0 }; // (and breaking a piece down at the bench)
+    model.salvage.breaking = { key: 'armingSword', t: 0, left: 0 }; // (and breaking a piece down at the bench)
     expect(statusOf(model, 'salvaging')).toBe('Breaking down Arming sword');
   });
 

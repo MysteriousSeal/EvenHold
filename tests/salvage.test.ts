@@ -8,13 +8,13 @@ import { fresh } from './support/testWorld';
 import { TEST_SEEDS, TEST_MAP_SIZE } from './support/testWorld';
 import { GameModel } from '../src/model/GameModel';
 import { betterThanWorn, gearKey, gearPower } from '../src/model/human/items/gear';
-import { BREAK_SECONDS, makeOf, salvageOf } from '../src/model/skills/salvage';
+import { BREAK_SECONDS, FINER_AT, PER_LEVEL, isSalvageable, makeOf, salvageOf } from '../src/model/skills/salvage';
 import { castOf } from '../src/controller/skills/castOf';
 import { LOOT } from '../src/model/loot/loot';
 import { ITEMS } from '../src/model/human/equipment';
 import { bagRoom, canCarry } from '../src/model/hero/bagSlots';
 import { slotsUsed } from '../src/model/hero/bagStacks';
-import { skillOf } from '../src/model/skills/skills';
+import { SKILL_TIERS, difficulty, skillOf } from '../src/model/skills/skills';
 import { createSalvagePanel } from '../src/controller/skills/salvagePanel';
 
 describe('what gear is made of, and leaves', () => {
@@ -26,13 +26,28 @@ describe('what gear is made of, and leaves', () => {
     expect(['quarterstaff', 'club', 'plankShield'].map((id) => makeOf(id as never))).toEqual(['wood', 'wood', 'wood']);
   });
 
-  it('leaves one scrap, one more every six levels, a gem shard off a stone, and a finer thing from a rare piece; asks a level by its own and its rarity', () => {
+  it('leaves one scrap, one more every six levels, a gem shard off a stone, and a finer thing from a rare piece (from the skill its rarity wants); asks a level by its own and its rarity', () => {
     expect(salvageOf('armingSword')).toEqual({ make: 'iron', needs: 1, gives: [['ironScrap', 1]] });
-    expect(salvageOf(gearKey({ item: 'armingSword', level: 13, rarity: 'rare', roll: 2 }))).toEqual({ make: 'iron', needs: 13 * 3 - 8 + 20, gives: [['ironScrap', 3], ['temperedIngot', 1]] });
-    expect(salvageOf(gearKey({ item: 'rubyRing', level: 7, rarity: 'epic', roll: 1 }))).toEqual({ make: 'silver', needs: 7 * 3 - 8 + 60, gives: [['silverFilings', 2], ['gemShard', 1], ['cutGem', 2]] });
+    expect(salvageOf(gearKey({ item: 'armingSword', level: 13, rarity: 'rare', roll: 2 }))).toEqual({ make: 'iron', needs: 12 * PER_LEVEL + 50, gives: [['ironScrap', 3], ['temperedIngot', 1]] });
+    expect(salvageOf(gearKey({ item: 'rubyRing', level: 7, rarity: 'epic', roll: 1 }))).toEqual({ make: 'silver', needs: 6 * PER_LEVEL + 100, gives: [['silverFilings', 2], ['gemShard', 1], ['cutGem', 2]] });
+    expect(salvageOf(gearKey({ item: 'rubyRing', level: 7, rarity: 'epic', roll: 1 }), FINER_AT.epic - 1)).toMatchObject({ gives: [['silverFilings', 2], ['gemShard', 1]], finerAt: FINER_AT.epic }); // (too green a hand: its scrap alone)
     expect(salvageOf('quarterstaff').gives).toEqual([['birchPlank', 1]]); // (a wooden piece: the plank of its level's wood)
     expect(salvageOf(gearKey({ item: 'club', level: 8, rarity: 'common', roll: 0 })).gives).toEqual([['pinePlank', 2]]);
     expect(salvageOf(gearKey({ item: 'plankShield', level: 16, rarity: 'common', roll: 0 })).gives).toEqual([['oakPlank', 3]]);
+  });
+
+  it("falls in its tiers on the gear a hero meets: levels 1 to 3 an apprentice's, 4 to 6 a journeyman's, 7 to 9 an expert's, 10 on an artisan's", () => {
+    const tierAt = (level: number) => SKILL_TIERS.findIndex((t) => salvageOf(gearKey({ item: 'dagger', level, rarity: 'common', roll: 0 })).needs < t.to);
+    expect([1, 3, 4, 6, 7, 9, 10, 12].map(tierAt)).toEqual([0, 0, 1, 1, 2, 2, 3, 3]);
+    expect(difficulty(salvageOf(gearKey({ item: 'dagger', level: 12, rarity: 'common', roll: 0 })).needs, 299).chance).toBeGreaterThan(0); // (something teaches to the top)
+  });
+
+  it('breaks down the junk with iron, leather, linen or silver in it, an apprentice\'s; not what has none', () => {
+    expect(salvageOf('rustyBuckle')).toEqual({ make: 'iron', needs: 12, gives: [['ironScrap', 1]] });
+    expect(salvageOf('tornPouch').gives).toEqual([['leatherStrip', 1]]);
+    expect(salvageOf('runestone').gives).toEqual([['gemShard', 1]]);
+    expect(salvageOf('frostTorc').needs).toBeLessThanOrEqual(60);
+    expect([isSalvageable('crackedFlask'), isSalvageable('gnawedBone'), isSalvageable('rustyBuckle'), isSalvageable('armingSword')]).toEqual([false, false, true, true]);
   });
 });
 
@@ -117,11 +132,27 @@ describe('breaking gear down', () => {
     model.salvage.stop();
     for (const id of [...Object.keys(LOOT), ...Object.keys(ITEMS)]) if (id !== 'ironScrap' && id !== 'armingSword') delete hero.bag[id as keyof typeof hero.bag]; // (emptied again)
     const rare = gearKey({ item: 'rubyRing', level: 9, rarity: 'rare', roll: 4 });
-    hero.bag[rare] = 1;
-    expect(model.salvage.start(rare)).toBe('skill');
+    hero.bag[rare] = 2;
+    expect(breakNow(model, rare)).toBe('started'); // (any piece, at any skill: too green a hand, its scrap alone)
+    expect([hero.bag.silverFilings, hero.bag.gemShard, hero.bag.cutGem]).toEqual([2, 1, undefined]);
     skillOf(hero, 'salvaging').level = 100;
     expect(breakNow(model, rare)).toBe('started');
-    expect([hero.bag.silverFilings, hero.bag.gemShard, hero.bag.cutGem]).toEqual([2, 1, 1]);
+    expect([hero.bag.silverFilings, hero.bag.gemShard, hero.bag.cutGem]).toEqual([4, 2, 1]);
+  });
+
+  it('breaks down as many as asked, one after another, junk as gear; walking off stops the rest', () => {
+    const { model } = atTheBench();
+    const { hero } = model;
+    model.random = () => 0;
+    hero.bag.rustyBuckle = 4;
+    expect(model.salvage.candidates).toContain('rustyBuckle');
+    expect(model.salvage.start('rustyBuckle', Infinity)).toBe('started');
+    for (let t = 0; t < BREAK_SECONDS * 2.5; t += 1 / 30) model.update(0, 0, 1 / 30);
+    expect([hero.bag.rustyBuckle, hero.bag.ironScrap]).toEqual([2, 2]);
+    expect(model.salvage.breaking?.key).toBe('rustyBuckle');
+    model.update(1, 0, 1 / 30);
+    expect(model.salvage.breaking).toBeNull();
+    expect(hero.bag.rustyBuckle).toBe(2);
   });
 
   it('never overfills the bag: a piece that leaves three new things, one slot free, isn\'t begun; the last of a piece leaves its slot', () => {

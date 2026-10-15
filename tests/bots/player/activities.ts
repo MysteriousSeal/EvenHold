@@ -21,7 +21,7 @@ import { maxEnergyOf, maxHpOf } from '../../../src/model/hero/attributes';
 import { REACH, woodOf } from '../../../src/model/skills/lumber';
 import { RECIPES } from '../../../src/model/skills/woodworking';
 import { skillOf } from '../../../src/model/skills/skills';
-import { salvageOf } from '../../../src/model/skills/salvage';
+import { isGear } from '../../../src/model/human/items/gear';
 import { better } from '../errands';
 import { bestRecipe } from '../../../src/controller/skills/recipeBook';
 import { buyGear, gearPrice, smithShopIn } from '../../../src/model/smithy/smithShop';
@@ -403,7 +403,7 @@ export const ACTIVITIES: Activity[] = [
     options: (p) => {
       // Gear carried that's no better than what's worn: to the nearest known smithy's bench, to break it down.
       const { hero } = p.model;
-      const spare = p.model.salvage.candidates.filter((key) => !better(key, hero) && skillOf(hero, 'salvaging').level >= salvageOf(key).needs);
+      const spare = p.model.salvage.candidates.filter((key) => !isGear(key) || !better(key, hero));
       if (spare.length === 0) return [];
       return door(p, 'smithy').map((t) => ({ ...t, label: `the smithy's salvage bench, ${spare.length} piece${spare.length === 1 ? '' : 's'} to break down` }));
     },
@@ -422,7 +422,7 @@ export const ACTIVITIES: Activity[] = [
           const { salvage, hero } = p.model;
           void dt;
           if (salvage.breaking) return 'run';
-          const next = salvage.candidates.find((key) => !better(key, hero) && skillOf(hero, 'salvaging').level >= salvageOf(key).needs);
+          const next = salvage.candidates.find((key) => !isGear(key) || !better(key, hero));
           if (!next) return 'ok';
           const outcome = salvage.start(next);
           if (outcome === 'full') return 'ok'; // (a full bag: enough for now)
