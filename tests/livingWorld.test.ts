@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { LIFE_CELL, LIFE_HOUR, lifeIn, lifeOut, perchesOn, type LifeWorld } from '../src/model/scenery/ambientSpots';
-import { herdIn, inPasture, stepBeast, stockOf, type Beast } from '../src/model/wildlife/livestock';
+import { herdIn, inPasture, stepBeast, stockOf, troughOf, type Beast } from '../src/model/wildlife/livestock';
 import { fenceEdges } from '../src/model/worldgen/fields';
 import { stepWildlife } from '../src/model/wildlife/wildlife';
 import { mapsAsTiles } from '../src/model/map/tiles';
 import type { Field } from '../src/model/types';
-import { AmbientLife } from '../src/view/meshes/wildlife/ambientLife';
+import { AmbientLife, weathered } from '../src/view/meshes/wildlife/ambientLife';
 import { DeerRig, createDeerLook } from '../src/view/meshes/wildlife/deerRig';
-import { windNow } from '../src/view/meshes/smoke/wind';
+import { weatherNow } from '../src/view/meshes/common/weatherNow';
 import { FRAME, TEST_SEEDS, testModel } from './support/testWorld';
 
 // A 60x60 world: a lake in the middle, grass all round it.
@@ -54,6 +54,29 @@ describe('the small life by the water, and the rabbits', () => {
     expect(lifeOut('fish', 3 * 60) && lifeOut('fish', 15 * 60)).toBe(true);
     expect(lifeOut('bird', 5.5 * 60)).toBe(true); // (up with the dawn)
     for (const [kind, hour] of Object.entries(LIFE_HOUR)) expect(lifeOut(kind as keyof typeof LIFE_HOUR, hour * 60), kind).toBe(true);
+  });
+});
+
+describe('the small life, by country and weather', () => {
+  it('frogs and dragonflies keep to the marsh\'s banks when there are any, rabbits out of the woods and the marsh', () => {
+    const plain = pondWorld();
+    const marshy: LifeWorld = { ...plain, biomes: { at: (x, z) => (z < 30 ? 'marsh' : x < 20 ? 'forest' : 'meadow'), woods: (x) => (x < 20 ? 1 : 0) } };
+    const all = cells(10).flatMap(([cx, cz]) => lifeIn(marshy, cx, cz));
+    const banked = (world: LifeWorld, marsh: boolean) => cells(10).flatMap(([cx, cz]) => lifeIn(world, cx, cz)).filter((c) => (c.kind === 'frog' || c.kind === 'dragonfly') && c.z < 30 === marsh).length;
+    expect(banked(marshy, true)).toBe(banked(plain, true)); // (the marsh's banks as ever)
+    expect(banked(marshy, false)).toBeLessThan(banked(plain, false)); // (and fewer elsewhere)
+    expect(banked(marshy, false)).toBeGreaterThan(0);
+    for (const c of all.filter((c) => c.kind === 'rabbit')) expect(Math.floor(c.z) < 30 || Math.floor(c.x) < 20).toBe(false);
+  });
+
+  it('in the rain the birds and butterflies are under cover, and the frogs out even by day', () => {
+    const dry = { x: 1, z: 0, strength: 0.4, rain: 0, fog: 0, snow: 0 };
+    const wet = { ...dry, rain: 0.8 };
+    expect(weathered('bird', true, dry) && weathered('butterfly', true, dry)).toBe(true);
+    expect(weathered('bird', true, wet) || weathered('butterfly', true, wet) || weathered('dragonfly', true, wet)).toBe(false);
+    expect(weathered('frog', false, dry)).toBe(false);
+    expect(weathered('frog', false, wet)).toBe(true);
+    expect(weathered('dragonfly', true, { ...dry, fog: 0.8 })).toBe(false);
   });
 });
 
@@ -111,6 +134,15 @@ describe('livestock', () => {
     }
     expect(walked).toBeGreaterThan(0);
     expect(stood).toBeGreaterThan(walked); // (mostly stood grazing)
+  });
+
+  it('keep clear of the trough, beside the hay, inside the field', () => {
+    for (const { field } of herds) {
+      const [tx, tz] = troughOf(field);
+      expect(tx >= field.x0 && tx < field.x0 + field.width && tz >= field.z0 && tz < field.z0 + field.depth).toBe(true);
+      expect(Math.abs(tx - field.corner[0]) + Math.abs(tz - field.corner[1])).toBe(1);
+      expect(inPasture(field, tx, tz)).toBe(false);
+    }
   });
 
   it('shy off from the hero right by them, but stay in their field', () => {
@@ -192,7 +224,7 @@ describe('the living world drawn round the hero', () => {
 
   it('the wind blows one way, from still to a full wind, gusting', () => {
     for (let m = 0; m < 24 * 60; m += 37) {
-      const w = windNow(3, m, m * 0.7);
+      const w = weatherNow(3, m, m * 0.7);
       expect(Math.hypot(w.x, w.z)).toBeCloseTo(1);
       expect(w.strength).toBeGreaterThanOrEqual(0);
       expect(w.strength).toBeLessThanOrEqual(1);
