@@ -7,7 +7,9 @@
 import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, goblet, tankard, STONE, STONE_DARK, WATER, type Box } from './furniturePalette';
 import type { Furniture } from '../../model/interiors/furniture';
 
-export type InnKind = 'counter' | 'keg' | 'sink' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
+const [SLATE, CHALK] = [SOOT, LINEN]; // (the slate's near-black, its chalk: the palette's nearest)
+
+export type InnKind = 'counter' | 'keg' | 'sink' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern' | 'menuSlate' | 'sacks';
 
 export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, item: Furniture) => void> = {
   // The inn's counter: a slim wooden bar (a third of a tile deep, in the
@@ -20,6 +22,15 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
     box(0, 12, 7, len - 1, 13, 18, (_u, y) => (y === 12 ? WOOD_DARK : WOOD_LIGHT)); // the top, worn pale: the brightest wood in the room
     box(1, 4, 18, len - 2, 4, 18, BRASS); // foot rail
     for (let u = 4; u < len - 2; u += 12) box(u, 3, 17, u, 3, 17, BRASS_DARK); // its brackets
+    // On the top, along the barkeep's side (the customers' side kept clear for what's served): a clay jug, idle
+    // tankards, a rag, spaced along it.
+    for (let u = 18, i = 0; u + 6 < len; u += 32, i++) {
+      if (i % 3 === 0) {
+        box(u, 14, 8, u + 2, 18, 10, (_u, y) => (y === 16 ? CLAY_DARK : CLAY)); // the jug, banded
+        box(u + 3, 16, 9, u + 3, 17, 9, CLAY_DARK); // its handle
+      } else if (i % 3 === 1) tankard(box, u, 14, 8, false);
+      else box(u, 14, 8, u + 4, 14, 10, (uu) => (uu % 2 === 0 ? LINEN : BONE)); // a rag, folded
+    }
   },
   // A keg on its side on a wooden cradle, pointing out into the room: an
   // eight-sided body of staves (v along its length), two iron hoops, the
@@ -271,6 +282,32 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
       box(u, y, 2, u + 4, y + 5, 2, (_u, yy) => ((yy - y) % 2 === 1 && yy < y + 5 ? INK : PARCHMENT)); // a notice
       box(u + 2, y + 5, 3, u + 2, y + 5, 3, RED); // its pin
     }
+  },
+  // The slate by the bar, what's poured chalked on it: a dark frame, the slate,
+  // four rows of chalk in dashes (a price at each row's end), a tankard
+  // doodled in its corner.
+  menuSlate: (box) => {
+    box(4, 11, 0, 20, 23, 1, (u, y) => (u === 4 || u === 20 || y === 11 || y === 23 ? WOOD_DARK : SLATE));
+    for (const y of [20, 17, 14]) {
+      box(6, y, 2, 12, y, 2, (u) => (u % 3 === 2 ? 0 : CHALK)); // a line, in dashes
+      box(15, y, 2, 16, y, 2, CHALK); // its price
+    }
+    box(17, 13, 2, 18, 15, 2, CHALK); // a tankard doodled,
+    box(17, 16, 2, 18, 16, 2, LINEN); // its foam
+    box(19, 14, 2, 19, 14, 2, CHALK); // its handle
+  },
+  // Grain sacks piled in a corner: three below, one slumped on top, tied at
+  // the neck, a seam down each, a little spilt at the foot.
+  sacks: (box) => {
+    const sack = (u: number, y: number, v: number, h: number) => {
+      box(u, y, v, u + 7, y + h, v + 6, (uu, yy, vv) => ((uu === u || uu === u + 7) && (vv === v || vv === v + 6) ? 0 : yy === y + h ? BONE_DARK : uu === u + 4 ? BONE_DARK : BONE)); // the sack, its corners round
+      box(u + 3, y + h + 1, v + 2, u + 4, y + h + 2, v + 4, (_u, yy) => (yy === y + h + 1 ? FUR : BONE)); // its neck, tied
+    };
+    sack(3, 1, 3, 9);
+    sack(13, 1, 2, 8);
+    sack(7, 1, 12, 9);
+    sack(8, 11, 5, 6); // the one on top
+    box(17, 1, 13, 20, 1, 16, (u, _y, v) => ((u + v) % 2 === 0 ? BREAD : 0)); // grain spilt
   },
   // A lantern on an iron bracket, glowing (its light is added in roomView.ts):
   // an iron frame round bright panes, a hot band across the middle of each, under a
