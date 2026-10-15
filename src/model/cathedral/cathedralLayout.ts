@@ -32,7 +32,12 @@ export function furnishCathedral(plan: Planner, room: Room): void {
   for (const x of [middle - 2, middle + 2]) put('candleStand', x, 0, 1, 1, 'back');
   put('lectern', middle + 1, 3);
   for (const x of PILLARS_X) for (const z of PILLARS_Z) put('pillar', x, z);
-  for (const z of PEWS_Z) for (const x of [PILLARS_X[0] + 1, middle + 1]) put('pew', x, z, middle - 1 - PILLARS_X[0], 1); // (each its back to the door)
+  // The pews: a row of them each side of the way up, a seat a tile, facing the altar (their ends on the row's ends).
+  for (const z of PEWS_Z) {
+    for (const [x0, x1] of [[PILLARS_X[0] + 1, middle - 1], [middle + 1, PILLARS_X[1] - 1]]) {
+      for (let x = x0; x <= x1; x++) put('pew', x, z, 1, 1, 'none', { facing: [0, -1], ...(x === x0 && { side: -1 as const }), ...(x === x1 && x !== x0 && { side: 1 as const }) });
+    }
+  }
   put('reliquaryStair', RELIQUARY_STAIR[0], RELIQUARY_STAIR[1], 2, 2, 'back');
   for (const z of [6, 10]) put('candleStand', 0, z, 1, 1, 'left');
   // The bishop's quarters: a screen along the aisle (its left edge) and across it (its far edge), its door in the corner.

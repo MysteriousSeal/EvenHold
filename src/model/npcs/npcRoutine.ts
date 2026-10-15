@@ -55,6 +55,7 @@ const BENCH_CHANCE = 0.5; // of sitting on a bench, for the second spot on the s
 const BEFORE_BENCH = 0.62; // how far in front of a bench's seat one stands to sit down
 const INN_CHANCE = 0.25; // of going, when the routine comes to the inn
 const INN_CAP = 4; // villagers at an inn at once, at most (its barmaids aside)
+const CHURCH_CHANCE = 0.35; // of the cathedral town's folk going to the cathedral instead, by day, when the routine comes to the inn
 const EVENING_INN_CHANCE = 0.6; // of going, of an evening
 const EVENING_INN_CAP = 7; // villagers at an inn at once, of an evening: the place full
 const NIGHT_TIME: [number, number] = [90, 150]; // seconds abed at a time, at night (an hour and a half or more)
@@ -113,7 +114,8 @@ function plan(npc: Npc, npcs: readonly Npc[], world: NpcWorld): NpcStep[] {
   const [night, evening] = [within(hour, NIGHT), within(hour, EVENING)];
   let stop = night ? 'home' : routine[npc.stop % routine.length];
   if (evening && stop !== 'home') stop = 'inn'; // (of an evening, the inn in mind: the fields left, the square passed by, if it's full)
-  if (stop === 'inn' && (roll(npc, 13) >= (evening ? EVENING_INN_CHANCE : INN_CHANCE) || !npc.inn || patrons(npcs, npc.inn) >= (evening ? EVENING_INN_CAP : INN_CAP))) stop = roll(npc, 14) < 0.5 || evening ? 'home' : 'square';
+  const church = stop === 'inn' && !evening && !!npc.church && roll(npc, 41) < CHURCH_CHANCE; // (a townsman's: a while in a pew)
+  if (!church && stop === 'inn' && (roll(npc, 13) >= (evening ? EVENING_INN_CHANCE : INN_CHANCE) || !npc.inn || patrons(npcs, npc.inn) >= (evening ? EVENING_INN_CAP : INN_CAP))) stop = roll(npc, 14) < 0.5 || evening ? 'home' : 'square';
   npc.stop++;
   const steps: NpcStep[] = [];
   const leave = () => {
@@ -135,7 +137,7 @@ function plan(npc: Npc, npcs: readonly Npc[], world: NpcWorld): NpcStep[] {
     else steps.push({ kind: 'go', to: squareSpot(npc, world, 1) }, { kind: 'wait', for: between(npc, SQUARE_WAIT, 11) });
     return steps;
   }
-  const building = stop === 'inn' && npc.inn ? npc.inn : npc.home;
+  const building = church ? npc.church! : stop === 'inn' && npc.inn ? npc.inn : npc.home;
   if (npc.where !== building) {
     leave();
     steps.push({ kind: 'go', to: building }, { kind: 'enter', entrance: building });

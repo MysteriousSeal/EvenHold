@@ -96,6 +96,7 @@ export interface Npc extends Humanoid {
   drinks?: number; // drinks had this time at the bar
   salt: number; // their own, from the seed: their routine's rolls (npcRoutine.ts)
   stall?: Stall; // a monger's, the stall they keep (town/stallKeepers.ts)
+  church?: Entrance; // the cathedral, a townsman's (npcRoutine.ts: now and then, there instead of the inn)
   led?: boolean; // moved by something else than a routine of their own (someone only passing through: a client let into the hero's room, jobs/roomShift.ts): the rounds leave them be
 }
 
@@ -223,6 +224,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     return witchHomeIn(seed, village, own.map((k) => houses[k]), (h) => storied.has(h));
   });
   for (const home of witchHomes) if (home) (shops.add(home), markWitchHome(home)); // (furnished as hers: witch/witchLayout.ts)
+  const churches = entrances.filter((e) => e.type === 'cathedral');
   const villagers = houses
     .flatMap((home, id) => {
       const village = nearest(villages, home.x, home.z);
@@ -232,8 +234,9 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
       // At home to begin with, a while, then on from a point of the routine of their own.
       npc.stop = Math.floor(hashUnit(id, seed % 1_000_003, 75) * ROUTINE.length);
       npc.steps = [{ kind: 'settle', for: 5 + hashUnit(Math.round(home.x * 10), Math.round(home.z * 10), seed * 131 + 73) * 40 }];
-      // Some work the field nearest their village, if there's one near.
+      // Some work the field nearest their village, if there's one near; the cathedral town's folk go to their cathedral.
       npc.field = fieldOf(id, village);
+      if (village.town) npc.church = nearest(churches, village.x, village.z) ?? undefined;
       return [npc];
     });
   const innVillages = inns.map((inn) => nearest(villages, inn.x, inn.z)); // (each inn's: its barmaids' and its bouncer's)

@@ -95,7 +95,7 @@ export interface Furniture {
   cloth?: number; // a bed: its blanket's colour, of four (clothFor)
   leather?: boolean; // a chair: its cushion leather, not red cloth (an inn's: its red kept for the hearth)
   suit?: number; // an armour stand: the suit on it, of four (chain, plate, studded leather, brigandine)
-  side?: -1 | 1; // a bellows: the way along its wall its forge is (its nozzle into it)
+  side?: -1 | 1; // a bellows: the way along its wall its forge is (its nozzle into it); a pew: the end of its row it's at
   tall?: boolean; // an inner wall (hallWall, hallDoor): full height (the walls option), else low; a picture on one: hung on its face
 }
 
@@ -200,6 +200,7 @@ const SEATS: Partial<Record<FurnitureKind, { height: number; forward: number }>>
   chair: { height: 0.36, forward: 0.26 }, // forward enough that the head clears the chair's back
   armchair: { height: 0.32, forward: -0.05 }, // back against its backrest
   barStool: { height: 0.56, forward: 0.26 },
+  pew: { height: 0.34, forward: 0.12 }, // (the cathedral's: a seat a tile, cathedral/cathedralLayout.ts)
 };
 
 const OFF_WALL = 0.2; // tiles upstairs beds are drawn out from the wall they stand against (off its thickness)
