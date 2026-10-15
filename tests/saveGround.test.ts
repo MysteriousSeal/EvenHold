@@ -8,6 +8,7 @@ import { STREAMED_SIZE } from '../src/model/worldgen/regions';
 import { spawnOf } from '../src/model/map/grid';
 import { LOOT_IDS } from '../src/model/loot/loot';
 import { fresh } from './support/testWorld';
+import { HERO_RADIUS } from '../src/model/constants';
 
 const SEED = 7;
 
@@ -41,5 +42,17 @@ describe("a hero file's level past all", () => {
       expect(again.hero.level).toBe(MAX_LEVEL);
       expect(again.hero.statPoints).toBe(POINTS_PER_LEVEL * (MAX_LEVEL - 1)); // (all to spend: none trained)
     }
+  });
+});
+
+describe('a hero saved against a tree', () => {
+  it('stays where they stood', () => {
+    const model = fresh();
+    const spots = model.trees.flatMap((t) => [-0.45, 0.45].flatMap((dx) => [-0.45, 0.45].map((dz) => ({ x: Math.round(t.x) + dx, z: Math.round(t.z) + dz }))));
+    const at = spots.find(({ x, z }) => x > 1 && z > 1 && x < model.size.width - 1 && z < model.size.depth - 1 && !model.isOpenTile(Math.round(x), Math.round(z)) && !model.isBlocked(x, z, HERO_RADIUS))!; // (in a tree's tile, clear of its trunk)
+    Object.assign(model.hero, at);
+    const again = fresh();
+    restore(again, parseSave(JSON.stringify(snapshot(model)), again.seed)!);
+    expect([again.hero.x, again.hero.z]).toEqual([at.x, at.z]);
   });
 });

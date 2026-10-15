@@ -35,7 +35,7 @@ import { xpToNext } from './hero/heroStats';
 import type { BodyLook } from './human/humanoid';
 import { layoutOf } from './interiors/indoors';
 import { openDoorsAt, setOpenDoors, upstairsInside } from './interiors/upstairs';
-import { FOE_AT_MOST_FROM_HOME } from './constants';
+import { FOE_AT_MOST_FROM_HOME, HERO_RADIUS } from './constants';
 import { doorNumber, doorPlace, type Entrance } from './interiors/interiors';
 import { villagePlace } from './villages/villageNumber';
 import { readJobs, type JobId, type JobRecord } from './jobs/jobs';
@@ -346,7 +346,7 @@ export function restore(model: GameModel, data: SaveData): void {
     const door = saved.inside !== null ? doorPlace(saved.inside) : saved; // (indoors in a building since let go, the town stood in its place: outside where its door was)
     const at = Number.isFinite(door.x) && Number.isFinite(door.z) ? door : { x: hero.x, z: hero.z }; // (its number broken: where they set out)
     model.teleport(Math.min(model.size.width - 1, Math.max(0, at.x)), Math.min(model.size.depth - 1, Math.max(0, at.z)));
-    if (!model.isOpenTile(Math.round(hero.x), Math.round(hero.z))) model.teleport(...openNear(model, Math.round(hero.x), Math.round(hero.z))); // (where a wall since stands, the town's say: beside it)
+    if (model.isBlocked(hero.x, hero.z, HERO_RADIUS)) model.teleport(...openNear(model, Math.round(hero.x), Math.round(hero.z))); // (where a wall since stands, the town's say: beside it; by a tree or a rock, clear of it, where they stood)
   } // (lost outdoors: where they set out)
   // Foes: the slain gone, the hurt and the wandered where they were; but only
   // if the world's foes are those the save knew (the game since changed how
