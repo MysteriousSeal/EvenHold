@@ -61,10 +61,12 @@ bandits' strongholds.
   barmaid, or call for one from a table. Talk to whoever's beside you, or
   buy a round for the bar. Rent a room for the night or the week, and wake
   well rested. Its notice board has work: serving tables, tending the bar,
-  or work upstairs, paying more as you rise. Mind the bouncer: swords stay
+  or work upstairs, paying more as you rise. A strongbox by the wall keeps
+  your things, the same box at every inn. Mind the bouncer: swords stay
   sheathed in here.
 - **The smithy.** Arms and armour to buy, rising with your level; the smith
-  takes your old gear off your hands, and mends what you wear. Every weapon
+  takes your old gear off your hands, and mends what you wear (freshly
+  mended gear is Tempered a while). Every weapon
   fights its own way (quick daggers, parrying swords, sweeping axes,
   reaching spears, staggering hammers). Gear has a level and a rarity, and
   ten sets are scattered across the land, each among its own foes: the
@@ -74,11 +76,15 @@ bandits' strongholds.
   and dig the ore, make what the inn and the road need, forge your own
   weapons and armour, break old gear down for its iron, catch a sturgeon,
   and roast it over a campfire of your own.
-- **Quests.** The notice board in every village square has work for those
-  who'll take it.
+- **Quests and bounties.** The notice board in every village square has work
+  for those who'll take it, and bounties on the outlaws and beasts nearby.
+- **The hedge-witch.** In some villages, at the edge, a crooked cottage whose
+  keeper teaches charms. More are found in scrolls, in the hoards of the
+  dark.
 - **The herbalist.** In every village, a green-hooded herbalist keeps shop
   in a thatched hut near the middle, a cauldron bubbling by the hearth:
-  health and energy potions to buy, and they'll take your raw ingredients.
+  health and energy potions to buy, and they'll take your raw ingredients
+  and what you bring up from the caves.
 - **Wells.** Toss in a silver coin and you may walk away blessed.
 
 <!-- More shots: the inn, a crypt, a cave, the ruins in the mist.
@@ -104,7 +110,8 @@ bandits' strongholds.
 | Hero sheet | **C** |
 | Spend points | **P** |
 | Quest journal | **L** |
-| Skills | **K** |
+| Skills (and your charms) | **K** |
+| Map | **M** |
 | At the bar: an ale, a pie | **F**, **G** |
 | By the barmaid: rent a room · by its bed at night: sleep | **G** |
 | Zoom | **Mouse wheel** |
@@ -120,7 +127,10 @@ Every key can be changed in the pause menu, under **Keys**.
 - **Energy runs down through the day.** Below 25 you'll slow to a trudge.
   A night's sleep in a rented room puts it all right.
 - **Falling has a price.** You'll come round at the last inn you visited,
-  worse for wear for a while.
+  worse for wear for a while, and half your coin lies where you fell. Go
+  back for it before you fall again.
+- **Keep your hero safe.** Under **Your hero** in the pause menu, export
+  your hero to a file or go back to a recent backup.
 - **Mind your bag.** It holds 24 slots, and each bag you fit to its sockets
   adds 6 more, up to 48. Pedlars sell bags, and the odd bandit or draugr
   drops one. Junk stacks 20 to a slot. Right-click food to eat it, or a bag

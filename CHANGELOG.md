@@ -3,6 +3,129 @@
 What's new in each version of EvenHold. The version you're playing is shown
 in the bottom-left corner of the screen.
 
+## [0.8.0] - 2026-10-15
+
+Weight and a foothold: blows that land and a world you can hear, a map of
+where you've been, a strongbox for your things, charms to learn, bounties
+to hunt, and a smithy and a herbalist's worth coming back to.
+
+### Feel
+
+- **Sound.** The game has a voice at last:
+  - steel on flesh and on armour, a parry's clang, a body falling;
+  - the axe, the pick and the hammer on the anvil, the line cast, the pot
+    simmering;
+  - footsteps that change with the ground under you;
+  - birds by day and crickets at night, rain and wind as hard as the
+    weather;
+  - the inn's murmur and a lute by its fire, the forge, the draught in a
+    crypt.
+
+  Volume, Effects and Ambience in the pause menu.
+- **Blows that land.** Every blow that connects stops the world for a
+  heartbeat, longer for a crit or a kill, and the camera kicks the way it
+  went. Blood flies, lands and soaks into the ground. Skeletons shed bone,
+  draugr black ichor, ghosts pale motes.
+- **Greater potions are worth it.** Lesser and greater potions heal some at
+  once and the rest over the next seconds, even while you're being hit:
+  25%, 50% or 85% in all. Your health bar glows while one works.
+
+### A foothold
+
+- **A map (M).** Blank vellum until you've walked there:
+  - the land, its roads and fields;
+  - villages with their names, coloured by how dangerous they are to you;
+  - crypts, caves and camps, struck through once cleared;
+  - pins for your quests and bounties.
+
+  A small map sits in the corner too.
+- **A strongbox at every inn.** Sixty slots, the same box at every inn, and
+  the chest in your rented room opens it too. Store your junk or your
+  materials at a click.
+- **Go back for your purse.** Fall in a fight and half your coin stays
+  where you fell, under a shaft of gold light. Walk back to it and it's all
+  yours again, but fall a second time first and it's gone.
+- **Keep your hero safe.** Export your hero to a file and bring them back,
+  or return to one of the last few automatic backups, under **Your hero**
+  in the pause menu.
+- **Smaller saves.** Foes that only wandered are no longer saved, so a long
+  roam's save is a fraction of its old size.
+
+### Charms and bounties
+
+- **The hedge-witch.** In about one village in three, at its edge, a
+  crooked cottage under a black, leaning thatch. Its keeper teaches the
+  Hex, and the Mending charm for a bat's wing besides. She won't teach you
+  to turn people into things, and she'll tell you why.
+- **Charms found in the dark.** A boss's hoard may hold a scroll. Read it
+  from your bag to learn the charm. The Moon-turn is found nowhere else.
+  The skills window (**K**) lists the charms you know, to put back on your
+  bar.
+- **Bounties.** The notice board posts bounties on a named outlaw, a beast
+  or a wolf pack's leader, tougher and richer the farther out they lurk.
+  Bring back the grisly proof for coin.
+
+### The smithy
+
+- **It looks the part.** A dark, sooty room with one hot heart, the forge
+  first, then the anvil, then the wares on the walls, and the trade's
+  clutter round them. Outside, the forge's coals glow open to the street
+  under an iron anvil sign.
+- **The smith keeps hours.** He works his forge until you come to his
+  counter, and goes home at night. A sleeping keeper still has a word for
+  you about a quest.
+- **Fairer trading:**
+  - one set of wares at your level;
+  - a purse that grows with his work;
+  - worn gear sells for less, and what you sell keeps its wear if you buy
+    it back;
+  - he tells you when he's had enough of something, and what's worth
+    smithing yourself.
+- **Mending matters.** Freshly mended gear is **Tempered** for a while:
+  blows hurt you less and your gear wears slower.
+- **At the anvil and the bench.** E at the anvil or the salvage bench works
+  them, never the smith. Your hero swings a hammer and sparks fly.
+  Salvaging yields more as your skill grows, and pieces you made yourself
+  are told apart from ones you found.
+
+### The herbalist
+
+- **The hut looks the part.** Peat-smoke and green glass: the cauldron's
+  green glow, herbs hung thick, glinting bottles, a garden and a fairy ring
+  outside, and green-grey smoke from the chimney.
+- **She keeps hours** and sleeps at night, though she'll still sell you the
+  pox salve if you wake her.
+- **She knows you:**
+  - she greets you with her part of the story;
+  - she pushes a potion when you're hurt;
+  - she buys spider silk, venom glands and bat wings at a better price;
+  - energy potions are cheaper;
+  - the pox has its own mark.
+- **Fixed:**
+  - a potion drunk at full health was wasted;
+  - the salve's coin vanished;
+  - quests ending in a night could be handed in by day.
+
+### Easier to start, easier to see
+
+- **The first hour teaches as you go:** short one-time tips when something
+  first matters, and the carter's first errands that tell you what you need.
+  Tips can be turned off.
+- **A lively first morning:** the village is already up and about.
+- **Graphics settings.** Low, Medium or High, and a brightness slider, in
+  the pause menu.
+- **Never lost from view.** Your hero, and the foes hunting you, show
+  through tree crowns and roofs. Gold brackets mark you for the first
+  moments of a game.
+- **Rooms are framed** on their fire from the door.
+- **Dungeons draw far less,** for a smoother crypt, cave and stronghold.
+- **Fixed:**
+  - villagers waiting forever behind you in a doorway now say so and step
+    past;
+  - tower shields and pavises are big;
+  - long poles no longer cross your legs;
+  - the rings, the dishes and a few other icons read at a glance.
+
 ## [0.7.0] - 2026-10-15
 
 An inn worth stopping at, a countryside that changes with the seasons and
