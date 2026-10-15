@@ -133,7 +133,8 @@ export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): {
     lines: LINES,
     about: (id) => pick((isGear(id) && ABOUT[slotOfGear(id)]) || (smithTakesPick(id) ? PICK_BOUGHT : LINES.bought)),
     offered: (name, id) => {
-      const kind = smithTakesMetal(id) ? 'metal' : smithTakesWood(id) ? 'wood' : smithTakesPick(id) ? 'pick' : isGear(id) && WOODWORKS.has(baseOf(id)) ? 'woodwork' : wearOf(model.hero, id) >= WORN ? 'worn' : 'gear';
+      const sold = shop().buyback?.[0]?.id === id ? shop().buyback![0] : undefined; // (just sold: its wear and the mark of the hero's make gone with it, onto the sale)
+      const kind = smithTakesMetal(id) ? 'metal' : smithTakesWood(id) ? 'wood' : smithTakesPick(id) ? 'pick' : isGear(id) && WOODWORKS.has(baseOf(id)) && sold?.crafted ? 'woodwork' : (sold?.wear ?? wearOf(model.hero, id)) >= WORN ? 'worn' : 'gear';
       return pick(kind === 'gear' ? [...OFFERED.gear, ...LINES.sold] : OFFERED[kind]).replace('{it}', kind === 'woodwork' || kind === 'worn' ? name.toLowerCase() : name);
     },
     enough: (name, wait) => pick(ENOUGH).replace('{it}', name.toLowerCase()).replace('{them}', plural(name.toLowerCase())).replace('{wait}', wait),

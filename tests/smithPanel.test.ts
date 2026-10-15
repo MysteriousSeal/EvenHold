@@ -128,4 +128,20 @@ describe("the smith's window", () => {
     panel.update();
     expect(panel.menu.isOpen).toBe(false);
   });
+
+  it("calls a wooden piece the hero made kindling, at an eighth; a found spear, or a battered piece, as what it is", () => {
+    const { model, keeper, panel, shop } = trading();
+    shop().money = 100_000;
+    model.hero.bag.quarterstaff = 1;
+    model.hero.crafted = { quarterstaff: 1 };
+    model.hero.bag.mailCoif = 1;
+    model.hero.wear = { mailCoif: 90 };
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+    panel.open(keeper);
+    rightClick(inBag('item:quarterstaff'));
+    expect(says()).toMatch(/Wood\? I work iron/);
+    rightClick(inBag('item:mailCoif'));
+    expect(says()).toMatch(/Battered/);
+    random.mockRestore();
+  });
 });
