@@ -61,10 +61,11 @@ export const SOUNDS = {
   hearth: loop(0.45),
   forge: loop(0.55),
   sizzle: loop(0.35),
+  lute: loop(0.3), // (a tune at the inn: RandomMind's The Old Tower Inn)
 } satisfies Record<string, SoundSpec>;
 
 export type SoundId = keyof typeof SOUNDS;
-export const LOOPS = ['birds', 'crickets', 'rain', 'wind', 'inn', 'hearth', 'forge', 'sizzle'] as const satisfies readonly SoundId[];
+export const LOOPS = ['birds', 'crickets', 'rain', 'wind', 'inn', 'hearth', 'forge', 'sizzle', 'lute'] as const satisfies readonly SoundId[];
 export type LoopId = (typeof LOOPS)[number];
 
 // The file of one take of a sound (`take`: 0-based), or of a loop.

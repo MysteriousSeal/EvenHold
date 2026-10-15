@@ -19,4 +19,5 @@ the game; the ambience loops have their ends crossfaded so they repeat without a
 | Amb Rain Loop 1 | kresiek-the-furry | https://opengameart.org/content/amb-rain-loop-1 | CC0 | rain |
 | Mild Wind Background Noise | bashar3a | https://opengameart.org/content/mild-wind-background-noise | CC0 | wind |
 | Crowd Shouting/Speaking Ambience | starninjas | https://opengameart.org/content/crowd-shoutingspeaking-ambience | CC0 | the inn's murmur (muffled) |
+| Medieval: The Old Tower Inn (loop) | RandomMind | https://opengameart.org/content/medieval-the-old-tower-inn | CC0 | the tune at the inn |
 | Fireplace Sound Loop | pagdev | https://opengameart.org/content/fireplace-sound-loop | CC0 | hearth, forge (pitched down) |

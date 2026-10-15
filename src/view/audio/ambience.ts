@@ -1,6 +1,6 @@
 // The places' sound, each frame from where the hero is and the sky (render/sky.ts): outdoors, birds by day and
 // crickets at night (none in winter), the rain and the wind as hard as they are, a smithy's forge roaring as they pass;
-// indoors, an inn's talk and every hearth's crackle, the forge in a smithy, the rain muffled through the roof; a pot on
+// indoors, an inn's talk and a tune and every hearth's crackle, the forge in a smithy, the rain muffled through the roof; a pot on
 // the fire while they cook. Their footsteps, a step each stride walked, by what they walk on (grass, the road, a
 // village's flags, floorboards, snow); a door, going in or out.
 
@@ -32,7 +32,7 @@ export function groundOf(m: Pick<World, 'hero' | 'inside' | 'tiles'>, snow: numb
 
 // Each loop's level for the hero where they are (0..1 each, over its own).
 export function loopLevels(m: Pick<World, 'inside' | 'cooking'>, s: Pick<typeof sky, 'outdoors' | 'night' | 'rain' | 'wind' | 'season'>, forgeNear: number): Record<LoopId, number> {
-  const levels: Record<LoopId, number> = { birds: 0, crickets: 0, rain: 0, wind: 0, inn: 0, hearth: 0, forge: 0, sizzle: m.cooking.making ? 1 : 0 };
+  const levels: Record<LoopId, number> = { birds: 0, crickets: 0, rain: 0, wind: 0, inn: 0, hearth: 0, forge: 0, lute: 0, sizzle: m.cooking.making ? 1 : 0 };
   const type = m.inside?.entrance.type;
   if (!m.inside) {
     const winter = s.season === 'winter';
@@ -44,6 +44,7 @@ export function loopLevels(m: Pick<World, 'inside' | 'cooking'>, s: Pick<typeof 
   } else if (type === 'inn' || type === 'house' || type === 'smithy') {
     levels.rain = clamp(s.rain) * 0.3; // (on the roof)
     levels.inn = type === 'inn' && !m.inside.below ? 1 : type === 'inn' ? 0.35 : 0; // (upstairs: through the floor)
+    levels.lute = levels.inn;
     levels.hearth = type === 'smithy' ? 0 : m.inside.below ? 0.3 : 1;
     levels.forge = type === 'smithy' ? 1 : 0;
   } else levels.wind = 0.12; // (a crypt's, a cave's draught)

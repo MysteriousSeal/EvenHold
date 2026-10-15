@@ -147,9 +147,9 @@ describe('the ambience', () => {
 
   it("indoors: an inn's talk and hearth (upstairs, fainter), a smithy's forge, the rain muffled; a pot on the fire", () => {
     const rain = { ...outdoors, rain: 1 };
-    expect(loopLevels({ inside: room('inn'), cooking: idle }, rain, 0)).toMatchObject({ inn: 1, hearth: 1, birds: 0, rain: 0.3 });
+    expect(loopLevels({ inside: room('inn'), cooking: idle }, rain, 0)).toMatchObject({ inn: 1, lute: 1, hearth: 1, birds: 0, rain: 0.3 });
     expect(loopLevels({ inside: room('inn', 'planks', {}), cooking: idle }, rain, 0).inn).toBeLessThan(1);
-    expect(loopLevels({ inside: room('smithy'), cooking: idle }, rain, 0)).toMatchObject({ forge: 1, inn: 0 });
+    expect(loopLevels({ inside: room('smithy'), cooking: idle }, rain, 0)).toMatchObject({ forge: 1, inn: 0, lute: 0 });
     expect(loopLevels({ inside: null, cooking: { making: {} } as never }, outdoors, 0).sizzle).toBe(1);
   });
 
