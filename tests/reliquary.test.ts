@@ -97,6 +97,37 @@ describe('down into the reliquary', () => {
     expect(model.dungeon).toBeInstanceOf(ReliquaryRun);
   });
 
+  it("barred while the story's saint is shut away: the story's line at its door (open where there's no such story)", () => {
+    const { model, entrance } = withReliquary();
+    model.teleport(entrance.x, entrance.z);
+    const story = model.story as unknown as { saint?: { open: boolean } };
+    story.saint = { open: false };
+    model.takeEvents();
+    expect(model.useDoor()).toBe(false);
+    expect(model.takeEvents()).toContainEqual({ kind: 'banner', title: 'The ossuary door is barred', line: 'Sister Agnes keeps the key.' });
+    story.saint.open = true;
+    expect(model.useDoor()).toBe(true);
+  });
+
+  it("gone down by a stair inside a building (the Minster's), and back up it into the room, by the stair", () => {
+    const model = fresh();
+    const room = model.entrances.find((e) => e.type === 'inn')!; // (a room stood in for the Minster's)
+    const down: Entrance = { type: 'reliquary', x: room.x, z: room.z, outX: room.outX, outZ: room.outZ };
+    registerReliquary(down, { x: 7, z: 7 }, { stair: { of: room, x: 0.5, z: 0.5 } });
+    model.teleport(room.x, room.z);
+    model.useDoor();
+    expect(model.inside?.entrance).toBe(room);
+    Object.assign(model.hero, { x: 0.6, z: 1.9 });
+    expect(model.doorInReach).toBe(down);
+    expect(model.useDoor()).toBe(true);
+    expect(model.dungeon).toBeInstanceOf(ReliquaryRun);
+    Object.assign(model.hero, { x: model.inside!.room.door, z: model.inside!.room.depth - 1 });
+    expect(model.doorInReach).toBe(down);
+    expect(model.useDoor()).toBe(true);
+    expect([model.inside?.entrance, model.dungeon]).toEqual([room, null]);
+    expect(Math.hypot(model.hero.x - 0.5, model.hero.z - 0.5)).toBeLessThan(1.6);
+  });
+
   it('has its dead at their posts, of its level; the arrival told; each place told by name coming into it', () => {
     const { model, run } = goDown();
     expect(model.takeEvents()).toContainEqual({ kind: 'arrive', name: RELIQUARY_NAME, level: RELIQUARY_LEVEL });

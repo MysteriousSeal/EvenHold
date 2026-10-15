@@ -129,6 +129,14 @@ describe("a champion's trait", () => {
     expect(foe.cooldown).toBeLessThan(0.5);
   });
 
+  it('slain, told as a champion (which one) with its kind', () => {
+    const model = fresh();
+    const foe = { ...makeChampion(9, 'brannoc', model.hero.x + 0.5, model.hero.z, 3), state: 'chase' as const, phases: undefined };
+    model.takeEvents();
+    strike(model, foe, foe.maxHp * 3, false);
+    expect(model.takeEvents()).toContainEqual(expect.objectContaining({ kind: 'slain', on: 'draugr', champion: 'brannoc' }));
+  });
+
   it('pots: three at a throw, and only his', () => {
     expect(potsAt(makeChampion(1, 'hob', 0, 0, 6))).toBe(3);
     expect(potsAt(makeEnemy(1, 'firebrand', 0, 0))).toBe(1);
