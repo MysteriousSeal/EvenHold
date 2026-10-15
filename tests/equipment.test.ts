@@ -118,14 +118,14 @@ describe('armor models', () => {
 
   it('gives each slot its own rows of each part, so pieces never share a voxel', () => {
     // With shoulders worn or not (sleeves yield the top of the arms to them).
-    for (const [part, shouldered] of PARTS.flatMap((part) => [[part, true], [part, false]] as const)) {
+    for (const [part, shouldered] of PARTS.flatMap((part) => [[part, true], [part, 'deep'], [part, false]] as const)) {
       const rows = new Set<number>();
       for (const slot of ARMOR_SLOTS) {
         if (slot === 'shoulders' && !shouldered) continue;
         const band = bandFor(slot, part, shouldered);
         if (!band) continue;
         for (let y = band[0]; y <= band[1]; y++) {
-          expect(rows.has(y), `${slot} row ${y} of ${part}${shouldered ? ', with shoulders' : ''}`).toBe(false);
+          expect(rows.has(y), `${slot} row ${y} of ${part}${shouldered ? `, with ${shouldered === 'deep' ? 'deep ' : ''}shoulders` : ''}`).toBe(false);
           rows.add(y);
         }
       }

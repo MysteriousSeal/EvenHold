@@ -9,15 +9,15 @@ import type { BodyLook, Build } from '../../../model/human/humanoid';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, scaleGrid, setColor } from '../voxel/voxelShapes';
 import { BODIES, HAIR_PIECE_PIVOT, HELD_BY, HELD_VOXEL_SIZE, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, bodyPalette, buildBodyPart, buildHairPiece, type Joint } from './bodyVoxels';
-import { lookModel, wornGrid, type LookId } from './gear/itemModels';
+import { lookModel, shoulderedBy, wornGrid, type LookId } from './gear/itemModels';
 import { wornPad } from './gear/armorShell';
 import { isCostume } from './gear/costumes';
 import { fineFigure } from './fineFigure';
 
 // Figure room: the joints' layout shifted so everything lands at >= 0,
-// with space for shells, shields, and poles held in the middle (a spear
-// or a staff reaches 12 voxels behind the hand and 20 ahead of it).
-const SIZE: [number, number, number] = [24, 34, 56];
+// with space for shells, shields, and poles held low (a glaive reaches
+// 4 voxels behind the hand and 37 ahead of it).
+const SIZE: [number, number, number] = [24, 34, 60];
 const SHIFT: [number, number, number] = [11, 2, 21];
 // Where the neck is in a fine figure's grid (fineFigure.ts: voxels half the size): what a head's drawn smaller about.
 export const FINE_NECK: [number, number, number] = [(JOINTS.head.at[0] + SHIFT[0]) * 2, (JOINTS.head.at[1] + SHIFT[1]) * 2, (JOINTS.head.at[2] + SHIFT[2]) * 2];
@@ -78,7 +78,7 @@ export function humanFigure(look: BodyLook | null, wearing: Equipment, only: rea
     const hair = !worn ? buildHairPiece(look.hairStyle) : headgear ? hairUnder(look.hairStyle, headgear) : null;
     if (hair && only.includes('head')) place(hair, colors, joints.head.at, HAIR_PIECE_PIVOT);
   }
-  const shouldered = !!equipment.shoulders;
+  const shouldered = shoulderedBy(equipment.shoulders);
   for (const slot of EQUIP_SLOTS) {
     const item: LookId | undefined = equipment[slot];
     if (!item || isJewelrySlot(slot)) continue; // jewelry doesn't show on the body

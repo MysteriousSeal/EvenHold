@@ -37,12 +37,17 @@ export const SLOT_BANDS: Record<ArmorSlot, Partial<Record<BodyPart, [number, num
   feet: { leg: [0, 1] }, // ankles and feet, not the sole
 };
 
+// Whether shoulders are worn, and a deep piece (itemModel.ts `deep`: bronze spaulders) reaching a row further down.
+export type Shouldered = boolean | 'deep';
+
 // The rows a slot covers on a part, given whether shoulders are worn: they
-// take the top of each arm (rows 5-6) from the torso's sleeves, which then
-// stop at row 4. Without shoulders, sleeves keep their own caps.
-export function bandFor(slot: ArmorSlot, part: BodyPart, shouldered: boolean): [number, number] | undefined {
+// take the top of each arm (rows 5-6; a deep piece's, 4-6) from the torso's
+// sleeves, which then stop under them. Without shoulders, sleeves keep their own caps.
+export function bandFor(slot: ArmorSlot, part: BodyPart, shouldered: Shouldered): [number, number] | undefined {
   const band = SLOT_BANDS[slot][part];
-  return band && slot === 'torso' && part === 'arm' && shouldered ? [band[0], 4] : band;
+  const deep = shouldered === 'deep' && part === 'arm';
+  if (band && slot === 'shoulders' && deep) return [4, band[1]];
+  return band && slot === 'torso' && part === 'arm' && shouldered ? [band[0], deep ? 3 : 4] : band;
 }
 
 // One shell voxel, in the part's own voxel coordinates (so the shell's

@@ -23,7 +23,8 @@ import { SHADE, bodyGeometry, hairGeometry, hairUnderGeometry, heldGeometry, per
 import { CupInHand } from './cupInHand';
 import { stowedAt } from './sheathe';
 import type { InHand } from './cupInHand';
-import { lookModel, lookSlot, type LookId } from './gear/itemModels';
+import { lookModel, lookSlot, shoulderedBy, type LookId } from './gear/itemModels';
+import type { Shouldered } from './gear/armorShell';
 import { isCostume } from './gear/costumes';
 
 const V = HUMAN_VOXEL_SIZE;
@@ -96,7 +97,7 @@ export class HumanRig {
   readonly joints: Record<Joint, THREE.Group>;
   readonly meshes: THREE.Mesh[] = []; // the body's, then everything worn
   private readonly worn = new Map<EquipSlot, { item: LookId; meshes: THREE.Mesh[] }>();
-  private shouldered = false; // shoulders worn: sleeves leave them the top of the arms
+  private shouldered: Shouldered = false; // shoulders worn: sleeves leave them the top of the arms (a deep piece, more of it)
   private readonly body = new THREE.Group();
   private readonly last = new THREE.Vector3(Number.NaN, 0, 0);
   private phase = 0;
@@ -176,7 +177,7 @@ export class HumanRig {
         this.joints.head.add(this.under);
       }
     }
-    const shouldered = !!equipment.shoulders;
+    const shouldered = shoulderedBy(equipment.shoulders);
     const refit = shouldered !== this.shouldered;
     this.shouldered = shouldered;
     for (const slot of EQUIP_SLOTS) {
