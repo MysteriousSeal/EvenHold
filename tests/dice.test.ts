@@ -228,6 +228,13 @@ describe('a sharp at the inn', () => {
     expect(sharp.dicing).toBe(true);
   });
 
+  it('not at their table while the hero works the room', () => {
+    const { model, sharp } = atTheSharpsTable();
+    (model.work as { shift: unknown }).shift = { job: 'innServer' };
+    expect(model.folk.includes(sharp)).toBe(false);
+    (model.work as { shift: unknown }).shift = null;
+  });
+
   it('caught out: thrown out, walked to the door and gone, kept away AWAY days; the save keeps it', () => {
     const { model, sharp } = atTheSharpsTable();
     const at = model.dice.play(sharp)!;

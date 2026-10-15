@@ -37,6 +37,7 @@ export interface DiceHost extends NpcWorld {
   minutes: number;
   inside: Inside | null;
   hero: NpcWorld['hero'] & Hero;
+  work: { readonly shift: unknown };
 }
 
 // The table a chair's at (an inn's), if it's at one.
@@ -65,7 +66,7 @@ export class DiceHall {
   sharpIn(inside: Inside | null, folk: readonly Npc[]): Npc | null {
     const f = this.figure;
     if (f?.leaving) return inside?.entrance === f.npc.where ? f.npc : null; // (thrown out: on their way, whatever else)
-    if (!inside || inside.below || inside.entrance.type !== 'inn') return null;
+    if (!inside || inside.below || inside.entrance.type !== 'inn' || this.host().work.shift) return null; // (not while the hero works the room: no mark of theirs)
     const { seed, minutes } = this.host();
     const door = doorNumber(inside.entrance);
     const sharp = sharpTonight(seed, door, minutes, this.away);
