@@ -25,7 +25,7 @@ function atTheSmithy(): GameModel {
 }
 
 describe('the smithy', () => {
-  it("pays little for what a woodworker could make (a sixth of its worth), and takes only so many wooden arms of any shape; a woodworker's wares not junk, but a pedlar's and the inn's", () => {
+  it("pays little for what a woodworker could make (an eighth of its worth), and takes only so many wooden arms of any shape; a woodworker's wares not junk, but a pedlar's and the inn's", () => {
     const made = gearKey({ item: 'broadAxe', level: 22, rarity: 'uncommon', roll: 0 }); // (a woodworker's)
     const sword = gearKey({ item: 'armingSword', level: 25, rarity: 'uncommon', roll: 0 });
     expect(gearSellPrice(made)).toBeLessThan(gearPrice(made) / 5);
