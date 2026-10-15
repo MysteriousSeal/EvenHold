@@ -4,8 +4,8 @@
 // their level); made only before the anvil; the skill up as its difficulty allows; the smith buys the ingots back.
 import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { SMITH_RECIPES, SMITH_RECIPE_IDS } from '../src/model/skills/smithing';
-import { skillOf, stepsOf } from '../src/model/skills/skills';
+import { SMITH_RECIPES, SMITH_RECIPE_IDS, smithRise } from '../src/model/skills/smithing';
+import { RISE, skillOf, stepsOf } from '../src/model/skills/skills';
 import { gearOf } from '../src/model/human/items/gear';
 import { ITEMS } from '../src/model/human/equipment';
 import { LOOT } from '../src/model/loot/loot';
@@ -60,18 +60,18 @@ describe('smithing', () => {
   });
 
   it('is made at the anvil alone: E there opens it; a recipe started, its materials out, an ingot in, the skill up; walking off stops it', () => {
-    const { model } = atTheAnvil(1, { ironScrap: 9 });
+    const { model } = atTheAnvil(20, { copperIngot: 6 });
     expect(interactionOf(model)?.kind).toBe('anvil');
     expect(model.smithing.anvilInReach).toBeTruthy();
     const { hero } = model;
-    hero.skills!.smithing!.toward = stepsOf('smithing', 1) - 1; // (one more try that teaches: a level)
-    expect(model.smithing.start('scrapIron', 3)).toBe(true);
-    run(model, SMITH_RECIPES.scrapIron.seconds + 0.05);
-    expect([hero.bag.ironScrap, hero.bag.ironIngot]).toEqual([6, 1]);
-    expect(skillOf(hero, 'smithing').level).toBe(2);
+    hero.skills!.smithing!.toward = stepsOf('smithing', 20) - 1; // (one more try that teaches: a level)
+    expect(model.smithing.start('dagger', 3)).toBe(true);
+    run(model, SMITH_RECIPES.dagger.seconds + 0.05);
+    expect([hero.bag.copperIngot, Object.keys(hero.bag).some((k) => k.startsWith('dagger@4'))]).toEqual([4, true]);
+    expect(skillOf(hero, 'smithing').level).toBe(21);
     run(model, 0.2, 1); // (a step away: stopped)
     expect(model.smithing.making).toBeNull();
-    expect(model.smithing.start('scrapIron')).toBe(false); // (away from the anvil)
+    expect(model.smithing.start('dagger')).toBe(false); // (away from the anvil)
   });
 
   it("makes gear at the recipe's level and rarity, and a pick as a tool", () => {
@@ -83,6 +83,12 @@ describe('smithing', () => {
     expect(model.smithing.start('copperPick')).toBe(true);
     run(model, SMITH_RECIPES.copperPick.seconds + 0.05);
     expect([model.hero.bag.copperPick, LOOT.copperPick.name]).toEqual([1, 'Copper pickaxe']);
+  });
+
+  it('teaches by its forging: an ingot or a fitting green while what is made of it teaches, never the ladder itself', () => {
+    expect([smithRise('copperIngot', 1), smithRise('ironIngot', 90), smithRise('copperRivets', 10)]).toEqual([RISE[2], RISE[2], RISE[2]]);
+    expect(smithRise('copperIngot', 200)).toBe(RISE[3]); // (nothing of copper teaches there: grey)
+    expect(smithRise('dagger', 20)).toBe(RISE[0]);
   });
 
   it('has its page in the skill window: away from the anvil said so, its Forge button off', () => {
