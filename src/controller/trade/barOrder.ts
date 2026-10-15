@@ -11,7 +11,8 @@ import { buyPrice, buyToHave, restockIn, shopAt, type Shop } from '../../model/i
 import type { Npc } from '../../model/npcs/npcs';
 import type { Entrance } from '../../model/interiors/interiors';
 import { setMug, takeMug } from '../../model/inn/barMugs';
-import { callBarkeep, ordersAhead, placeOrder } from '../../model/inn/barOrders';
+import { callBarkeep, ordersAt, placeOrder, type BarOrder } from '../../model/inn/barOrders';
+import type { Furniture } from '../../model/interiors/furniture';
 import { startDrinking } from '../../model/hero/heroStats';
 import type { ProvisionId } from '../../model/loot/provisions';
 
@@ -169,23 +170,27 @@ const SET_DOWN_MS = 800; // the full tankard on the bar before the hero picks it
 // moment later the hero pays and has it over its time (the countdown
 // over their head), then puts the empty mug down on the bar, where it stays
 // till she clears it. Getting up mid-drink stops it (the rest of its good
-// lost), the mug put down empty all the same.
+// lost), the mug put down empty all the same; getting up still waiting on it
+// calls the order off (out of her queue: never handed to them on another
+// stool, or in another inn).
 export function createBar(model: GameModel, view: BarView) {
-  let coming = false; // she's on her way with an order
+  let coming: BarOrder | null = null; // the order she's seeing to (from her call to the ale set down)
   let what: BarMenuItem = 'ale'; // what was ordered
   let inn: Entrance | null = null; // where it's being had
-  let at = 0; // and the stool's row, where it sits on the bar
+  let stool: Furniture | null = null; // and the stool it's for (its row, where it sits on the bar)
   let wasDrinking = false;
+  // Whether the hero's sat on the stool it was ordered from still.
+  const onStool = () => !!stool && model.inside?.entrance === inn && model.inside.seated?.seat.piece === stool;
 
   return {
     // Whether she's seeing to an order (from her call to the ale set down): not to be talked to meanwhile.
     get busy(): boolean {
-      return coming;
+      return !!coming;
     },
 
     // Waiting in the queue behind others: how many are ahead (0: it's being seen to, or none's placed).
     get ahead(): number {
-      return coming && model.inside ? Math.max(0, ordersAhead(model.inside.entrance, null)) : 0;
+      return coming && inn ? Math.max(0, ordersAt(inn).indexOf(coming)) : 0;
     },
 
     // Whether F can order now (not while she's fetching one, nor while one's being drunk).
@@ -195,26 +200,27 @@ export function createBar(model: GameModel, view: BarView) {
 
     order(barmaid: Npc, wanted: BarMenuItem = 'ale'): void {
       if (coming || model.hero.drinking) return;
-      const stool = model.inside?.seated?.seat.piece;
+      const seat = model.inside?.seated?.seat.piece;
       const call = callFor(model, wanted);
-      if (!call.coming || !stool || !model.inside) return view.speak(barmaid, call.said); // why not
-      coming = true;
-      [inn, at, what] = [model.inside.entrance, stool.z, wanted];
-      const here = inn;
+      if (!call.coming || !seat || !model.inside) return view.speak(barmaid, call.said); // why not
+      [inn, stool, what] = [model.inside.entrance, seat, wanted];
+      const [here, order] = [inn, { stool: seat, by: null, drink: wanted, served: () => served() }];
+      coming = order;
       // In the queue, first come first served: told if there's a wait.
-      const ahead = placeOrder(here, { stool, by: null, drink: wanted, served: () => served() });
+      const ahead = placeOrder(here, order);
       view.speak(barmaid, ahead > 0 ? waitLine(ahead, !!barmaid.serving) : call.said);
       callBarkeep(barmaid);
       const served = () => {
-        if (!atTheBar(model)) return void (coming = false); // got up meanwhile: nothing
-        setMug(here, stool.z, true, 3, wanted); // set down before them, full, with her word
+        if (coming !== order) return; // called off meanwhile: nothing
+        setMug(here, seat.z, true, 3, wanted); // set down before them, full, with her word
         view.speak(barmaid, pick(MENU[wanted].served));
         window.setTimeout(() => {
-          coming = false;
-          if (!atTheBar(model)) return; // up before picking it up: it's left there
+          if (coming !== order) return; // up before picking it up: it's left there
+          coming = null;
+          if (!onStool()) return;
           const { said, drank } = serveOrder(model, wanted); // paid for as it's picked up
           if (!drank) return view.speak(barmaid, said); // (the coin gone meanwhile, say)
-          takeMug(here, stool.z); // picked up
+          takeMug(here, seat.z); // picked up
           view.heroDrinks(MENU[wanted].seconds, wanted);
         }, SET_DOWN_MS);
       };
@@ -223,11 +229,16 @@ export function createBar(model: GameModel, view: BarView) {
     // Each frame: getting up mid-drink, finishing, the countdown.
     update(): void {
       const { hero } = model;
+      if (coming && !onStool()) {
+        const queue = ordersAt(inn!); // got up still waiting: called off (she lets it be, if she's pouring it already)
+        if (queue.includes(coming)) queue.splice(queue.indexOf(coming), 1);
+        coming = null;
+      }
       if (hero.drinking && !atTheBar(model)) {
         hero.drinking = null; // stopped: the rest isn't drunk
         view.heroStopsDrinking();
       }
-      if (!hero.drinking && wasDrinking && inn) setMug(inn, at, false, 3, what); // done (or stopped): the empty mug (or plate) put down on the bar
+      if (!hero.drinking && wasDrinking && inn && stool) setMug(inn, stool.z, false, 3, what); // done (or stopped): the empty mug (or plate) put down on the bar
       wasDrinking = !!hero.drinking;
       view.countdown(hero.drinking ?? null, hero);
     },
