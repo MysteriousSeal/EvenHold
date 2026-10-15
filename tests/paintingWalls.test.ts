@@ -98,7 +98,7 @@ describe('a painting, in every building', () => {
     expect(rooms).toBeGreaterThan(150);
     expect(paintings).toBeGreaterThan(rooms * 3);
     expect(full).toBeGreaterThan(0); // (some room filled to the last stretch)
-    expect([...behind.keys()].sort()).toEqual(['barrel', 'chair', 'herbTable']); // (what stands free against a wall with one over it: all there is of that; the inn's back wall hung with its own lanterns, board and slate, none over its stools)
+    expect([...behind.keys()].sort()).toEqual(['barrel', 'chair', 'coal', 'herbStores', 'herbTable']); // (what stands free against a wall with one over it: all there is of that; the inn's back wall hung with its own lanterns, board and slate, none over its stools)
   });
 
   it('is no wider than its tile of wall, whoever it is of (every villager and keeper of every test world, as they dress)', () => {
