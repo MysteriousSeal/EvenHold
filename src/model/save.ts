@@ -18,6 +18,7 @@ import { readStops, savedStops } from './villages/wagons';
 import { readSpellWait, readSpells } from './spells/spells';
 import { POTION_COOLDOWN } from './loot/potions';
 import { readSockets } from './hero/bagSlots';
+import { readStash } from './hero/stash';
 import type { Travellers } from './travellers/travellers';
 import type { GameModel } from './GameModel';
 import { readMeal, type BagItem } from './hero/bag';
@@ -59,6 +60,7 @@ export interface SaveData {
     bag: Partial<Record<BagItem, number>>;
     bagOrder?: Array<BagItem | null>; // where each thing sits in it
     bags?: Array<string | null>; // the bags fitted to it (hero/bagSlots.ts)
+    stash?: Partial<Record<BagItem, number>>; // what's in the inns' strongbox (hero/stash.ts; older saves: none)
     spells?: string[]; // the charms it knows (spells/spells.ts)
     actionBar?: Array<string | null>; // its action bar's shortcuts (hero/actionBar.ts)
     wear?: Record<string, number>; // how worn each piece of gear is (hero/wear.ts; older saves: none)
@@ -129,6 +131,7 @@ export function snapshot(model: GameModel): SaveData {
       bagOrder: [...hero.bagOrder],
       bagCounts: [...hero.bagCounts],
       bags: [...hero.bags],
+      stash: { ...hero.stash }, // (the inns' strongbox: hero/stash.ts)
       actionBar: [...hero.actionBar],
       spells: [...(hero.spells ?? [])],
       jobs: structuredClone(hero.jobs ?? {}), // (their record in each job: jobs/jobs.ts)
@@ -243,6 +246,7 @@ export function restore(model: GameModel, data: SaveData): void {
     bag,
     bagOrder: Array.isArray(saved.bagOrder) ? saved.bagOrder.slice(0, MAX_BAG_SLOTS).map((item) => (typeof item === 'string' && known(item) ? item : null)) : [],
     bags: readSockets(saved.bags), // (older saves: none fitted)
+    stash: readStash(saved.stash), // (older saves: nothing kept)
     actionBar: readActionBar(saved.actionBar), // (older saves: all empty)
     spells: readSpells(saved.spells), // (older saves: none)
     spellWait: readSpellWait(saved.spellWait), // (older saves: none waiting)
