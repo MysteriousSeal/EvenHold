@@ -86,15 +86,17 @@ export function roadsFrom(roads: readonly Road[], villages: number): Array<Array
   return from;
 }
 
-// The travellers the seed sets out: one or two parties to a road (a pedlar, a pilgrim, or two guards), somewhere along it.
-export function spawnTravellers(seed: number, roads: readonly Road[], spawn: { x: number; z: number }, firstId = 0): Traveller[] {
+// The travellers the seed sets out: one or two parties to a road (a pedlar, a pilgrim, or two guards), somewhere along it;
+// on a road into the cathedral town (`holy`, by index: town/), two or three, most of them pilgrims, walking to it and home.
+export function spawnTravellers(seed: number, roads: readonly Road[], spawn: { x: number; z: number }, firstId = 0, holy: ReadonlySet<number> = new Set()): Traveller[] {
   const out: Traveller[] = [];
   roads.forEach((road, r) => {
     const rng = mulberry32((seed * 7919 + r * 104729) | 0);
-    const parties = rng() < 0.5 ? 1 : 2;
+    const pilgrims = holy.has(r);
+    const parties = (rng() < 0.5 ? 1 : 2) + (pilgrims ? 1 : 0);
     for (let p = 0; p < parties; p++) {
       const roll = rng();
-      const role: TravellerRole = roll < 0.45 ? 'pedlar' : roll < 0.8 ? 'pilgrim' : 'guard';
+      const role: TravellerRole = pilgrims ? (roll < 0.1 ? 'pedlar' : roll < 0.85 ? 'pilgrim' : 'guard') : roll < 0.45 ? 'pedlar' : roll < 0.8 ? 'pilgrim' : 'guard';
       const along = rng() * (road.route.length - 1);
       const way = rng() < 0.5 ? 1 : -1;
       const first = makeTraveller(firstId + out.length, role, r, along, way, roads, seed, spawn, null);
@@ -156,9 +158,10 @@ export class Travellers {
     private readonly groundY: (x: number, z: number) => number,
     slain: (enemy: Enemy) => void, // a foe a guard's slain
     firstId = 0, // the first of their ids (a streamed world's region's block)
+    holy: ReadonlySet<number> = new Set(), // the roads into the cathedral town, by index (pilgrims on them)
   ) {
     this.fights = new TravellerFights(this, roads, hero, groundY, slain);
-    this.list = spawnTravellers(seed, roads, spawn, firstId);
+    this.list = spawnTravellers(seed, roads, spawn, firstId, holy);
     this.from = roadsFrom(roads, villages);
     for (const t of this.list) t.y = groundY(t.x, t.z);
     this.byId = new Map(this.list.map((t) => [t.id, t]));

@@ -311,7 +311,8 @@ export class LiveWorld {
   private travellersOf(index: number, known: Known): Travellers {
     const ids = this.streamed ? index * REGION_IDS : 0;
     const groundY = (x: number, z: number) => this.groundY(x, z);
-    const band = new Travellers(this.streamed ? this.host.seed + index : this.host.seed, known.roads, known.villages.length, spawnOf(this.size), this.host.hero, groundY, (e) => this.host.slay(e), ids);
+    const holy = new Set(known.roads.flatMap((r, i) => (known.villages[r.from]?.town || known.villages[r.to]?.town ? [i] : []))); // (the roads into the cathedral town: pilgrims on them)
+    const band = new Travellers(this.streamed ? this.host.seed + index : this.host.seed, known.roads, known.villages.length, spawnOf(this.size), this.host.hero, groundY, (e) => this.host.slay(e), ids, holy);
     band.stones = () => this.host.chickens?.statues?.() ?? [];
     band.blocked = (x, z) => this.obstacles.isBlocked(x, z, TRAVELLER_HALF);
     return band;

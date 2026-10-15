@@ -1,7 +1,7 @@
 // A word with a traveller on the road (travellers.ts), E by them: a pedlar
 // opens their pack (pedlarShop.ts); a pilgrim tells of the nearest crypt
-// (which way, how far, its name), or a word of the road; a guard,
-// a word about keeping the roads. Each line in turn, never one twice running.
+// (which way, how far, its name), or of the cathedral town (which way, how far: town/townSite.ts), or a word of the
+// road; a guard, a word about keeping the roads. Each line in turn, never one twice running.
 
 import type { Traveller } from './travellers';
 import type { Crypt } from '../crypts/crypts';
@@ -40,7 +40,18 @@ export const PILGRIM_ROAD_LINES = [
   'The dead sleep poorly round here. Mind your step.',
   'Light be with you, friend.',
   "My feet are sore and my heart is light. That's a good day.",
+  "I've a bone of a saint in my pouch. The third one this year. Each the true one.",
+  "They say the bishop's relics weep on feast days. For a fee, they'll weep on yours.",
 ] as const;
+
+// A pilgrim's word on the cathedral town: which way, how far (none: a world without one, a classic one).
+export function townRumour(t: { x: number; z: number }, town: { x: number; z: number } | null): string | null {
+  if (!town) return null;
+  const near = Math.hypot(town.x - t.x, town.z - t.z);
+  if (near < 30) return 'There it is. The cathedral. Kneel, friend, before the relic-mongers see you standing.';
+  const far = near < 120 ? 'a day\'s walk' : near < 400 ? 'many days\' walk' : 'the far end of a long road';
+  return `The cathedral lies to the ${bearing(t, town)}, ${far} from here. Every pilgrim's road ends at its door.`;
+}
 
 // Which way (x, z) lies from (from), in the eight winds.
 export function bearing(from: { x: number; z: number }, to: { x: number; z: number }): string {
@@ -63,10 +74,11 @@ export function cryptRumour(t: { x: number; z: number }, crypts: readonly Crypt[
 }
 
 
-// What a pilgrim or a guard says when spoken to (a pedlar trades instead): a pilgrim, every other time, of the nearest
-// crypt (if any).
-export function travellerSays(t: Traveller, crypts: readonly Crypt[]): string {
+// What a pilgrim or a guard says when spoken to (a pedlar trades instead): a pilgrim, in turn, of the nearest crypt
+// (if any), of the cathedral town (`town`: if the world has one), and a word of the road.
+export function travellerSays(t: Traveller, crypts: readonly Crypt[], town: { x: number; z: number } | null = null): string {
   if (t.role === 'guard') return inTurn(t, GUARD_LINES); // (in turn: npcs/speech.ts)
   const n = nextTurn(t);
-  return (n % 2 === 0 ? cryptRumour(t, crypts) : null) ?? PILGRIM_ROAD_LINES[Math.floor(n / 2) % PILGRIM_ROAD_LINES.length];
+  const told = n % 3 === 0 ? cryptRumour(t, crypts) : n % 3 === 1 ? townRumour(t, town) : null;
+  return told ?? PILGRIM_ROAD_LINES[Math.floor(n / 3) % PILGRIM_ROAD_LINES.length];
 }
