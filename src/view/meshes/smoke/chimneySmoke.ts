@@ -26,6 +26,7 @@ import type { Entrance } from '../../../model/interiors/interiors';
 import { buildInnVoxels } from '../building/innVoxels';
 import { SMITHY_GRID, SMITHY_SMOKE_ORIGIN } from '../building/smithyVoxels';
 import { looks } from '../building/houseMesh';
+import { CottageLights } from '../building/cottageLights';
 import { originOf } from '../building/litBuildings';
 import { weatherNow } from '../common/weatherNow';
 import { puffAt, puffGeometry, type Draft } from './puffs';
@@ -70,6 +71,7 @@ export class ChimneySmoke {
   private witches = new Set<House>();
   private cottages = new Map<House, Entrance>(); // (the empty ones, and the hero's: homestead/cottage.ts)
   private time = 0;
+  private readonly lights: CottageLights; // (the hero's cottage's windows lit, with its smoke: building/cottageLights.ts)
   private readonly matrix = new THREE.Matrix4();
   private readonly position = new THREE.Vector3();
   private readonly scale = new THREE.Vector3();
@@ -86,10 +88,12 @@ export class ChimneySmoke {
     this.mesh.count = 0;
     this.mesh.setColorAt(0, this.color.set(0xffffff)); // (its colours made now, so its shader's the one from the start)
     scene.add(this.mesh);
+    this.lights = new CottageLights(scene, model);
   }
 
   update(dt: number, hero: { x: number; z: number }, minutes: number): void {
     this.time += dt;
+    this.lights.update();
     this.mesh.visible = !this.model.inside;
     if (!this.mesh.visible) return;
     this.near(hero);
@@ -166,6 +170,6 @@ export class ChimneySmoke {
   }
 
   get materials(): THREE.Material[] {
-    return [this.mesh.material as THREE.Material];
+    return [this.mesh.material as THREE.Material, ...this.lights.materials];
   }
 }

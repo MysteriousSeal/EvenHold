@@ -1,5 +1,5 @@
 // A look at the hero's cottage, built with the game's own room view, to capture headless (npx vite, then
-// /tests/preview/cottage.html?state=sale|bare|built&view=game|room|close&x=&z=&zoom=&out=1&empty=1&layout=): for sale (the reeve's
+// /tests/preview/cottage.html?state=sale|bare|built&view=game|room|close&x=&z=&zoom=&out=1&empty=1|owned=1&layout=): for sale (the reeve's
 // notice), bought (bare, its spots chalked), or everything built with every trophy hung; or from outside. A stand-in
 // the hero's height indoors for scale; window.done once drawn.
 import * as THREE from 'three';
@@ -25,7 +25,11 @@ function outside(layout: number) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x6a8a5a);
   const grid = buildHouseVoxels(HOUSE_LAYOUTS[layout], 0, 0);
-  if (q.get('empty')) unlit(grid); // (a cottage for sale's: dark)
+  if (q.get('empty') || q.get('owned')) unlit(grid); // (a cottage for sale's: dark)
+  if (q.get('owned')) { // (the hero's: its own lit windows over the dark ones, as building/cottageLights.ts lays them)
+    const lit = new THREE.Mesh(meshLit(buildHouseVoxels(HOUSE_LAYOUTS[layout], 0, 0), true), new THREE.MeshStandardMaterial({ vertexColors: true, emissive: 0xffb050, emissiveIntensity: 0.6, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+    scene.add(lit);
+  }
   for (const glowing of [false, true]) scene.add(new THREE.Mesh(meshLit(grid, glowing), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, ...(glowing && { emissive: 0xffb050, emissiveIntensity: 0.6 }) })));
   scene.add(new THREE.HemisphereLight(0xffffff, 0x445533, 1.6));
   const sun = new THREE.DirectionalLight(0xfff0d0, 1.6);
