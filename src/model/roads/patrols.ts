@@ -87,6 +87,11 @@ export class Patrols {
     return (this.model.story as { saint?: Saint }).saint ?? null;
   }
 
+  // How much heard of the hero a party stops them for: a little, or (a hero who handed a witch in) wanted, a nod short of it.
+  get heeded(): number {
+    return this.saint?.witch === 'handed' ? WANTED : SUSPECT;
+  }
+
   // Whether arc 2's begun: its first act (the story's), else the carter's long road walked (story/quests/firstQuestsWatch.ts).
   get arcTwo(): boolean {
     const saint = this.saint;
@@ -202,7 +207,7 @@ export class Patrols {
     if (!party.coming) {
       const near = !far(leader, hero, SPOT);
       const heard = model.heat.known(leader);
-      if (near && !this.scattered && !model.inside && !model.outdoors.seated && model.minutes - party.asked >= ASKED_AGAIN && heard >= (this.saint?.witch === 'handed' ? WANTED : SUSPECT)) { // (a hero who handed a witch in: a nod for a little heard of)
+      if (near && !this.scattered && !model.inside && !model.outdoors.seated && model.minutes - party.asked >= ASKED_AGAIN && heard >= this.heeded) {
         party.coming = true;
         for (const t of party.members) t.off = { x: t.x, z: t.z };
       }

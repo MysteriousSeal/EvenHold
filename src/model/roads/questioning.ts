@@ -28,11 +28,11 @@ const odds = (p: number): string => (p >= 0.8 ? 'likely' : p >= 0.55 ? 'a fair c
 
 const NODS = ['Bless you, traveller. Keep from the old craft.', 'Saint Aldous keeps the road. Mostly.', "Captain Grey's compliments. Move along.", 'Seen a witch? A black cat? No? Good.'];
 
-// What a word with `t` comes to: a party's questions, or (heard nothing, or none of a party) a nod in passing (null).
+// What a word with `t` comes to: a party's questions, or (heard too little of, patrols.ts heeded; or none of a party) a nod in passing (null).
 export function questioning(model: GameModel, t: Traveller): Talk | null {
   const party = [...model.roads.patrols.parties.values()].find((p) => p.members.includes(t)) ?? null;
   const heat = model.heat.known(t);
-  if (!party || heat === 0) {
+  if (!party || heat < model.roads.patrols.heeded) {
     say(t, NODS[Math.floor(model.minutes / 7) % NODS.length]);
     if (party) model.roads.patrols.letGo(party);
     return null;

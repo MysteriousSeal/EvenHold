@@ -354,6 +354,15 @@ describe('the story\'s saint (arc 2, as the story keeps it)', () => {
     model.heat.raise(party.members[0], 1);
     expect(stopped(model).lines[0]).toMatch(/Hold there/);
   });
+
+  it('a witch handed in: a word asked of them (E), a nod too for a little heard of; their questions once they want the hero', () => {
+    const { model, party } = withParty();
+    saint(model, { witch: 'handed' });
+    near(model, party, 2, 2);
+    expect(model.roads.talkTo(party.members[0])).toBeNull();
+    model.heat.raise(party.members[0], 1);
+    expect(model.roads.talkTo(party.members[0])!.lines[0]).toMatch(/Hold there/);
+  });
 });
 
 describe('the stocks', () => {
