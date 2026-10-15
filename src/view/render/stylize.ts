@@ -56,9 +56,10 @@ const WEATHER_FRAGMENT = /* glsl */ `
 {
   float facingUp = smoothstep(0.55, 0.9, dot(normal, uViewUp));
   diffuseColor.rgb *= 1.0 - uWet * 0.18 * (0.4 + 0.6 * facingUp);
-  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.96, 0.925, 0.9), facingUp * uSnow); // (0xf4ece6)
+  vec3 snowWhite = mix(vec3(0.91, 0.925, 0.94), vec3(0.957, 0.949, 0.933), smoothstep(0.35, 0.8, uSnow)); // (frost 0xe8ecf0, lying snow 0xf4f2ee)
+  diffuseColor.rgb = mix(diffuseColor.rgb, snowWhite, facingUp * min(1.0, uSnow * 1.15));
   float nightGrey = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
-  diffuseColor.rgb = mix(diffuseColor.rgb, nightGrey * vec3(0.78, 0.92, 1.3), uNight * 0.6);
+  diffuseColor.rgb = mix(diffuseColor.rgb, nightGrey * vec3(0.78, 0.92, 1.3), uNight * 0.45);
 }`;
 const WEATHER_UNIFORMS = 'uniform float uSnow;\nuniform float uWet;\nuniform float uNight;\nuniform vec3 uViewUp;';
 

@@ -45,7 +45,7 @@ export const sky: SkyNow = {
   wind: 0.3,
   gust: 0,
   windX: 0.857,
-  windZ: 0.514,
+  windZ: -0.514,
   light: 1,
   night: 0,
   golden: 0,
@@ -53,7 +53,7 @@ export const sky: SkyNow = {
 };
 
 export const skyUniforms = {
-  uWindDir: { value: new THREE.Vector2(0.857, 0.514) }, // which way it blows (world x, z), a unit vector
+  uWindDir: { value: new THREE.Vector2(0.857, -0.514) }, // which way it blows (world x, z), a unit vector
   uWindGust: { value: 0 }, // 0..1, a gust now
   uSeason: { value: new THREE.Vector4(1, 0, 0, 0) }, // how much it's each season (spring, summer, autumn, winter), summing to 1: blended over a season's last day
   uDaylight: { value: 1 }, // 0..1, the day's light

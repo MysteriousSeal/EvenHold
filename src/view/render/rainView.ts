@@ -86,7 +86,7 @@ function fall(count: number, perDrop: number, look: { color: number; speed: numb
 }
 
 export class Precipitation {
-  private readonly rain = fall(RAIN_DROPS, 2, { color: 0xc6d6ee, speed: 15, streak: 0.55, sway: 0, pointSize: 1 }, (g, m) => new THREE.LineSegments(g, m));
+  private readonly rain = fall(RAIN_DROPS, 2, { color: 0xc8d4e0, speed: 15, streak: 0.28, sway: 0, pointSize: 1 }, (g, m) => new THREE.LineSegments(g, m));
   private readonly snow = fall(SNOW_FLAKES, 1, { color: 0xf4f8ff, speed: 1.4, streak: 0, sway: 0.35, pointSize: 3 }, (g, m) => new THREE.Points(g, m));
 
   constructor(scene: THREE.Scene, pixelRatio: number) {
@@ -96,7 +96,7 @@ export class Precipitation {
 
   // Each frame outdoors: how hard it rains and snows (0..1), the wind (its way and strength), round where.
   update(rain: number, snow: number, wind: { x: number; z: number; strength: number }, focus: THREE.Vector3, elapsed: number, light: number): void {
-    this.set(this.rain, rain, { x: wind.x * wind.strength * 0.25, z: wind.z * wind.strength * 0.25 }, focus, elapsed, 0.3 + 0.35 * light);
+    this.set(this.rain, rain, { x: wind.x * (0.12 + wind.strength * 0.5), z: wind.z * (0.12 + wind.strength * 0.5) }, focus, elapsed, 0.22 + 0.13 * light);
     this.set(this.snow, snow, { x: wind.x * wind.strength * 0.5, z: wind.z * wind.strength * 0.5 }, focus, elapsed, 0.55 + 0.35 * light);
   }
 
@@ -109,6 +109,6 @@ export class Precipitation {
     u.uTime.value = elapsed;
     u.uFocus.value.copy(focus);
     u.uWind.value.set(slant.x, slant.z);
-    u.uOpacity.value = opacity * Math.min(1, 0.4 + amount);
+    u.uOpacity.value = opacity * Math.min(1, amount) ** 0.7;
   }
 }

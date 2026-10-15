@@ -13,7 +13,7 @@ import { dampAt, skyAt, weatherAt, type SkyForcing } from '../../model/world/wea
 import { SEASONS, type Season } from '../../model/clock';
 import type { GameModel } from '../../model/GameModel';
 import { FOG_FAR, FOG_NEAR, SHAFT_COLOR, SUN_DIRECTION } from '../constants';
-import { setSeasonTint, setWindStrength } from '../meshes/common/nature';
+import { setSeasonTint, setSnow, setWindDirection, setWindStrength } from '../meshes/common/nature';
 import type { Lights } from './lighting';
 import type { PostProcessing } from './postprocessing';
 import { Precipitation } from './rainView';
@@ -32,13 +32,18 @@ interface Light {
 }
 const DAY: Light = { sky: 0xffe2c4, ground: 0x8a6442, fill: 0.95, sun: 0xffeccc, strength: 1.0, fog: 0xf2c9a8 };
 const DAWN: Light = { sky: 0xf2c4c8, ground: 0x7d5060, fill: 0.9, sun: 0xffb98a, strength: 1.0, fog: 0xe8c8d0 };
-const GOLDEN: Light = { sky: 0xffc89a, ground: 0x8a4e2c, fill: 0.9, sun: 0xffa860, strength: 1.3, fog: 0xf0a878 };
-const DUSK: Light = { sky: 0x8a7aa8, ground: 0x4e3a52, fill: 0.95, sun: 0xd06a5a, strength: 0.55, fog: 0x7a6a98 };
+// (The golden hour's glow a cool lavender, against its orange sun: warm lit faces, cool shaded ones.)
+const GOLDEN: Light = { sky: 0xa898c4, ground: 0x6a4a50, fill: 0.85, sun: 0xffa860, strength: 1.6, fog: 0xf0a878 };
+const DUSK: Light = { sky: 0x8a7aa8, ground: 0x4e3a52, fill: 0.95, sun: 0xd06a5a, strength: 0.9, fog: 0x7a6a98 };
 // (The night's sky glow lighter than the art's 0x3a4a78, the same blue: the land kept at a third of its day's light.)
-const NIGHT: Light = { sky: 0x7088c8, ground: 0x2c3448, fill: 0.68, sun: 0x8aa0d8, strength: 0.4, fog: 0x2a3458 };
+const NIGHT: Light = { sky: 0x7088c8, ground: 0x2c3448, fill: 0.56, sun: 0x8aa0d8, strength: 0.65, fog: 0x2a3458 }; // (the moon on the tops: canopy and ground lighter than the sides)
 const OVERCAST_SKY = 0xc4c8cc; // cloud greys the sky's glow (darker at night: by the light's own brightness)
 const FOG_GREY = 0xd6dad8; // the colour of a thick fog by day
 const WINTER_AIR = 0xdfe6ee; // the winter's colder haze
+const WINTER_SUN = 0xfff4e8; // a winter's pale sun, and its paler sky
+const WINTER_SKY = 0xeef0f4;
+const AUTUMN_SUN = 0xffd8a8; // an autumn's warmer sun, low all day, and its amber haze
+const AUTUMN_AIR = 0xf0c080;
 
 const MOON_DIRECTION = new THREE.Vector3(8, 30, 18).normalize();
 const SUN_TURN = 1.2; // radians the sun swings round from rising to setting
@@ -49,7 +54,7 @@ const SEASON_LOOKS: Record<Season, { tint: [number, number, number]; frost: numb
   spring: { tint: [0.98, 1.07, 0.94], frost: 0 },
   summer: { tint: [1, 1, 1], frost: 0 },
   autumn: { tint: [1.25, 0.97, 0.72], frost: 0 },
-  winter: { tint: [1.05, 1.0, 1.08], frost: 0.22 },
+  winter: { tint: [1.05, 1.0, 1.08], frost: 0.35 }, // (frost on the tops all winter, unmistakable)
 };
 const SEASON_TURN = 6 / 7; // how far through a season it starts turning to the next (its last day)
 
@@ -88,25 +93,33 @@ export class SkyView {
     const fog = Math.max(weather.fog, damp);
     const wind = weather.wind * (0.8 + weather.gust * 1.0);
     Object.assign(sky, { season, year, weather: weather.kind, rain: weather.rain, snow: weather.snow, fog, cloud: weather.cloud, wind, gust: weather.gust, windX: weather.windX, windZ: weather.windZ, light: daylight.light, night: daylight.night, golden: daylight.golden, part: daylight.part });
+    this.seasonLooks(year, model.seed, model.minutes);
+    setSnow(skyUniforms.uSnow.value);
 
-    // The hour's light: the day's, warmed low (a dawn's rose, an evening's gold), past the sunset a dusk's violet, then night.
-    const twilight = daylight.night * (1 - daylight.night) * 4; // (most just under the horizon)
+    // The hour's light: the day's, warmed low (a dawn's rose, an evening's gold), past the sunset a dusk's rose-red sun
+    // on the tops against violet shade, and only once the sun's well down the night's blue.
+    const dusk = smooth(0, 0.45, daylight.night) * (1 - smooth(0.5, 1, daylight.night));
+    const night = smooth(0.5, 1, daylight.night);
     const light = this.mixLight(DAY, daylight.rising ? DAWN : GOLDEN, daylight.golden);
-    this.mixInto(light, daylight.rising ? DAWN : DUSK, twilight * 0.85);
-    this.mixInto(light, NIGHT, daylight.night);
-    // Cloud: the sky's glow greyed (some 15% of the colour gone), the sun dimmed, everything a little darker.
+    this.mixInto(light, daylight.rising ? DAWN : DUSK, dusk);
+    this.mixInto(light, NIGHT, night);
+    // The season's: a pale sun and sky in winter, a warmer one in autumn (by day).
+    const [, , autumn, winter] = skyUniforms.uSeason.value.toArray();
+    light.sun = this.from.setHex(light.sun).lerp(this.to.setHex(WINTER_SUN), winter * 0.7 * (1 - night)).lerp(this.to.setHex(AUTUMN_SUN), autumn * 0.5 * (1 - night) * (1 - daylight.golden)).getHex();
+    light.sky = this.from.setHex(light.sky).lerp(this.to.setHex(WINTER_SKY), winter * 0.35 * (1 - night)).getHex();
+    // Cloud: the sky's glow greyed, the sun dimmed to some 40%, the light flatter (more of it the sky's).
     const { sky: hemi, sun } = this.lights;
-    hemi.color.copy(this.from.setHex(light.sky).lerp(this.to.setHex(OVERCAST_SKY).multiplyScalar(0.35 + 0.65 * daylight.light), weather.cloud * 0.6));
+    hemi.color.copy(this.from.setHex(light.sky).lerp(this.to.setHex(OVERCAST_SKY).multiplyScalar(0.35 + 0.65 * daylight.light), weather.cloud * 0.75));
     hemi.groundColor.setHex(light.ground);
-    hemi.intensity = light.fill * (1 + 0.12 * weather.cloud);
+    hemi.intensity = light.fill * (1 + 0.18 * weather.cloud);
     sun.color.setHex(light.sun);
-    sun.intensity = light.strength * (1 - 0.5 * weather.cloud) * (1 - 0.4 * fog);
+    sun.intensity = light.strength * (1 - 0.6 * weather.cloud) * (1 - 0.4 * fog);
 
     // The sun round the sky from rising to setting, high at noon, low (its bands long) at dawn and dusk; the moon's
     // own way at night.
     const turn = Math.atan2(SUN_DIRECTION.z, SUN_DIRECTION.x) + (daylight.arc - 0.5) * SUN_TURN;
-    const rise = 0.45 + (Math.asin(SUN_DIRECTION.y) - 0.45) * smooth(0, 0.8, daylight.sun);
-    this.sunDirection.set(Math.cos(turn) * Math.cos(rise), Math.sin(rise), Math.sin(turn) * Math.cos(rise)).lerp(MOON_DIRECTION, daylight.night).normalize();
+    const rise = 0.45 + (Math.asin(SUN_DIRECTION.y) - 0.45) * smooth(0, 0.8, daylight.sun) * (1 - 0.3 * (autumn + winter)); // (lower in autumn and winter)
+    this.sunDirection.set(Math.cos(turn) * Math.cos(rise), Math.sin(rise), Math.sin(turn) * Math.cos(rise)).lerp(MOON_DIRECTION, night).normalize();
     sun.position.copy(this.sunDirection).multiplyScalar(30);
 
     // Fog: the hour's horizon, greyed by cloud, paled by a thick fog, colder in winter; nearer the thicker it is
@@ -115,12 +128,14 @@ export class SkyView {
     const brightness = 0.25 + 0.75 * daylight.light;
     fogColor.lerp(this.to.setHex(OVERCAST_SKY).multiplyScalar(brightness), weather.cloud * 0.5);
     fogColor.lerp(this.to.setHex(FOG_GREY).multiplyScalar(brightness), fog * 0.6);
-    fogColor.lerp(this.to.setHex(WINTER_AIR).multiplyScalar(brightness), (season === 'winter' ? 0.3 : 0) * (1 - daylight.night));
+    fogColor.lerp(this.to.setHex(WINTER_AIR).multiplyScalar(brightness), winter * 0.3 * (1 - night));
+    fogColor.lerp(this.to.setHex(AUTUMN_AIR).multiplyScalar(brightness), autumn * 0.2 * (1 - night));
+    // (Thinner in the golden hour: the far land in its low light, not veiled.)
     const sceneFog = this.scene.fog as THREE.Fog | null;
     if (sceneFog) {
       sceneFog.color.copy(fogColor);
-      sceneFog.near = FOG_NEAR - 3 * fog;
-      sceneFog.far = FOG_FAR - 8 * fog;
+      sceneFog.near = FOG_NEAR - 3 * fog + 4 * daylight.golden;
+      sceneFog.far = FOG_FAR - 8 * fog + 8 * daylight.golden;
     }
     if (this.scene.background instanceof THREE.Color) this.scene.background.copy(fogColor);
     skyUniforms.uMist.value = fog;
@@ -130,15 +145,15 @@ export class SkyView {
     this.shaftColor.setHex(SHAFT_COLOR).lerp(this.to.setHex(light.sun), daylight.golden * 0.7);
     post?.setShafts(SHAFTS * low * (1 - ruin) * (1 - weather.cloud) * (1 - fog), this.shaftColor);
     post?.setSun(this.sunDirection);
-    post?.setBloom(1 + 0.6 * daylight.night);
+    post?.setBloom(1 + 0.6 * night);
 
     // The wind and the season, for the plants (flora's), the smoke and the creatures (sky.ts).
     setWindStrength(Math.min(2.5, 0.6 + wind * 1.1));
+    setWindDirection(weather.windX, weather.windZ);
     skyUniforms.uWindDir.value.set(weather.windX, weather.windZ);
     skyUniforms.uWindGust.value = weather.gust;
-    skyUniforms.uNight.value = daylight.night;
+    skyUniforms.uNight.value = night;
     skyUniforms.uDaylight.value = daylight.light;
-    this.seasonLooks(year, model.seed, model.minutes);
     viewUp.value.set(0, 1, 0).transformDirection(this.camera.matrixWorldInverse);
 
     this.focus.set(hero.x, model.inside ? hero.y : model.getGroundY(hero.x, hero.z), hero.z);
