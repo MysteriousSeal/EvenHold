@@ -9,7 +9,7 @@ import type { GameModel } from '../../model/GameModel';
 import { nameOf } from '../../model/hero/bag';
 import { isGear, levelOf, rarityOf, weaponTypeOf, RARITY_NAMES } from '../../model/human/items/gear';
 import { LOOT } from '../../model/loot/loot';
-import { MAKE_NAMES, TOO_HARD, salvageOf, teachChance, type Salvaged, type Salvageable, type SalvageOutcome } from '../../model/skills/salvage';
+import { MAKE_NAMES, TOO_HARD, teachChance, type Salvaged, type Salvageable, type SalvageOutcome } from '../../model/skills/salvage';
 import { betterThanWorn } from '../../model/human/items/gear';
 import { SKILLS, difficulty, skillOf } from '../../model/skills/skills';
 import { el, line } from '../../view/ui/dom';
@@ -28,12 +28,12 @@ const SAID: Record<SalvageOutcome, string> = {
 const COLUMNS = 8; // cases across, as the bag's
 
 // What breaking a piece down would teach a hand at `level`, in words: its difficulty's colour; nothing, too hard
-// (past it by more than TOO_HARD) or grey; green at most, one as a recipe makes it.
+// (past it by more than TOO_HARD) or grey; green at most, one the hero made.
 export function teachesWords({ needs, made }: Salvaged, level: number): string {
   const chance = teachChance({ needs, made } as Salvaged, level);
   if (needs > level + TOO_HARD) return 'too hard to learn from yet';
   if (chance === 0) return 'teaches nothing more';
-  return `teaches (${chance < difficulty(needs, level).chance ? 'green: one you could make' : difficulty(needs, level).name})`;
+  return `teaches (${chance < difficulty(needs, level).chance ? 'green: your own make' : difficulty(needs, level).name})`;
 }
 
 // What `gives` is, in words: "2 Iron scrap, 1 Tempered ingot".
@@ -58,7 +58,7 @@ export function createSalvagePanel(model: GameModel): { open(): void; update(): 
   };
   const slotOf = (key: Salvageable): MenuSlot => {
     const level = skillOf(model.hero, 'salvaging').level;
-    const salvaged = salvageOf(key, level);
+    const salvaged = model.salvage.salvaged(key); // (at their skill; their own make, as such)
     const { needs, gives } = salvaged;
     const slot: MenuSlot = {
       key,
@@ -82,7 +82,7 @@ export function createSalvagePanel(model: GameModel): { open(): void; update(): 
     if (saidFor !== key) said = '';
     if (confirming && confirming.key !== key) confirming = null;
     const level = skillOf(model.hero, 'salvaging').level;
-    const salvaged = salvageOf(key, level);
+    const salvaged = model.salvage.salvaged(key); // (at their skill; their own make, as such)
     const { make, needs, gives, finerAt } = salvaged;
     const breaking = model.salvage.breaking?.key === key;
     const { icon, facts, fact } = detailParts(bagIcon(key)(96), 'menu-detail-facts quest-facts');
