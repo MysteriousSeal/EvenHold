@@ -80,6 +80,7 @@ const ENTRIES = {
   toadstoolStem: 0xe0d8c8,
   bottle: 0x3e8a4a, // the green bottle hung for its sign (darker than the brew)
   brew: 0x8aff6a, // the brew in its cauldron outside (bright, not lit: the glow's one warm colour would turn it yellow)
+  brewDeep: 0x3e9a3a,
 } as const;
 
 type Entry = keyof typeof ENTRIES;
