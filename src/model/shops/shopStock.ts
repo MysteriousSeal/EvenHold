@@ -56,7 +56,12 @@ const GOODS: ReadonlySet<string> = new Set(['woodenBowl', 'carvedTankard', 'varn
 export const WANTS = { goods: 5, gear: 2 }; // of each kind
 // What a woodworker makes of gear (skills/woodworking.ts: staves, clubs, shields), one kind among them all: a shop has
 // only so much use for wooden arms, whatever their shape.
-export const WOODWORKS: ReadonlySet<ItemId> = new Set(Object.values(RECIPES).flatMap((r) => (typeof r.makes === 'string' ? [] : [r.makes.item])));
+// (Made on first asking, not as this loads: woodworking.ts → salvage.ts → smithShop.ts → here is a loop, and the
+// recipes may not be there yet.)
+let woodworks: ReadonlySet<ItemId> | null = null;
+export const WOODWORKS: Pick<ReadonlySet<ItemId>, 'has'> = {
+  has: (id) => (woodworks ??= new Set(Object.values(RECIPES).flatMap((r) => (typeof r.makes === 'string' ? [] : [r.makes.item])))).has(id),
+};
 const kindOf = (id: string): string | null => (isGear(id) ? (WOODWORKS.has(baseOf(id)) ? 'woodworks' : baseOf(id)) : isIngredient(id) || isMeal(id) || GOODS.has(id) ? id : null);
 
 // Whether the shop would take another `id` (a trade's goods: while it's bought fewer than it wants of its kind).

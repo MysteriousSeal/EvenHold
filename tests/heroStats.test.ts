@@ -110,7 +110,7 @@ describe('enemies hurt the hero', () => {
     expect(safe.hero.hp).toBe(maxHpAt(1));
   });
 
-  it('out of health, the hero loses a tenth of their coins (a hundred at most) and wakes at spawn (before any inn), healed but Weary a while', () => {
+  it('out of health, the hero drops half their coins in a purse where they fell and wakes at spawn (before any inn), healed but Weary a while', () => {
     eachSeed((model) => {
       alone(model, nearest(model, 'wolf'));
       const spawn = spawnOf(model.size);
@@ -118,7 +118,7 @@ describe('enemies hurt the hero', () => {
       model.hero.hp = ENEMY_STATS.wolf.damage; // one bite left
       for (let t = 0; t < 3 && model.hero.hp !== maxHpAt(1); t += FRAME) model.update(0, 0, FRAME);
       expect(model.hero.hp).toBe(maxHpAt(1));
-      expect(model.hero.money).toBe(900);
+      expect(model.hero.money + (model.purse?.amount ?? 0)).toBe(1000); // (half dropped where they fell, near spawn here: maybe walked over again already; purse.test.ts)
       expect(model.hero.blessings?.find((b) => b.kind === 'weary')?.left).toBe(WEARY_TIME);
       expect(Math.hypot(model.hero.x - spawn.x, model.hero.z - spawn.z)).toBeLessThan(1);
     });

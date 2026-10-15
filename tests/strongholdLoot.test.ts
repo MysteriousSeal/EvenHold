@@ -135,7 +135,8 @@ describe("a stronghold's named pieces", () => {
         expect(hero.bag[piece]).toBe(2);
       }
       // At the bench, with the skill it asks (its finer things too): broken down.
-      const { needs, gives } = salvageOf(piece);
+      const { needs } = salvageOf(piece);
+      const { gives } = salvageOf(piece, needs); // (what it leaves at the skill it asks: more, the more skilled)
       expect(gives[0][0]).toBe(scrapOf(makeOf(NAMED[id].item), levelOf(piece)));
       expect(model.salvage.candidates).toContain(piece);
       hero.skills = { ...hero.skills, salvaging: { level: needs, toward: 0 } as never };
