@@ -27,6 +27,7 @@ import {
   RED_LIGHT,
   FUR,
   FUR_LIGHT,
+  FUR_DARK,
   CLAY,
   CLAY_DARK,
   GLASS_GREEN,
@@ -139,12 +140,13 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number, i
   },
   // A chair, its back toward v = 0 and its seat facing +v (turned toward its
   // table in paintFurniture), pulled up to the front of its tile so it sits
-  // right at the table's edge.
-  chair: (box) => {
+  // right at the table's edge. An inn's: its cushion worn leather (red's kept for its hearth).
+  chair: (box, _len, _dep, item) => {
     const f = 6; // pulled forward, toward the table
     for (const [u, v] of [[7, 7 + f], [16, 7 + f], [7, 16 + f], [16, 16 + f]]) box(u, 1, v, u + 1, 6, v + 1, WOOD_DARK); // legs
     box(6, 7, 6 + f, 17, 8, 17 + f, WOOD); // seat
-    box(7, 9, 8 + f, 16, 9, 16 + f, (u, _y, v) => (v === 16 + f ? RED_LIGHT : u === 7 || u === 16 || v === 8 + f ? RED_DARK : RED)); // a red cushion
+    const [dark, mid, light] = item.leather ? [FUR_DARK, FUR, FUR_LIGHT] : [RED_DARK, RED, RED_LIGHT];
+    box(7, 9, 8 + f, 16, 9, 16 + f, (u, _y, v) => (v === 16 + f ? light : u === 7 || u === 16 || v === 8 + f ? dark : mid)); // a cushion
     for (const u of [6, 16]) box(u, 9, 6 + f, u + 1, 20, 7 + f, WOOD_DARK); // back posts
     box(6, 14, 6 + f, 17, 15, 7 + f, WOOD); // back rails
     box(6, 19, 6 + f, 17, 20, 7 + f, WOOD);

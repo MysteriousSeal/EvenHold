@@ -94,13 +94,13 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
     box(22, 1, 49, 27, 1, 49, BONE); // teeth, bared
   },
   // A tall stool at the bar, a footrest round its legs, pulled up to the
-  // front of its tile so it sits right at the counter.
+  // front of its tile so it sits right at the counter; its cushion worn leather.
   barStool: (box) => {
     const f = 7; // toward the bar
     for (const [u, v] of [[8, 8 + f], [15, 8 + f], [8, 15 + f], [15, 15 + f]]) box(u, 1, v, u + 1, 11, v + 1, WOOD_DARK);
     box(8, 5, 8 + f, 16, 5, 16 + f, WOOD); // footrest
     box(7, 12, 7 + f, 17, 13, 17 + f, (_u, y) => (y === 12 ? WOOD_DARK : WOOD)); // seat
-    box(8, 14, 9 + f, 16, 14, 16 + f, (u, _y, v) => (v === 16 + f ? RED_LIGHT : u === 8 || u === 16 ? RED_DARK : RED)); // cushion
+    box(8, 14, 9 + f, 16, 14, 16 + f, (u, _y, v) => (v === 16 + f ? FUR_LIGHT : u === 8 || u === 16 ? FUR_DARK : FUR)); // cushion
   },
   // Shelves of bottles behind the bar: a dark back panel in a framed case
   // under a crown moulding, three lipped shelves stocked with tall bottles
