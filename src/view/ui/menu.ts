@@ -14,6 +14,7 @@ import { dragSlot } from './slotDrag';
 import { type DollSlot, type Menu, type MenuLine, type MenuOptions, type MenuSlot, type MenuSlots } from './menuTypes';
 import { el } from './dom';
 import { anyMenuOpen, openMenus, overWindows, raise, sink, stack } from './menuStack';
+import { uiCue } from '../audio/uiCue';
 import { placeTip as placeTipBeside, slotFace } from './menuSlot';
 export { anyMenuOpen, trackMenu } from './menuStack';
 export type { DollSlot, LineTone, Menu, MenuAction, MenuIcon, MenuLine, MenuOptions, MenuSlot, MenuSlots, MenuTab } from './menuTypes';
@@ -302,6 +303,7 @@ export function createMenu(options: MenuOptions): Menu {
       return !backdrop.hidden;
     },
     open(tab = tabIndex) {
+      if (backdrop.hidden) uiCue('open');
       if (!openMenus.includes(api)) openMenus.push(api);
       backdrop.hidden = false;
       raise(backdrop); // (opened: on top)
@@ -312,6 +314,7 @@ export function createMenu(options: MenuOptions): Menu {
     close() {
       const at = openMenus.indexOf(api);
       if (at >= 0) openMenus.splice(at, 1);
+      if (!backdrop.hidden) uiCue('close');
       backdrop.hidden = true;
       sink(backdrop);
       hideTip();
