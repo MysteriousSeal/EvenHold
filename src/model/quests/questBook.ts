@@ -28,6 +28,7 @@ export const REINFORCE_IN = 5; // seconds after one's slain before the next come
 export const REINFORCE_GENTLY = 8; // and on a board near the start (quests.ts GENTLE): a breath more for a fresh hero
 const FROM_AFAR: [number, number] = [5, 8]; // tiles off the spot it comes in from (out of sight, walking in), not sprung on the hero
 export const FIRST_MOB_ID = 1_000_000; // marked foes' ids, clear of the world's own
+const STREAMED_QUEST_ID = 2 ** 46; // a streamed world's (its slots without end in a long sitting): past a classic world's (1e13 at most) and every dungeon's, short of the bounties'
 
 export interface TakenQuest {
   quest: Quest;
@@ -286,7 +287,7 @@ export class QuestBook {
     // Its foe's id (its spot comes from it too): a classic world's from its board and number; a streamed world's from the
     // quest's own block, given as it's first gathered for (its boards' numbers too big to count from).
     const slot = this.host.streamed ? (this.slots.get(quest.key) ?? this.slots.set(quest.key, this.slots.size).get(quest.key)!) : board * 10_000 + n;
-    const id = FIRST_MOB_ID + slot * 10_000 + count;
+    const id = (this.host.streamed ? STREAMED_QUEST_ID : FIRST_MOB_ID) + slot * 10_000 + count;
     const salt = this.host.seed % 1_000_003;
     let [x, z] = [quest.x, quest.z];
     for (let t = 0; t < 10; t++) {
