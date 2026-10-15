@@ -24,6 +24,9 @@ export const dungeonAt = (entrance: Entrance): DungeonPlace | null => (goesUnder
 export const dungeonRoom = (seed: number, entrance: Entrance) => kindOf(entrance).room(seed, entrance);
 export const dungeonBlocks = (seed: number, entrance: Entrance) => kindOf(entrance).blocks(seed, entrance);
 
+// What walls the hero in down there: its rock and what stands solid, and its boss's chest once it's there (its `run`'s).
+export const dungeonWalls = (blocks: (x: number, z: number, r: number) => boolean, run: () => DungeonRun | null | undefined) => (x: number, z: number, r: number): boolean => blocks(x, z, r) || !!run()?.chestBlocks(x, z, r);
+
 // Its foes, run while the hero's down there (`slain`: its record of the cleared, the save's).
 export const dungeonRun = (seed: number, entrance: Entrance, slain: Set<number>, hero: Hero, hooks: DungeonHooks): DungeonRun => kindOf(entrance).run(seed, entrance, slain, hero, hooks);
 

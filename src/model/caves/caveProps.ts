@@ -106,13 +106,15 @@ function unsealed(plan: CavePlan, props: CaveProp[]): CaveProp[] {
 }
 
 // Where the nest's crack to the daylight is (its way out, opened once the brood mother's slain): the rock tile at
-// the nest's far side (toward -z, away from the mouth), and the floor before it, where the hero stands for it.
-export function caveExit(plan: CavePlan): { rock: { x: number; z: number }; spot: { x: number; z: number } } {
+// the nest's far side (toward -z, away from the mouth), and the floor before it, where the hero stands for it: open
+// floor (no egg sac or crystal on it) reached from the way in.
+export function caveExit(plan: CavePlan, props: readonly CaveProp[] = []): { rock: { x: number; z: number }; spot: { x: number; z: number } } {
   const nest = plan.hollows.find((h) => h.kind === 'nest')!;
+  const reached = reachedFrom(plan, solidTiles(props));
   let best: { x: number; z: number } | null = null;
   for (let x = Math.floor(nest.x - nest.r - 1); x <= Math.ceil(nest.x + nest.r + 1); x++) {
     for (let z = Math.floor(nest.z - nest.r - 1); z <= Math.ceil(nest.z + nest.r + 1); z++) {
-      if (!isFloor(plan, x, z) || isFloor(plan, x, z - 1)) continue; // (floor with rock just behind it)
+      if (!reached.has(cellKey(x, z)) || isFloor(plan, x, z - 1)) continue; // (open floor with rock just behind it)
       if (!best || z < best.z || (z === best.z && Math.abs(x - nest.x) < Math.abs(best.x - nest.x))) best = { x, z };
     }
   }

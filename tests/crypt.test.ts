@@ -147,6 +147,21 @@ describe('crypts', () => {
     expect(loaded.inside?.walls).toBeDefined();
   });
 
+  it('keeps what lies out in the world through a save made down there, apart from what lies on its floor', () => {
+    const { model, crypt } = crypts[0];
+    model.teleport(crypt.entrance.x, crypt.entrance.z);
+    model.dropLoot('bread', crypt.entrance.x + 1, crypt.entrance.z);
+    model.dropCoins(7, crypt.entrance.x + 1, crypt.entrance.z);
+    const [loot, coins] = [model.loot.length, model.coins.length];
+    model.useDoor();
+    model.dropLoot('bread', model.hero.x, model.hero.z - 1);
+    const loaded = new GameModel(model.seed, MID);
+    restore(loaded, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(loaded.inside?.entrance.type).toBe('crypt');
+    expect([loaded.loot.length, loaded.coins.length]).toEqual([loot, coins]);
+    expect(loaded.groundHere.loot.map((l) => l.item)).toEqual(model.groundHere.loot.map((l) => l.item));
+  });
+
   it('is drawn: its floor, rock, tombs and lights built into a scene, and freed again', () => {
     const { model, crypt } = crypts[0] as { model: GameModel; crypt: Crypt };
     const built = buildCryptScene(cryptInside(model.seed, crypt.entrance));

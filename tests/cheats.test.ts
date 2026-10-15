@@ -91,6 +91,24 @@ describe('more dev cheats', () => {
     expect(model.enemies.filter((e) => e.state !== 'dead' && Math.hypot(e.x - model.hero.x, e.z - model.hero.z) <= 15)).toEqual([]);
   });
 
+  it('slays foes nearby for good: the world\'s kept slain, a dungeon\'s counted as cleared', async () => {
+    const { slayNearby } = await import('../src/model/cheats');
+    const model = fresh();
+    const slain = slayNearby(model, 15);
+    expect(model.slain.size).toBe(slain);
+    const crypt = model.crypts[0];
+    model.teleport(crypt.entrance.x, crypt.entrance.z);
+    model.useDoor();
+    const guard = model.foes[0];
+    Object.assign(guard, { x: model.hero.x, z: model.hero.z - 1 });
+    expect(slayNearby(model, 3)).toBeGreaterThan(0);
+    expect(model.clearedShare(crypt.entrance)).toBeGreaterThan(0);
+    model.useDoor();
+    model.teleport(crypt.entrance.x, crypt.entrance.z);
+    model.useDoor();
+    expect(model.foes.map((f) => f.id)).not.toContain(guard.id);
+  });
+
   it('tours the camps, nearest first, each once, landing on open ground at the gate', async () => {
     const { nextCamp } = await import('../src/model/cheats');
     const model = TEST_SEEDS.map((s) => fresh(s)).find((m) => m.camps.length > 1)!;

@@ -3,7 +3,8 @@
 // roads, water and the start): a rocky knoll, KNOLL tiles a side, at the foot
 // of a rise (the ground climbing MOUTH_RISE tiers within RISE_WITHIN tiles
 // behind it: the land rolls gently, a tier at a time), its mouth in its face
-// toward the low ground, the ground before it open and level with it: the way
+// toward the low ground, the ground before it open and level with it (and open
+// country beyond: never a pocket shut in by water or woods): the way
 // in (E to go down, as at any door). Below, a burrow of the zone's level
 // (enemyLevels.ts), named (caveNames.ts), dug from the seed and where it
 // opens (caveLayout.ts, its plan; caveProps.ts, what's in it); its beasts
@@ -22,6 +23,7 @@ import type { Camp } from '../camps/camps';
 import { zoneLevel } from '../enemies/enemyLevels';
 import { VILLAGE_OUTER_RADIUS } from '../constants';
 import { caveName } from './caveNames';
+import { inOpenCountry } from '../strongholds/strongholds';
 import type { Tiles } from '../map/tiles';
 
 export const CAVE_REGION = 512; // tiles a side of the stretch that may have one
@@ -115,6 +117,7 @@ function mouthAt(
     if (![...row, ...front].every((t) => open(t) && h(t.x, t.z) === level)) continue;
     if (!rock.every((t) => open(t) && h(t.x, t.z) >= level)) continue;
     if (h(hill.x, hill.z) < level + MOUTH_RISE) continue;
+    if (!inOpenCountry(world, front[0], new Set(rock.map((t) => cellKey(t.x, t.z))), inMap)) continue; // (never in a pocket shut in by water or woods)
     const spot = { x: x + ox * (0.5 + MOUTH_REACH), z: z + oz * (0.5 + MOUTH_REACH) };
     return { entrance: { type: 'cave', x: spot.x, z: spot.z, outX: ox, outZ: oz }, mouth: { x, z }, rock, quarterTurns };
   }
@@ -154,7 +157,8 @@ export function caveInside(seed: number, entrance: Entrance): CaveInside {
     if (!cave) throw new Error('no cave there');
     const plan = planCave(seed, cave.mouth);
     const seal = nestSeal(plan) ?? [];
-    inside = { cave, plan, props: furnishCave(seed, cave.mouth, plan), room: { width: plan.width, depth: plan.depth, door: plan.door, floor: 'earth', wall: 'rock' }, exit: caveExit(plan), seal, sealKeys: new Set(seal.map((t) => cellKey(t.x, t.z))), sealed: false };
+    const props = furnishCave(seed, cave.mouth, plan);
+    inside = { cave, plan, props, room: { width: plan.width, depth: plan.depth, door: plan.door, floor: 'earth', wall: 'rock' }, exit: caveExit(plan, props), seal, sealKeys: new Set(seal.map((t) => cellKey(t.x, t.z))), sealed: false };
     insides.set(entrance, inside);
   }
   return inside;

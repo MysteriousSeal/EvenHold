@@ -18,7 +18,7 @@ import { isFloor } from '../src/model/dungeons/floorPlan';
 import { FACINGS } from '../src/model/map/grid';
 import { mulberry32 } from '../src/util/random';
 import { floorReached } from './support/cryptChecks';
-import { mapsOf } from './support/testWorld';
+import { TEST_MAP_SIZE, mapsOf } from './support/testWorld';
 
 const MID = { width: 512, depth: 512 };
 const seeds = Array.from({ length: 30 }, (_, i) => Math.floor(mulberry32(6600 + i)() * 2 ** 31));
@@ -48,6 +48,24 @@ describe('the caves\' mouths', () => {
     }
     const again = new GameModel(1, MID);
     expect(again.caves.map((c) => [c.mouth, c.name, c.level])).toEqual(model.caves.map((c) => [c.mouth, c.name, c.level]));
+  });
+
+  it('open onto open country, never a pocket shut in by water or woods (a test world that once had one)', () => {
+    const world = new GameModel(36, TEST_MAP_SIZE);
+    for (const cave of world.caves) {
+      const from = [Math.round(cave.entrance.x), Math.round(cave.entrance.z)];
+      const seen = new Set([from.join()]);
+      const todo = [from];
+      while (todo.length > 0 && seen.size < 600) {
+        const [x, z] = todo.pop()!;
+        for (const [dx, dz] of FACINGS) {
+          if (seen.has(`${x + dx},${z + dz}`) || !world.isOpenTile(x + dx, z + dz)) continue;
+          seen.add(`${x + dx},${z + dz}`);
+          todo.push([x + dx, z + dz]);
+        }
+      }
+      expect(seen.size, `the cave at ${cave.mouth.x},${cave.mouth.z}`).toBe(600);
+    }
   });
 
   it('are offered at their way in: going in, the hero\'s down in its burrow, at the foot of its way up', () => {
@@ -113,8 +131,9 @@ describe('a cave\'s burrow', () => {
         expect(isFloor(plan, p.x, p.z)).toBe(true);
         if (p.solid) expect(Math.hypot(p.x - plan.door, p.z - (plan.depth - 1)) > 4).toBe(true);
       }
-      const exit = caveExit(plan);
+      const exit = caveExit(plan, props);
       expect(isFloor(plan, exit.spot.x, exit.spot.z)).toBe(true);
+      expect(floorReached(plan, solid).has(`${exit.spot.x},${exit.spot.z}`)).toBe(true); // (stood on: no egg sac there, nor cut off)
       expect(isFloor(plan, exit.rock.x, exit.rock.z)).toBe(false);
       expect(Math.hypot(exit.spot.x - nest.x, exit.spot.z - nest.z)).toBeLessThan(nest.r * 1.5 + 1);
     }
@@ -149,7 +168,7 @@ describe('a cave\'s beasts\' posts', () => {
       const props = furnishCave(seed, mouth, plan);
       const seal = nestSeal(plan)!;
       const sealKeys = new Set(seal.map((t) => `${t.x},${t.z}`));
-      const inside = { cave: { mouth, level: 4 }, plan, props, exit: caveExit(plan), seal, sealKeys, sealed: true } as unknown as Parameters<typeof cavePosts>[1];
+      const inside = { cave: { mouth, level: 4 }, plan, props, exit: caveExit(plan, props), seal, sealKeys, sealed: true } as unknown as Parameters<typeof cavePosts>[1];
       const posts = cavePosts(seed, inside);
       expect(cavePosts(seed, inside)).toEqual(posts);
       expect(posts.length).toBeGreaterThan(8);

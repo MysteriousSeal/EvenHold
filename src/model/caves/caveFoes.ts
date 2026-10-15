@@ -35,6 +35,7 @@ import { kept } from '../../util/kept';
 export const CAVE_FOE_ID = 4_000_000; // its beasts' ids: this plus their post's number (clear of the world's, the quests', the crypts')
 const CLEAR_OF_WAY_UP = 7; // tiles from the way up no beast lies
 export const TEARS_AT = 0.8; // the share of the cave cleared when the silk walling the nest off tears (as a crypt's lord rises)
+const AHEAD = 4; // tiles from her nest the hero's told she waits there
 const NUDGE = 1.4; // tiles from the silk the hero's told it holds
 const BURROW_EVERY = 12; // tiles of burrow to a beast along it, about
 export const BROOD_AT = [2 / 3, 1 / 3]; // of her health, under each: her brood hatches
@@ -131,6 +132,7 @@ export class CaveRun extends DungeonFoes {
   private hatched = 0;
   private clock = 0; // seconds down here (the bats' flitting)
   private told = false; // the hero's been told the silk holds (till they walk off from it)
+  private toldAhead = false; // and that she waits, coming up to her nest
 
   constructor(
     seed: number,
@@ -213,7 +215,13 @@ export class CaveRun extends DungeonFoes {
   private wakeMother(hero: Hero): void {
     const mother = this.mother;
     const nest = this.nest;
-    if (!mother || mother.state !== 'wander' || Math.hypot(hero.x - nest.x, hero.z - nest.z) > nest.r + 0.5) return;
+    const off = Math.hypot(hero.x - nest.x, hero.z - nest.z) - nest.r - 0.5; // (how far outside her nest)
+    if (mother?.state === 'wander' && !this.sealed && off > 0 && off < AHEAD && !this.toldAhead) {
+      this.toldAhead = true; // (told before they're in, once till they've gone off again)
+      this.hooks.report({ kind: 'banner', title: 'The brood mother waits', line: 'Her nest lies ahead' });
+    }
+    if (off > AHEAD * 2) this.toldAhead = false;
+    if (!mother || mother.state !== 'wander' || off > 0) return;
     Object.assign(mother, { state: 'chase', lastSeen: { x: hero.x, z: hero.z }, lostFor: 0, target: null });
     this.hooks.report({ kind: 'stirs', name: 'The brood mother' });
   }

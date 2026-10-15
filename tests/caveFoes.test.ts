@@ -117,6 +117,11 @@ describe('a cave\'s beasts', () => {
     expect(mother.state).toBe('wander');
     expect(Math.hypot(mother.x - nest.x, mother.z - nest.z)).toBeLessThan(0.01);
     model.takeEvents();
+    Object.assign(model.hero, { x: nest.x, z: nest.z + nest.r + 2 }); // (come near her nest: told she waits, once)
+    model.cave!.update(FRAME);
+    model.cave!.update(FRAME);
+    expect(model.takeEvents().filter((e) => e.kind === 'banner')).toEqual([{ kind: 'banner', title: 'The brood mother waits', line: 'Her nest lies ahead' }]);
+    expect(mother.state).toBe('wander');
     Object.assign(model.hero, { x: nest.x + 1.5, z: nest.z });
     run(model, FRAME);
     expect(mother.state).toBe('chase');
@@ -150,6 +155,11 @@ describe('a cave\'s beasts', () => {
     model.cave!.openChest();
     expect(hoard.open).toBe(true);
     expect(model.groundHere.loot.length).toBe(lying + 1);
+    // Her hoard stands in the way: walked at, the hero stops at it, not through it.
+    Object.assign(model.hero, { x: hoard.x, z: hoard.z + 1.2 });
+    for (let t = 0; t < 1; t += FRAME) model.update(0, -1, FRAME);
+    expect(model.hero.z - hoard.z).toBeGreaterThan(0.4);
+    expect(model.cave!.chestInReach(model.hero)).toBe(false); // (opened)
     // The way out: the crack, open; there, the door's the way back up to the hills, outside the cave's mouth.
     const exit = model.cave!.exitOpen!;
     Object.assign(model.hero, { x: exit.x, z: exit.z });
