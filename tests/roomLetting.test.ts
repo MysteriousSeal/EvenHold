@@ -188,6 +188,19 @@ describe('a room at the inn', () => {
     }
   });
 
+  it('bribed for by day: its bed slept in at once, till the next morning', () => {
+    const model = atTheInn(12);
+    model.hero.money = ROOM_PRICE + BRIBE;
+    rentRoom(model, barmaidHere(model)!, undefined, true);
+    upstairs(model);
+    const bed = letRoomBed(model.inside!)!.bed!;
+    const lying = { piece: bed, x: bed.x, z: bed.z, y: 0, facing: 0, lying: true };
+    expect(letBed({ ...model, seated: null, seatInReach: lying })?.piece).toBe(bed);
+    sleepTillMorning(model);
+    expect(model.minutes).toBe(4 * 24 * H + 8 * H);
+    expect(letBed({ ...model, seated: null, seatInReach: lying })).toBeNull(); // (its last morning: up, and out by ten)
+  });
+
   it('let go while the hero lies in its bed: up out of it and shown out, not left to get up behind the locked door', () => {
     const model = atTheInn(21);
     model.hero.money = 500;
