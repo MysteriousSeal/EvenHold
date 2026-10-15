@@ -13,6 +13,7 @@ import { makeActor, setDown } from './actor';
 import type { Into } from '../../model/spells/turned';
 import { STAGINGS, type Staging } from './staging';
 import { VoxelMorph, sampleFigure } from './morph/voxelMorph';
+import { trackMenu } from '../ui/menu';
 
 export const LENGTH = 8; // seconds
 export const GIVES_WAY = 0.8; // of it, the one turned being staged; the rest, what they've become settling
@@ -99,6 +100,7 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
     if (over) return;
     over = true;
     window.removeEventListener('keydown', onKey, true);
+    trackMenu(root, false);
     window.removeEventListener('resize', fit);
     root.remove();
     drawer.dispose();
@@ -111,6 +113,7 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
     finish();
   };
   window.addEventListener('keydown', onKey, true);
+  trackMenu(root, true); // (a window over the game: the menus' keys, Escape, all the scene's, to skip it)
   window.addEventListener('resize', fit);
   root.addEventListener('pointerdown', (event) => [event.stopPropagation(), finish()]);
 

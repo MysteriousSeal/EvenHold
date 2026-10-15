@@ -20,6 +20,7 @@ const row = (name: string) => Array.from(document.querySelectorAll<HTMLElement>(
 // told, set test by test.
 let calls: string[] = [];
 let fullWalls = false;
+let focused = false; // (a foe in focus: Escape lets go of it first)
 let hero: PauseHero;
 const menu = createPauseMenu({
   setPaused: (p) => calls.push(`paused:${p}`),
@@ -27,6 +28,7 @@ const menu = createPauseMenu({
   mainMenu: () => calls.push('mainMenu'),
   walls: { full: () => fullWalls, toggle: () => (fullWalls = !fullWalls) },
   hero: () => hero,
+  letGo: () => (focused ? ((focused = false), true) : false),
 });
 const open = () => menu;
 let others: Menu[] = [];
@@ -60,6 +62,14 @@ describe('the pause menu: opening and closing', () => {
     other.open();
     press('Escape');
     expect(menu.isOpen).toBe(false);
+  });
+
+  it('a foe in focus: Escape lets go of it, and only the next opens it', () => {
+    focused = true;
+    press('Escape');
+    expect([menu.isOpen, focused]).toEqual([false, false]);
+    press('Escape');
+    expect(menu.isOpen).toBe(true);
   });
 
   it('a held Escape does not flicker it', () => {

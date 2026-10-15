@@ -162,7 +162,7 @@ export function createTitleScene(container: HTMLElement): TitleScene | null {
   const look = new THREE.Vector3();
   const draw = (now: number) => {
     frame = requestAnimationFrame(draw);
-    const dt = Math.min(0.1, (now - last) / 1000);
+    const dt = Math.min(0.1, Math.max(0, (now - last) / 1000)); // (a frame's time can come before the start's: never back, the flight never before its start)
     last = now;
     const t = (now - start) / 1000;
     clock = Math.min(INTRO, clock + dt);

@@ -97,7 +97,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
       pin.classList.toggle('on', i < quests.taken.length);
       pins.append(pin);
     }
-    row.append(line('quest-board-lead', 'Hand quests in at the notice board they came from.'), pins, line('quest-taken', `${quests.taken.length}/${MAX_ACTIVE} · ${quests.tracked + model.story.trackedCount}/${MAX_TRACKED} tracked`));
+    row.append(line('quest-board-lead', "Hand a board's quests in at that board; someone's, to them."), pins, line('quest-taken', `${quests.taken.length}/${MAX_ACTIVE} · ${quests.tracked + model.story.trackedCount}/${MAX_TRACKED} tracked`));
     return row;
   };
 

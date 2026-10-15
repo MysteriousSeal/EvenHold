@@ -116,7 +116,7 @@
 }
 
 /* Breath: thin, under health, green as a fresh leaf; shorter when tired; red-edged when spent. */
-.hero-hud-breath { height: 8px; background: #2c4a26; transition: width 0.3s; }
+.hero-hud-breath { box-sizing: border-box; height: 8px; background: #2c4a26; transition: width 0.3s; } /* (its width, the bars' share: heroHud.ts) */
 .hero-hud-breath i { background: #8ad06a; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15); }
 .hero-hud-breath span { display: none; }
 .hero-hud-breath.empty { box-shadow: 0 0 0 2px #c0392b; }
@@ -132,9 +132,21 @@
    portrait), its name over the health bar. */
 .target-hud[hidden] { display: none; }
 .target-hud .hero-hud-bar { width: 220px; }
+/* Narrow, the row's bars shorter and closer, so the foe's frame ends short of the clock (top right). */
+@media (max-width: 1100px) {
+  .hud-top { gap: 20px; }
+  .hero-hud .hero-hud-bar { width: 200px; }
+  .target-hud .hero-hud-bar { width: 150px; }
+}
 .target-hud.passive .hero-hud-hp i { background: #e0b830; } /* a passive foe's, as over its head */
 .target-hud.person .hero-hud-hp i { background: #5aa84a; } /* someone picked out, no foe: their health in a friendly green */
 .target-hud-name {
+  width: 0; /* (no wider than the bar under it, however long the name: cut short, the rest after an ellipsis) */
+  min-width: 100%;
+  padding: 1px 1px 2px; /* (room for its outline) */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 16px;
   font-weight: 700;
   color: #fff;
@@ -437,6 +449,14 @@
    corner, how many are carried in the bag's square chip; an empty slot faint and dashed, one with none left
    greyed, all of them dimmed while the hero's still at a meal. */
 .action-bar { position: fixed; left: 50%; bottom: 16px; z-index: 25; display: flex; gap: 8px; transform: translateX(-50%); }
+/* Narrower than both bars side by side (536 px of slots; the toolbar's 400, 16 off the edge): centred in what's left
+   of the bottom beside the toolbar (the labels in the corner lifted over it: index.html); narrower still, both bars'
+   tiles smaller, the action bar's closer together. */
+@media (max-width: 1400px) { .action-bar { left: calc((100% - 416px) / 2); } }
+@media (max-width: 1110px) {
+  .toolbar-button { width: 44px; height: 44px; }
+  .action-bar { gap: 4px; left: calc((100% - 344px) / 2); }
+}
 .action-slot.empty { background: rgba(239, 220, 184, 0.35); border-style: dashed; box-shadow: none; }
 .action-slot.spent canvas { filter: grayscale(1) brightness(0.85); opacity: 0.6; }
 .action-slot.busy canvas { opacity: 0.5; }

@@ -1,6 +1,8 @@
 // A night's sleep (model/inn/roomLetting.ts): the screen fading to black, a
 // line while it's dark ("You sleep till morning…"), the night passing then,
-// and fading back in on the morning.
+// and fading back in on the morning. A window over the game while it's dark (menu.ts: no menu's key heard, nor the
+// pause menu's Escape).
+import { trackMenu } from '../ui/menu';
 
 const FADE = 0.9; // seconds to fade out, and back in
 const DARK = 1.4; // seconds held dark
@@ -16,6 +18,7 @@ export function createSleepFade(): (whileDark: () => void, done: () => void) => 
   return (whileDark, done) => {
     if (busy) return;
     busy = true;
+    trackMenu(veil, true);
     veil.classList.add('dark');
     window.setTimeout(() => {
       whileDark();
@@ -24,6 +27,7 @@ export function createSleepFade(): (whileDark: () => void, done: () => void) => 
         veil.classList.remove('dark');
         window.setTimeout(() => {
           busy = false;
+          trackMenu(veil, false);
         }, FADE * 1000);
       }, DARK * 1000);
     }, FADE * 1000);

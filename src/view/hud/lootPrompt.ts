@@ -34,6 +34,7 @@ export const QUALITY_INK: Record<Quality, string> = { junk: '#b4b0a8', ingredien
 
 // The prompt for loot on the ground: its name, in its quality's color.
 const STACK_GAP = 8; // px between prompts stacked one over another
+const FLOOR = 180; // px from the top a prompt ends at least (its top under the row of the hero's and the foe's frames, hud.css)
 
 export function lootTarget(loot: GroundLoot): PromptTarget {
   const level = isLootItem(loot.item) ? 1 : levelOf(loot.item); // (gear found: its level beside its name)
@@ -61,7 +62,8 @@ export function createLootPrompt(key = 'E', under = false, over?: LootPrompt): L
       prompt.classList.toggle('muted', !!target.muted);
       const at = toScreen(target.x, target.y, target.z);
       const lift = over && !over.element.hidden ? over.element.offsetHeight + STACK_GAP : 0;
-      prompt.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y - lift)}px) translate(-50%, ${under ? '8px' : '-100%'})`;
+      const y = under ? at.y : Math.max(at.y, FLOOR); // (something up under the HUD: its prompt below it, never over the bars)
+      prompt.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(y - lift)}px) translate(-50%, ${under ? '8px' : '-100%'})`;
     },
   };
 }

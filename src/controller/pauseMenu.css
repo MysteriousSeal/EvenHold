@@ -8,7 +8,7 @@
 .pause-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 26; /* (over the action bar and the toolbar, 25: nothing of the game's to press behind it) */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -57,7 +57,7 @@
 
 /* The menu. */
 .pause-main { width: min(380px, calc(100vw - 260px)); padding: 18px 18px 14px; gap: 6px; }
-.pause-main.controls { width: min(760px, calc(100vw - 260px)); }
+.pause-main.controls { width: min(760px, calc(100vw - 340px)); } /* (beside the hero's card, 250 with the gap, within the 24 each side: the codex's own 40 off) */
 .pause-title {
   display: flex;
   align-items: center;

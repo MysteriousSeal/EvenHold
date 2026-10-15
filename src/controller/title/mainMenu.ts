@@ -104,7 +104,10 @@ export function showMainMenu(hooks: MainMenuHooks, saying = oneOf(SAYINGS, Math.
     let chosen = 0; // the hero chosen (the last played, first)
     let sure = false; // (letting the chosen hero go: asked once already)
     let forge: Forge | null = null; // (the hero being made, on the creation screen)
+    let played = false; // (Enter on the focused Enter World button: the key's, and the button's own click after it)
     const play = (seed: number, hero?: MenuChoice['hero']) => {
+      if (played) return;
+      played = true;
       window.removeEventListener('keydown', keys);
       root.removeEventListener('click', skip);
       screen.remove();
@@ -183,7 +186,7 @@ export function showMainMenu(hooks: MainMenuHooks, saying = oneOf(SAYINGS, Math.
         if (hero && !world) {
           const figure = voxelIcon(`title:${JSON.stringify([hero.look, hero.equipment])}`, () => humanFigure(hero.look, hero.equipment), FIGURE);
           stage.append(figure, el('div', 'title-hero-name', hero.name), el('div', 'title-hero-line', `Level ${hero.level} · day ${hero.day}`));
-        } else if (!hero) stage.append(el('div', 'title-hero-line', 'No hero yet: make a new world to begin.'));
+        } else if (!hero) stage.append(el('div', 'title-hero-line', 'No hero yet: create one to begin.'));
         // The roster: each hero (their bust, name, day and world, their level on a shield), the chosen one gilded;
         // then a slot for each place left (a new hero), eight in all.
         const list = el('div', 'title-list gilded');

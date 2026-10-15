@@ -213,6 +213,9 @@ describe('the prompt over a tree', () => {
     model.lumber.use();
     expect(chopPrompt(model)?.label).toMatch(/^Stop chopping · \d chops left$/);
     expect(chopPrompt(byATree('birch', null).model)).toMatchObject({ label: 'Needs an axe', muted: true });
-    expect(chopPrompt(byATree('pine').model)).toMatchObject({ label: `Needs Lumberjacking ${WOOD.pine.needs}`, muted: true });
+    const pine = byATree('pine').model;
+    expect(chopPrompt(pine)).toBeNull(); // (a new hero, never risen in the trade: no refusal for a first prompt)
+    skillOf(pine.hero, 'lumberjacking').level = 2;
+    expect(chopPrompt(pine)).toMatchObject({ label: `Needs Lumberjacking ${WOOD.pine.needs}`, muted: true });
   });
 });

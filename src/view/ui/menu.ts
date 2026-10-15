@@ -19,6 +19,7 @@ export { lineText, toned } from './menuTypes';
 
 // Menus open right now, most recent last.
 const openMenus: object[] = []; // (the menus made here, and windows built their own way: counted, never called)
+const overWindows: object[] = []; // (of them, those built their own way: over the whole game, every key theirs)
 
 // The windows open, by focus: the one opened or clicked last on top, each a layer over the one before it, from
 // LOWEST up to HIGHEST (under the action bar, 25: food dragged onto it from the bag; tooltips and what's dragged, 30
@@ -48,10 +49,13 @@ export function anyMenuOpen(): boolean {
 
 // A window built its own way (the pause menu, the talk scene), counted among those open: so Escape opens it only when nothing else
 // is, and the game knows a window's up.
+// While one's up, no menu here hears a key (B, P, Escape): they're all its own.
 export function trackMenu(menu: object, open: boolean): void {
-  const at = openMenus.indexOf(menu);
-  if (open && at < 0) openMenus.push(menu);
-  if (!open && at >= 0) openMenus.splice(at, 1);
+  for (const list of [openMenus, overWindows]) {
+    const at = list.indexOf(menu);
+    if (open && at < 0) list.push(menu);
+    if (!open && at >= 0) list.splice(at, 1);
+  }
 }
 
 export function createMenu(options: MenuOptions): Menu {
@@ -442,6 +446,7 @@ export function createMenu(options: MenuOptions): Menu {
   window.addEventListener(
     'keydown',
     (event) => {
+      if (overWindows.length) return; // (the pause menu, a talk, a scene played: theirs)
       // Escape as a toggle key opens only when nothing else is open.
       const escapeMenu = options.toggleKey === 'Escape';
       if (escapeMenu && !api.isOpen && anyMenuOpen()) return;
@@ -452,6 +457,7 @@ export function createMenu(options: MenuOptions): Menu {
       }
       if (!api.isOpen) return;
       if (!modal && event.code !== 'Escape') return; // the game keeps its keys
+      if (event.code === 'Escape' && stack.at(-1) !== backdrop) return; // (shut the one on top first: the one on top's)
       event.stopImmediatePropagation();
       event.preventDefault();
       if (event.repeat && !event.code.startsWith('Arrow')) return;
