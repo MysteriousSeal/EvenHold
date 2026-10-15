@@ -228,6 +228,17 @@ describe('a sharp at the inn', () => {
     expect(sharp.dicing).toBe(true);
   });
 
+  it("the window shut and opened again, it's the same night's sitting: their purse, their patience, what they've won off the hero", () => {
+    const { model, sharp } = atTheSharpsTable();
+    model.hero.money = 100;
+    const first = model.dice.play(sharp)!.sitting;
+    first.net = -12;
+    first.purse -= 5;
+    model.dice.rise();
+    const again = model.dice.play(sharp)!.sitting;
+    expect([again.net, again.purse]).toEqual([-12, first.purse]);
+  });
+
   it('not at their table while the hero works the room', () => {
     const { model, sharp } = atTheSharpsTable();
     (model.work as { shift: unknown }).shift = { job: 'innServer' };

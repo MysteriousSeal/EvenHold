@@ -57,6 +57,7 @@ export class DiceHall {
   at: AtTable | null = null; // the sitting under way
   private figure: { npc: Npc; sharp: Sharp; door: number; night: number; leaving: boolean } | null = null; // tonight's sharp, where the hero is
   private coming = 0; // seconds the bouncer has left to get to a sharp caught out
+  private readonly sittings = new Map<string, Sitting>(); // tonight's at each table, by who and the night: one a night
   private done = new Set<string>(); // those who've stopped playing the hero tonight (by id and night): not again till tomorrow
 
   constructor(private readonly host: () => DiceHost) {}
@@ -116,7 +117,10 @@ export class DiceHall {
     if (!inside || !table) return null;
     const sharp = this.figure?.npc === npc ? this.figure.sharp : null;
     const level = zoneLevel(spawnOf(size), inside.entrance);
-    const sitting = sitDown(npc.name, sharp, level, hashUnit(npc.id, nightOf(minutes), (seed % 1_000_003) + 813));
+    const key = `${npc.id}:${nightOf(minutes)}`;
+    const sitting = this.sittings.get(key) ?? sitDown(npc.name, sharp, level, hashUnit(npc.id, nightOf(minutes), (seed % 1_000_003) + 813));
+    if (this.sittings.size > 64) this.sittings.clear(); // (only tonight's matter)
+    this.sittings.set(key, sitting); // (the window shut and opened again: the same night's, their purse and patience as they were)
     npc.dicing = true;
     return (this.at = { sitting, with: npc, inn: inside.entrance, table });
   }
@@ -199,5 +203,6 @@ export class DiceHall {
     const counts = (v: unknown): Record<string, number> =>
       Object.fromEntries(Object.entries(v && typeof v === 'object' ? v : {}).filter(([k, n]) => sharpOf(k) && Number.isInteger(n) && (n as number) >= 0)) as Record<string, number>;
     [this.away, this.caught, this.at, this.figure] = [counts(data.away), counts(data.caught), null, null];
+    this.sittings.clear();
   }
 }

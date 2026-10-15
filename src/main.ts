@@ -172,7 +172,7 @@ async function boot(): Promise<void> {
   const lootPrompt = createLootPrompt(() => keyName('use'));
   const orderPrompt = createLootPrompt(() => keyName('ale')); // sat at the bar: an ale, over the hero's head
   const piePrompt = createLootPrompt(() => keyName('pie'), false, orderPrompt); // and a meat pie, stacked over it
-  const dice = createDicePanel(model); // hazard at an inn's table, R: its prompt under the hero (controller/inn/dicePanel.ts)
+  const dice = createDicePanel(model); // hazard at an inn's table, H: its prompt under the hero (controller/inn/dicePanel.ts)
   const rentPrompt = createLootPrompt(() => keyName('pie'), false, lootPrompt); // stood by the barmaid: a room, stacked over her E; by the let room's bed: sleep
   const sleepFade = createSleepFade();
   const drinkTimer = createDrinkTimer();
