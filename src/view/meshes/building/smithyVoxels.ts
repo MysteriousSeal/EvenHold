@@ -129,12 +129,15 @@ function tools(grid: VoxelGrid): void {
 }
 
 // The plank back wall's outer face, the one seen from the lane behind:
-// sooted along its top, a row of horseshoes and an iron tyre hung on it,
-// coal heaped at its foot.
+// sooted along its top, the forge's glow showing through a gap in its
+// planks and under its eaves, a row of horseshoes and an iron tyre hung
+// on it, coal heaped at its foot.
 function backWall(grid: VoxelGrid): void {
   const [x0, x1] = YARD_X;
   const top = roofAt(19) - 1;
   fillBox(grid, x0, top - 3, 19, x1, top, 19, (x, y) => (hashUnit(x, y, 4) < (y - top + 4) / 4 ? C.soot : x % 2 === 0 ? C.door : C.doorDark));
+  fillBox(grid, 27, 5, 19, 34, 5, 19, (x) => (x % 3 === 0 ? C.doorDark : C.emberHot)); // a gap between its planks, the forge's glow through it,
+  fillBox(grid, 26, top, 19, 35, top, 19, (x) => (x % 4 === 0 ? C.timber : C.ember)); // and a slit under the eaves
   for (const x of [29, 33, 37]) {
     fillBox(grid, x + 1, 8, 20, x + 3, 8, 20, C.anvilLight); // a horseshoe: its toe,
     for (const side of [x, x + 4]) fillBox(grid, side, 9, 20, side, 12, 20, C.anvilLight); // its branches

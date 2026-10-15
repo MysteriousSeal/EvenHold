@@ -124,10 +124,8 @@ export function furnishSmithy(plan: Planner, room: Room): void {
   place('barStock', 1, 1, 'none', corners, false); // (standing free: low, its wall still free to hang over)
   const bench = items.find((f) => f.kind === 'salvageBench');
   if (bench) place('scrapHeap', 1, 1, 'none', [[bench.x + 1, bench.z], [bench.x - 1, bench.z], [bench.x, bench.z - 1]], false);
-  // In the front of the room: a crate of new blades at an end of his counter, and a cartwheel's tyre stood against the
-  // right wall.
+  // In the front of the room, a crate of new blades at an end of his counter.
   if (counter) place('bladeCrate', 1, 1, 'none', [[counter.x + counter.w, counter.z], [counter.x - 1, counter.z]], false);
-  place('wheelRim', 1, 1, 'none', down(room.width - 1).filter(([, z]) => z >= 1 && z < room.depth - 1).reverse(), false);
   place('barrel', 1, 1, 'none', [[room.width - 1, room.depth - 1], [0, room.depth - 1], [room.width - 1, 0], ...down(room.width - 1).reverse()], false);
   // No floor walled in: a stand shutting a tile off from the door is taken
   // away; any other such tile (a corner, boxed in) gets a barrel, clutter
