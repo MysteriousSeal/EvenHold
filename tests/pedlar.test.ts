@@ -8,7 +8,7 @@ import { generateWorld } from '../src/model/worldgen/world';
 import { DAY_MINUTES } from '../src/model/clock';
 import { campOf, camping } from '../src/model/travellers/pedlarCamp';
 import { onRoadSide, type Traveller } from '../src/model/travellers/travellers';
-import { buyFromPedlar, pedlarPrice, pedlarShopAt, sellToPedlar } from '../src/model/travellers/pedlarShop';
+import { PEDLAR_WARES, buyFromPedlar, pedlarPrice, pedlarShopAt, pedlarWaresOf, sellToPedlar } from '../src/model/travellers/pedlarShop';
 import { RUMOUR_PRICE, buyRumour, pedlarGreets, pedlarNews, rumourOf } from '../src/model/travellers/pedlarNews';
 import { saleOf } from '../src/model/shops/sellValue';
 import { LOOT } from '../src/model/loot/loot';
@@ -160,7 +160,16 @@ describe('a rumour', () => {
   });
 });
 
-describe('their wares, unchanged', () => {
+describe('their wares', () => {
+  it("shown only what they carry: nothing sold out that a restock never brings back", () => {
+    const { model, t } = alone();
+    const shop = pedlarShopAt(model.shops, model.seed, t, 0);
+    const later = pedlarShopAt(model.shops, model.seed, t, RESTOCK_EVERY * 50); // (restocked fully)
+    for (const id of pedlarWaresOf(model.seed, t)) expect(later.stock[id] ?? 0).toBeGreaterThan(0);
+    expect(pedlarWaresOf(model.seed, t).length).toBeLessThan(PEDLAR_WARES.length); // (not every trinket, every potion, every bag)
+    void shop;
+  });
+
   it('still bought from at their price', () => {
     const { model, t } = alone();
     const shop = pedlarShopAt(model.shops, model.seed, t, 0);

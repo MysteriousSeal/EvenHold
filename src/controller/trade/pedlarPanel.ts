@@ -9,7 +9,7 @@ import { POTIONS, isPotion, potionText } from '../../model/loot/potions';
 import type { GameModel } from '../../model/GameModel';
 import { ITEMS, SLOT_NAMES, type ItemId } from '../../model/human/equipment';
 import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions';
-import { PEDLAR_WARES, buyFromPedlar, isRelic, pedlarBuys, pedlarPrice, pedlarShopAt, sellToPedlar, wantsRelic } from '../../model/travellers/pedlarShop';
+import { buyFromPedlar, pedlarWaresOf, isRelic, pedlarBuys, pedlarPrice, pedlarShopAt, sellToPedlar, wantsRelic } from '../../model/travellers/pedlarShop';
 import { RUMOUR_PRICE, buyRumour, pedlarGreets, pedlarNews, rumourOf, rumourToSell } from '../../model/travellers/pedlarNews';
 import { coinWords } from '../../view/ui/coins';
 import { WORD_HOLD, type Traveller } from '../../model/travellers/travellers';
@@ -48,7 +48,7 @@ export function createPedlarPanel(model: GameModel, hooks: { bag?: TradeBag }): 
   const panel = createTradePanel(model, hooks, {
     title: 'Pack',
     shop,
-    wares: () => [...PEDLAR_WARES],
+    wares: () => pedlarWaresOf(model.seed, pedlar!), // (what they carry: none shown sold out that never comes back)
     wanted: (id): id is BagItem => pedlarBuys(id) && wantsRelic(shop(), id), // (a relic past what they want: junk to them, as to anyone)
     price: pedlarPrice,
     trade: (id, selling) => (selling ? sellToPedlar(shop(), model.hero, id) : buyFromPedlar(shop(), model.hero, id)),

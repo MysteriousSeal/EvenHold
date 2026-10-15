@@ -21,7 +21,7 @@ import { LOOT } from '../loot/loot';
 import { isFish } from '../skills/fishing';
 import { buyPrice, sellPrice } from '../inn/tavernShop';
 import { gearPrice, gearSellPrice } from '../smithy/smithShop';
-import { buyFrom, openShop, sellTo, type Shop } from '../shops/shopStock';
+import { buyFrom, openShop, sellTo, type Shop, type Usual } from '../shops/shopStock';
 import type { BagItem } from '../hero/bag';
 import type { Hero } from '../types';
 import { hashUnit } from '../../util/random';
@@ -53,8 +53,9 @@ export const pedlarBuys = (id: string): id is BagItem => isRelic(id) || isProvis
 export const pedlarPrice = (id: BagItem, selling: boolean): number =>
   isRelic(id) ? LOOT[id as keyof typeof LOOT].value * RELIC_PREMIUM : id === 'firewood' ? INGREDIENTS.firewood.value : LOGS.has(id) || WARES.has(id) ? LOOT[id as keyof typeof LOOT].value : FOUND.has(id) ? Math.floor(LOOT[id as keyof typeof LOOT].value / 2) : FINERY.has(id) ? Math.floor(LOOT[id as keyof typeof LOOT].value / (selling ? 2 : 1)) : isProvision(id) ? (selling ? sellPrice(id) : buyPrice(id)) : isPotion(id) ? potionPrice(id, selling) : isBagItem(id) ? (selling ? Math.floor(BAG_ITEMS[id].value / 2) : BAG_ITEMS[id].value) : id === 'fishingRod' ? (selling ? Math.floor(TOOL_ITEMS.fishingRod.value / 2) : TOOL_ITEMS.fishingRod.value) : isFish(id) ? LOOT[id].value : selling ? gearSellPrice(id as GearKey) : gearPrice(id as GearKey);
 
-// The pack of the pedlar `t`, made the first time it's opened.
-export function pedlarShopAt(shops: Map<number, Shop>, seed: number, t: Pick<Traveller, 'id'>, now = Date.now()): Shop {
+// What the pedlar `t` carries when their pack's full: the same pedlar, the same pack (a trinket or a potion they
+// don't carry, they never have).
+function usualOf(seed: number, t: Pick<Traveller, 'id'>): Usual {
   const roll = (salt: number) => hashUnit(t.id, seed % 1_000_003, salt);
   const stock: Partial<Record<BagItem, number>> = {};
   FOOD.forEach((id, i) => (stock[id] = 1 + Math.floor(roll(10 + i) * 3)));
@@ -63,8 +64,17 @@ export function pedlarShopAt(shops: Map<number, Shop>, seed: number, t: Pick<Tra
   POTION_IDS.forEach((id, i) => (stock[id] = roll(40 + i) < (id.startsWith('greater') ? 0.15 : 0.6) ? 1 + Math.floor(roll(45 + i) * 2) : 0)); // (a potion or two, a greater one rarely)
   BAG_IDS.forEach((id, i) => (stock[id] = roll(50 + i) < 0.5 - i * 0.08 ? 1 : 0)); // (a bag or two, the finer ones rarer)
   stock.fishingRod = 1; // (every pedlar has a rod)
-  return openShop(shops, PEDLAR_KEY + t.id, { money: Math.round((1 + roll(99) * 2) * COPPER_PER_SILVER), stock }, now);
+  return { money: Math.round((1 + roll(99) * 2) * COPPER_PER_SILVER), stock };
 }
+
+// The pack of the pedlar `t`, made the first time it's opened.
+export const pedlarShopAt = (shops: Map<number, Shop>, seed: number, t: Pick<Traveller, 'id'>, now = Date.now()): Shop => openShop(shops, PEDLAR_KEY + t.id, usualOf(seed, t), now);
+
+// Their wares, as their window lists them: what they carry (sold out, it's back with a restock), not what they never do.
+export const pedlarWaresOf = (seed: number, t: Pick<Traveller, 'id'>): BagItem[] => {
+  const { stock } = usualOf(seed, t);
+  return PEDLAR_WARES.filter((id) => (stock[id] ?? 0) > 0);
+};
 
 // The hero buying `id` from the pedlar, or selling it them.
 export const buyFromPedlar = (shop: Shop, hero: Hero, id: BagItem) => buyFrom(shop, hero, id, pedlarPrice(id, false));

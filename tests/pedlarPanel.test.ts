@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { createPedlarPanel } from '../src/controller/trade/pedlarPanel';
 import { createInventoryPanel } from '../src/controller/hero/inventoryPanel';
-import { PEDLAR_WARES, pedlarPrice, pedlarShopAt } from '../src/model/travellers/pedlarShop';
+import { pedlarPrice, pedlarShopAt, pedlarWaresOf } from '../src/model/travellers/pedlarShop';
 import { nearestTraveller } from '../src/model/cheats';
 
 vi.mock('../src/view/ui/voxelIcon', () => ({
@@ -50,8 +50,9 @@ describe("a pedlar's window", () => {
     const { model, pedlar, panel, shop } = byPedlar();
     model.hero.money = 10_000;
     panel.open(pedlar);
-    const at = PEDLAR_WARES.findIndex((id) => (shop().stock[id] ?? 0) > 0);
-    const id = PEDLAR_WARES[at];
+    const wares = pedlarWaresOf(model.seed, pedlar);
+    const at = wares.findIndex((id) => (shop().stock[id] ?? 0) > 0);
+    const id = wares[at];
     const [stock, purse] = [shop().stock[id]!, shop().money];
     rightClick(rows()[at]);
     expect(model.hero.bag[id]).toBe(1);
