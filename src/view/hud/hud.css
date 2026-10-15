@@ -789,3 +789,8 @@ body .action-bar, body .tip-card { scale: var(--hud-scale); transform-origin: 0 
 .blessing-hud { top: calc(16px + 72px * var(--hud-scale)); }
 body .minimap { right: calc(22px + 200px * var(--hud-scale)); }
 body .tip-card { bottom: calc(16px + 80px * var(--hud-scale)); }
+
+/* [ui-layout] The focused foe's name over its bar, read from the left as the hero's bars are, and clear of the screen's
+   top edge (its level gem's colour, as dangerous as it is: the name's the same). */
+.target-hud > .hero-hud-bars { padding-top: 14px; gap: 6px; }
+.target-hud .target-hud-name { text-align: left; padding-left: 2px; }
