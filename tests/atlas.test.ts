@@ -14,6 +14,7 @@ describe('the map of the land walked', () => {
     expect(fog.seen(8192, 8192)).toBe(true);
     expect(fog.seen(8192 + SIGHT - CELL, 8192)).toBe(true);
     expect(fog.seen(8192 + SIGHT + 2 * CELL, 8192)).toBe(false);
+    expect(fog.seen(8192 + 70, 8192) && fog.seen(8192, 8192 - 70), 'as far as the screen shows (some 70-90 tiles)').toBe(true);
     expect(fog.walk(8193, 8192), 'the same cell: nothing new looked at').toBe(false);
     fog.walk(8192 + 600, 8192); // (on into the next chunks: 8192 is a corner of four)
     expect(fog.chunksSeen().length).toBe(6);
@@ -59,7 +60,9 @@ describe('the map of the land walked', () => {
     older.stops = [{ key: '80,80', name: 'Somewhere', level: 1, x: 80, z: 80 }];
     const third = fresh();
     restore(third, parseSave(JSON.stringify(older), model.seed)!);
-    expect(third.atlas.fog.seen(10, 10), 'not walked, as far as it knows').toBe(false);
+    const known = new Fog(third.atlas.fog.size); // (the corner not walked, as far as it knows: in this small world all of it's in sight of the hero)
+    [third.hero, { x: 80, z: 80 }].forEach((at) => known.reveal(at.x, at.z));
+    expect(third.atlas.fog.save(), 'round the hero and the villages been to, no more').toEqual(known.save());
     expect(third.atlas.fog.seen(third.hero.x, third.hero.z), 'round the hero').toBe(true);
   });
 
