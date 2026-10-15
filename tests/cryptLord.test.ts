@@ -235,7 +235,7 @@ describe('a crypt\'s lord', () => {
     expect(loaded.cleared(`${model.crypts[0].ruin.x},${model.crypts[0].ruin.z}`).has(AWARD_POST)).toBe(true);
   });
 
-  it('is set on the hero the moment they come into his great hall, not before', () => {
+  it('is set on the hero the moment they come into his great hall, not before (told he waits as they come near it)', () => {
     const model = new GameModel(2, MID);
     const crypt = goDown(model);
     clearTo(model, RISES_AT);
@@ -243,9 +243,12 @@ describe('a crypt\'s lord', () => {
     const lord = lordOf(model)!;
     for (const f of model.foes) if (f !== lord) f.state = 'dead';
     const great = cryptInside(model.seed, crypt.entrance).plan.places.find((p) => p.kind === 'great')!;
+    model.takeEvents();
     Object.assign(model.hero, { x: great.x0 - 3, z: (great.z0 + great.z1) / 2 }); // (outside it)
     model.crypt!.update(FRAME);
+    model.crypt!.update(FRAME);
     expect(lord.state).not.toBe('chase');
+    expect(model.takeEvents()).toEqual([{ kind: 'banner', title: `${lord.name} waits`, line: 'The great hall lies ahead' }]); // (told before they're in, once)
     Object.assign(model.hero, { x: great.x0 + 1, z: (great.z0 + great.z1) / 2 }); // (in)
     model.crypt!.update(FRAME);
     expect(lord.state).toBe('chase');
@@ -265,7 +268,7 @@ describe('a crypt\'s lord', () => {
     expect(told()).toEqual([1, 2].map(() => ({ kind: 'banner', title: 'The great tomb lies still', line: `Its lord rises once ${Math.round(RISES_AT * 100)}% of the crypt is cleared · ${share}% cleared` })));
     clearTo(model, RISES_AT);
     for (const at of [outside, inside]) [Object.assign(model.hero, at), model.crypt!.update(FRAME)];
-    expect(told()).toEqual([]); // (risen: nothing to tell)
+    expect(told().map((e) => e.kind === 'banner' && e.title)).toEqual([`${lordOf(model)!.name} waits`]); // (risen: that he waits, coming up to it; nothing of the tomb lying still)
   });
 
   it('opens a way out at the far end of his hall once slain: a door in its back wall right behind his tomb, floor before it; through it, out of the crypt', () => {
