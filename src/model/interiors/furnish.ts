@@ -17,6 +17,7 @@ import { furnishHerbalist } from '../herbalist/herbalistLayout';
 import { isHerbalistHome } from '../herbalist/herbalistHomes';
 import { furnishWitch } from '../witch/witchLayout';
 import { isWitchHome } from '../witch/witchHomes';
+import { furnishCathedral } from '../cathedral/cathedralLayout';
 
 export function furnish(seed: number, entrance: Entrance, room: Room): Furniture[] {
   const plan = roomPlanner(seed, entrance, room);
@@ -24,6 +25,7 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
   else if (entrance.type === 'house' && isWitchHome(entrance)) furnishWitch(plan, room, seed, entrance); // (a hedge-witch's: her cottage)
   else if (entrance.type === 'house') furnishHouse(plan, room, seed, entrance);
   else if (entrance.type === 'inn') furnishInn(plan, room);
+  else if (entrance.type === 'cathedral') furnishCathedral(plan, room);
   else furnishSmithy(plan, room);
   const reached = fromTheDoor(plan.items, room); // (once for the room, not for every seat)
   return plan.items.map((piece) => (!seatOf(piece) || canSitOn(piece, plan.items, room, reached) ? piece : { ...piece, kind: 'barrel', facing: undefined }));
@@ -40,10 +42,11 @@ function canSitOn(seat: Furniture, furniture: readonly Furniture[], room: Room, 
   return false;
 }
 
-// The room's floor tiles walked to from the doorway, round whatever solid stands on the rest.
+// The room's floor tiles walked to from the doorway, round whatever solid stands on the rest (through an inner door:
+// the bishop's in the cathedral, cathedral/cathedralLayout.ts).
 export function fromTheDoor(furniture: readonly Furniture[], room: Room): Set<string> {
   const taken = new Set<string>();
-  for (const f of furniture) if (f.solid) for (let x = f.x; x < f.x + f.w; x++) for (let z = f.z; z < f.z + f.d; z++) taken.add(`${x},${z}`);
+  for (const f of furniture) if (f.solid && f.kind !== 'hallDoor') for (let x = f.x; x < f.x + f.w; x++) for (let z = f.z; z < f.z + f.d; z++) taken.add(`${x},${z}`);
   const seen = new Set<string>();
   const todo: Array<[number, number]> = [[room.door, room.depth - 1]];
   while (todo.length > 0) {

@@ -67,6 +67,13 @@ export const FURNITURE_KINDS = [
   'sacks', // a pile of grain sacks, a corner's stores
   'washstand', // upstairs, in the room let: a basin and a jug on a stand
   'strongbox', // the guests' strongbox, by the right-hand wall (hero/stash.ts)
+  // The cathedral's own (cathedral/cathedralLayout.ts)
+  'altar', // the high altar, its retable gilded
+  'pillar', // the nave's
+  'pew', // two to a row, facing the altar
+  'candleStand', // votive candles on an iron stand
+  'lectern',
+  'reliquaryStair', // the way down to the reliquary, behind a grille (reliquary/)
 ] as const;
 
 export type FurnitureKind = (typeof FURNITURE_KINDS)[number];
