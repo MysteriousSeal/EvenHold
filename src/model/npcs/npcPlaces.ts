@@ -86,7 +86,7 @@ export function settle(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seconds:
     const fits = (seat: Seat) => (at === 'bed' ? seat.lying : !at || seat.piece.kind === (at === 'table' ? 'chair' : 'barStool')); // (`at`: a chair at a table only, a stool at the bar, or a bed)
     const seats = furniture
       .map((piece) => seatOf(piece))
-      .filter((seat): seat is Seat => !!seat && (!seat.lying || npc.where === npc.home) && !claimed(seat.piece, npc, npcs, world))
+      .filter((seat): seat is Seat => !!seat && (!seat.lying || npc.where === npc.home || npc.where === npc.house) && !claimed(seat.piece, npc, npcs, world))
       .sort((a, b) => Number(fits(b)) - Number(fits(a))) // (abed at night: their bed, else any seat; at the inn: the seat asked for, only)
       .filter((seat) => at === 'bed' || fits(seat));
     // At the inn, the bar draws them: often a free stool there first, then any seat.

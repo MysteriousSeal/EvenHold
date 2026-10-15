@@ -46,21 +46,26 @@ describe("the smith's day", () => {
     }
   });
 
-  it('keeps villagers\' hours: from 23:00 to 06:00 his work put down, not called to his counter, abed or resting', () => {
+  it("keeps villagers' hours: from 23:00 to 06:00 home to his house in the village and abed, back at his forge come morning", () => {
     for (const { model, smith } of smithies()) {
-      model.minutes = 23 * 60 + 30;
-      const counter = model.inside!.furniture.find((f) => f.kind === 'smithCounter')!;
-      Object.assign(model.hero, { x: counter.x + (counter.w - 1) / 2, z: counter.z + 1 });
-      let working = 0;
-      for (let t = 0; t < 40; t += FRAME) {
-        model.update(0, 0, FRAME);
-        model.minutes = 23 * 60 + 30; // (the clock held: still night)
-        if (smith.working) working += FRAME;
-      }
-      expect(working).toBe(0);
-      expect(Math.abs(smith.z - (counter.z - 0.6))).toBeGreaterThan(0.05); // (not behind his counter for the hero)
+      const smithy = model.inside!.entrance;
+      expect(smith.house).toBeDefined();
+      expect(smith.house).not.toBe(smithy);
+      const anvil = model.inside!.furniture.find((f) => f.kind === 'anvil')!;
+      const run = (hour: number, seconds: number) => {
+        for (let t = 0; t < seconds; t += FRAME) {
+          Object.assign(model.hero, { x: anvil.x, z: anvil.z + anvil.d }); // (out of the doorway: at work at the anvil)
+          model.minutes = hour * 60;
+          model.update(0, 0, FRAME);
+        }
+      };
+      run(23.5, 150);
+      expect(smith.where).toBe(smith.house);
+      expect(smith.seat?.lying || smith.steps.some((s) => s.kind === 'sit' || s.kind === 'settle')).toBeTruthy();
       expect(smithAsleep(model.minutes)).toBe(true);
-      expect(smithAsleep(12 * 60)).toBe(false);
+      run(7, 150);
+      expect(smith.where).toBe(smithy);
+      expect(smithAsleep(model.minutes)).toBe(false);
     }
   });
 });
