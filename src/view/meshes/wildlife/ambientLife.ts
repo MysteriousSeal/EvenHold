@@ -11,7 +11,7 @@
 // ambientMoves.ts; their tiny voxel models: ambientVoxels.ts. One instanced
 // mesh a kind, drawn only as many as are out. With them, the villages'
 // livestock in their fields (livestockViews.ts) and the smoke from the
-// houses' chimneys (smoke/houseSmoke.ts), round the hero as they are. The
+// chimneys (smoke/chimneySmoke.ts), round the hero as they are. The
 // weather has its say (common/weatherNow.ts): in the rain the birds and the
 // butterflies are under cover, and the frogs out, day or night.
 
@@ -28,7 +28,7 @@ import { createGrid, setColor } from '../voxel/voxelShapes';
 import { BIRD_PALETTE, CROW_PALETTE, HERON_PALETTE, crowGrid, heronGrid, DRAGONFLY_PALETTE, FISH_PALETTE, FROG_PALETTE, PALETTE, RABBIT_PALETTE, birdGrid, butterflyGrid, dragonflyGrid, fishGrid, frogGrid, rabbitGrid, splashGrid } from './ambientVoxels';
 import { weatherNow, type WeatherNow } from '../common/weatherNow';
 import { LivestockViews } from './livestockViews';
-import { HouseSmoke } from '../smoke/houseSmoke';
+import { ChimneySmoke } from '../smoke/chimneySmoke';
 import { bird, butterfly, dragonfly, firefly, fish, flock, frog, heron, rabbit, splash, type Creature, type Moment } from './ambientMoves';
 
 const V = 0.025; // the creatures' voxels: finer than the world's (they're small)
@@ -62,7 +62,7 @@ export class AmbientLife {
   private readonly moment: Moment;
   private readonly life: LifeWorld; // where the life's placed (its `biomes`, what country each tile is: flora's createBiomes(seed, tiles), model/scenery/biomes.ts, once it's here)
   private readonly livestock: LivestockViews;
-  private readonly smoke: HouseSmoke;
+  private readonly smoke: ChimneySmoke;
   private time = 0;
 
   constructor(
@@ -97,7 +97,7 @@ export class AmbientLife {
     };
     this.life = { seed: model.seed, tiles: model.tiles, isOpenTile: (x, z) => model.isOpenTile(x, z) };
     this.livestock = new LivestockViews(scene, model);
-    this.smoke = new HouseSmoke(scene, model);
+    this.smoke = new ChimneySmoke(scene, model);
     this.moment = { time: 0, dt: 0, hour: 0, hero: { x: 0, z: 0 }, ground: (x, z) => model.getGroundY(x, z), matrix: new THREE.Matrix4(), splash: (x, z, age) => this.splash(x, z, age) };
   }
 
