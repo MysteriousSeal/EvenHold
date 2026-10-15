@@ -22,10 +22,11 @@ import { FRAME, fresh } from './support/testWorld';
 import type { GameEvent } from '../src/model/types';
 
 // A world with the reliquary's door right before the hero (as the cathedral town would place it).
-const withReliquary = (barred?: () => { title: string; line: string } | null) => {
+// (Its door open, as the story leaves it once the sister's given her key: `byStory` keeps the story's own bar.)
+const withReliquary = (barred?: () => { title: string; line: string } | null, byStory = false) => {
   const model = fresh();
   const entrance: Entrance = { type: 'reliquary', x: model.hero.x, z: model.hero.z + 0.3, outX: 0, outZ: 1 };
-  registerReliquary(entrance, { x: 40, z: 41 }, { barred });
+  registerReliquary(entrance, { x: 40, z: 41 }, { barred: byStory ? undefined : (barred ?? (() => null)) });
   model.entrances.push(entrance);
   return { model, entrance };
 };
@@ -98,10 +99,10 @@ describe('down into the reliquary', () => {
   });
 
   it("barred while the story's saint is shut away: the story's line at its door (open where there's no such story)", () => {
-    const { model, entrance } = withReliquary();
+    const { model, entrance } = withReliquary(undefined, true);
     model.teleport(entrance.x, entrance.z);
-    const story = model.story as unknown as { saint?: { open: boolean } };
-    story.saint = { open: false };
+    const story = model.story as unknown as { saint: { open: boolean } };
+    Object.defineProperty(story, 'saint', { value: { open: false }, configurable: true }); // (the story's state, stood in)
     model.takeEvents();
     expect(model.useDoor()).toBe(false);
     expect(model.takeEvents()).toContainEqual({ kind: 'banner', title: 'The ossuary door is barred', line: 'Sister Agnes keeps the key.' });
@@ -113,7 +114,7 @@ describe('down into the reliquary', () => {
     const model = fresh();
     const room = model.entrances.find((e) => e.type === 'inn')!; // (a room stood in for the Minster's)
     const down: Entrance = { type: 'reliquary', x: room.x, z: room.z, outX: room.outX, outZ: room.outZ };
-    registerReliquary(down, { x: 7, z: 7 }, { stair: { of: room, x: 0.5, z: 0.5 } });
+    registerReliquary(down, { x: 7, z: 7 }, { stair: { of: room, x: 0.5, z: 0.5 }, barred: () => null }); // (open: the sister's key given)
     model.teleport(room.x, room.z);
     model.useDoor();
     expect(model.inside?.entrance).toBe(room);

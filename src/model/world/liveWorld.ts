@@ -38,6 +38,8 @@ import { spawnTrailEnd } from '../story/storyCast';
 import { villageNumber } from '../villages/villageNumber';
 import { townSolids, type Town } from '../town/townLand';
 import { onTown } from '../town/townSite';
+import { registerReliquary } from '../reliquary/reliquary';
+import { RELIQUARY_STAIR } from '../cathedral/cathedralLayout';
 
 // What the world's life needs of the game: whose world, the hero (where they are, to walk among), the ground's height
 // where they stand, the foes slain for good, and the trees felled for good.
@@ -364,6 +366,11 @@ export class LiveWorld {
     const getGroundY = (x: number, z: number) => this.groundY(x, z);
     const wildlife = spawnWildlife({ seed, size, tiles, villages, camps, trees: land.trees, houses, buildings, isOpenTile, isBlocked, getGroundY }, area, ids);
     const doors = entrancesOf(houses, buildings);
+    for (const minster of doors.filter((d) => d.type === 'cathedral')) {
+      // (the way down to the bishop's ossuary, by the stair in the Minster's aisle: reliquary/reliquary.ts)
+      const down: Entrance = { type: 'reliquary', x: minster.x, z: minster.z, outX: minster.outX, outZ: minster.outZ };
+      registerReliquary(down, { x: minster.x, z: minster.z }, { stair: { of: minster, x: RELIQUARY_STAIR[0] + 0.5, z: RELIQUARY_STAIR[1] + 0.5 } });
+    }
     const npcs = spawnNpcs(seed, doors, villages, fields, ids, spawnTrailEnd(trails, spawn) ?? spawn, towns.flatMap((t) => t.stalls)).filter((n) => !this.host.chickens?.lost.has(n.id)); // the villagers, one to a house (but those lost for good)
     this.host.swaps?.remade([...npcs, ...enemies]);
     // A stronghold's gatehouse in each wide stretch of the wilds that has the ground for one: last of all, on ground nothing
