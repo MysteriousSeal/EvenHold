@@ -3,7 +3,7 @@
 // the one picked: its scrap, what gear is of it, what a rare piece leaves besides, the ask; and where the bench is.
 import type { GameModel } from '../../model/GameModel';
 import { nameOf } from '../../model/hero/bag';
-import { FINER_AT, FINER_OF, MAKE_NAMES, PER_LEVEL, SCRAP_OF, salvageOf, type Make } from '../../model/skills/salvage';
+import { FINER_AT, FINER_OF, MAKE_NAMES, PER_LEVEL, SCRAP_OF, TOO_HARD, salvageOf, type Make } from '../../model/skills/salvage';
 import { skillOf } from '../../model/skills/skills';
 import { el } from '../../view/ui/dom';
 import { bagIcon } from '../../view/ui/itemIcons';
@@ -36,7 +36,7 @@ export function salvageGuide(model: GameModel, state: { picked: Make | null }, r
     el('dt', undefined, 'A rare piece'),
     el('dd', undefined, `${MAKES[picked].finer} besides (two from an epic, three from a legendary), from Salvaging ${FINER_AT.rare} (an epic's ${FINER_AT.epic}, a legendary's ${FINER_AT.legendary})`),
     el('dt', undefined, 'Teaches'),
-    el('dd', undefined, `Any piece can be broken down. What it teaches goes by its level: ${PER_LEVEL} of Salvaging a level past the first, more for a finer one (levels 1 to 3 an apprentice's, 4 to 6 a journeyman's, 7 to 9 an expert's, 10 on an artisan's); old iron, leather, linen and silver foes leave, an apprentice's`),
+    el('dd', undefined, `Any piece can be broken down. What it teaches goes by its level: ${PER_LEVEL} of Salvaging a level past the first, more for a finer one (levels 1 to 3 an apprentice's, 4 to 6 a journeyman's, 7 to 9 an expert's, 10 on an artisan's); old iron, leather, linen and silver foes leave, an apprentice's. A piece more than ${TOO_HARD} past your skill teaches nothing yet; one as a woodworker or a smith makes it teaches little, and leaves half its scrap`),
   );
   const detail = el(
     'div',

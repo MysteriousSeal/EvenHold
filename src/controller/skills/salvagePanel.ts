@@ -9,7 +9,7 @@ import type { GameModel } from '../../model/GameModel';
 import { nameOf } from '../../model/hero/bag';
 import { isGear, levelOf, rarityOf, RARITY_NAMES } from '../../model/human/items/gear';
 import { LOOT } from '../../model/loot/loot';
-import { MAKE_NAMES, salvageOf, type Salvageable, type SalvageOutcome } from '../../model/skills/salvage';
+import { MAKE_NAMES, TOO_HARD, salvageOf, teachChance, type Salvaged, type Salvageable, type SalvageOutcome } from '../../model/skills/salvage';
 import { betterThanWorn } from '../../model/human/items/gear';
 import { SKILLS, difficulty, skillOf } from '../../model/skills/skills';
 import { el, line } from '../../view/ui/dom';
@@ -27,6 +27,15 @@ const SAID: Record<SalvageOutcome, string> = {
 };
 const COLUMNS = 8; // cases across, as the bag's
 
+// What breaking a piece down would teach a hand at `level`, in words: its difficulty's colour; nothing, too hard
+// (past it by more than TOO_HARD) or grey; green at most, one as a recipe makes it.
+export function teachesWords({ needs, made }: Salvaged, level: number): string {
+  const chance = teachChance({ needs, made } as Salvaged, level);
+  if (needs > level + TOO_HARD) return 'too hard to learn from yet';
+  if (chance === 0) return 'teaches nothing more';
+  return `teaches (${chance < difficulty(needs, level).chance ? 'green: one you could make' : difficulty(needs, level).name})`;
+}
+
 // What `gives` is, in words: "2 Iron scrap, 1 Tempered ingot".
 export const givesWords = (gives: Array<[string, number]>): string => gives.map(([item, n]) => `${n} ${LOOT[item as keyof typeof LOOT]?.name ?? item}`).join(', ');
 
@@ -40,15 +49,15 @@ export function createSalvagePanel(model: GameModel): { open(): void; update(): 
   const carried = (key: Salvageable) => model.hero.bag[key as keyof typeof model.hero.bag] ?? 0;
   const slotOf = (key: Salvageable): MenuSlot => {
     const level = skillOf(model.hero, 'salvaging').level;
-    const { needs, gives } = salvageOf(key, level);
-    const teaches = difficulty(needs, level);
+    const salvaged = salvageOf(key, level);
+    const { needs, gives } = salvaged;
     const slot: MenuSlot = {
       key,
       icon: bagIcon(key),
       title: nameOf(key),
       count: carried(key),
-      lines: [isGear(key) ? `Level ${levelOf(key)} · ${RARITY_NAMES[rarityOf(key)]}` : 'Junk', `Leaves ${givesWords(gives)}`, `Salvaging ${needs} · ${teaches.chance > 0 ? `teaches (${teaches.name})` : 'teaches nothing more'}`],
-      dim: teaches.chance === 0,
+      lines: [isGear(key) ? `Level ${levelOf(key)} · ${RARITY_NAMES[rarityOf(key)]}` : 'Junk', `Leaves ${givesWords(gives)}`, `Salvaging ${needs} · ${teachesWords(salvaged, level)}`],
+      dim: teachChance(salvaged, level) === 0,
     }; // (no use() on the case: a click picks it; the button breaks it down, nothing by accident)
     shown.set(slot, key);
     return slot;
@@ -64,13 +73,14 @@ export function createSalvagePanel(model: GameModel): { open(): void; update(): 
     if (saidFor !== key) said = '';
     if (confirming && confirming.key !== key) confirming = null;
     const level = skillOf(model.hero, 'salvaging').level;
-    const { make, needs, gives, finerAt } = salvageOf(key, level);
+    const salvaged = salvageOf(key, level);
+    const { make, needs, gives, finerAt } = salvaged;
     const breaking = model.salvage.breaking?.key === key;
     const { icon, facts, fact } = detailParts(bagIcon(key)(96), 'menu-detail-facts quest-facts');
     fact('Made of', [MAKE_NAMES[make]]);
     fact('Leaves', [gives.map(([item, n]) => `${n} × ${nameOf(item as never)}`).join(', ')]);
     if (finerAt) fact('Finer', [`Something finer besides, from Salvaging ${finerAt}`]);
-    fact('Teaches', [`Salvaging ${needs} · ${difficulty(needs, level).chance > 0 ? difficulty(needs, level).name : 'nothing more (grey)'}`]);
+    fact('Teaches', [`Salvaging ${needs} · ${teachesWords(salvaged, level)}`]);
     const go = (count: number) => {
       const outcome = model.salvage.start(key, count);
       [said, saidFor, confirming] = [SAID[outcome], key, null];
