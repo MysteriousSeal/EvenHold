@@ -27,6 +27,7 @@ import { easeOffHero, heroOn, pastHero, place, walk, walkAlong } from './npcWalk
 import { smithCalled, smithSteps } from '../smithy/smithWork';
 import { herbalistCalled, herbalistSteps } from '../herbalist/herbalistWork';
 import { witchCalled, witchSteps } from '../witch/witchWork';
+import { mongerSteps } from '../town/stallKeepers';
 import type { Entrance } from '../interiors/interiors';
 import { START_MINUTES, hourAt } from '../clock';
 import { inTurn, say } from './speech';
@@ -163,6 +164,7 @@ const ROUTINES: Record<NpcRole, (npc: Npc, npcs: readonly Npc[], world: NpcWorld
   bouncer: (npc, _npcs, world) => bouncerSteps(npc, world.seed),
   herbalist: (npc, _npcs, world) => herbalistSteps(npc, world), // (at home, at work among their pots and herbs, always)
   witch: (npc, _npcs, world) => witchSteps(npc, world), // (likewise, among hers)
+  monger: (npc, _npcs, world) => mongerSteps(npc, world), // (at their stall by day, the cathedral town's)
 };
 
 // Who puts down their work, the hero come to them (a keeper at their counter: keeperWork.ts).

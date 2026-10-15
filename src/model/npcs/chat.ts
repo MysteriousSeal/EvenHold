@@ -47,12 +47,13 @@ export function villagerInReach(world: Pick<ChatWorld, 'folk' | 'inside' | 'hero
   const { hero, inside } = world;
   let [best, near]: [Npc | null, number] = [null, CHAT_REACH];
   for (const n of world.folk) {
-    if (n.role !== 'villager' || n.led || n.where !== (inside?.entrance ?? null)) continue;
-    const d = Math.hypot(n.x - hero.x, n.z - hero.z);
+    if ((n.role !== 'villager' && n.role !== 'monger') || n.led || n.where !== (inside?.entrance ?? null)) continue; // (a monger: across their stall, their trade)
+    const d = Math.hypot(n.x - hero.x, n.z - hero.z) - (n.role === 'monger' ? ACROSS_STALL : 0);
     if (d < near) [best, near] = [n, d];
   }
   return best;
 }
+const ACROSS_STALL = 0.5; // tiles a stall's keeper is the nearer, across their counter (before anyone passing behind the hero)
 
 type Manner = 'warm' | 'gruff' | 'gossip';
 const mannerOf = (npc: Npc): Manner => (['warm', 'gruff', 'gossip'] as const)[Math.floor(npc.salt * 3) % 3];
