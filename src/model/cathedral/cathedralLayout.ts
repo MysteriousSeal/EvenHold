@@ -38,7 +38,7 @@ export function furnishCathedral(plan: Planner, room: Room): void {
   // The bishop's quarters: a screen along the aisle (its left edge) and across it (its far edge), its door in the corner.
   for (let z = 0; z <= BISHOP.z1; z++) put('hallWall', BISHOP.x0 - 1, z, 1, 1, 'left', { tall: true }); // (on the pillars' line)
   put('hallWall', BISHOP.x0, BISHOP.z1 + 1, 1, 1, 'back', { tall: true });
-  put('hallDoor', room.width - 1, BISHOP.z1 + 1, 1, 1, 'back', { tall: true });
+  put('hallDoor', room.width - 1, BISHOP.z1 + 1, 1, 1, 'back', { tall: true, open: true }); // (left open: his lordship's out)
   put('doubleBed', BISHOP.x0 + (room.width - 1 - BISHOP.x0 > 1 ? 1 : 0), 0, 2, 2, 'back');
   put('barrel', BISHOP.x0, 2); // (his wine)
   put('chest', BISHOP.x0, BISHOP.z1, 1, 1, 'none'); // (his coffer: the way in from the door, along the wall, free)
