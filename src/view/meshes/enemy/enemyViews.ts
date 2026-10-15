@@ -24,9 +24,9 @@ import { KIND_LOOKS } from './enemyKinds';
 
 const MARKER_MOST = KIND_LOOKS.draugr.size; // the focus brackets, at their biggest (a draugr's, the lord's)
 const sizeOf = (kind: EnemyKind) => KIND_LOOKS[kind].size; // how big each kind's drawn, over the rest (enemyKinds.ts)
-// A champion of the deep (model/champions/): drawn bigger than its kind, a pale ring rimmed in blood-red at its feet.
+// A champion of the deep (model/champions/): drawn bigger than its kind, a pale ring at its feet, blood-dark within.
 const CHAMPION_SIZE = 1.2;
-const CHAMPION_RING = [0xe8e4ee, 0x6a1018];
+const CHAMPION_RING = [0xe8e4ee, 0x3a080c];
 const drawnSize = (enemy: Enemy) => sizeOf(enemy.kind) * (enemy.champion ? CHAMPION_SIZE : 1);
 
 export class EnemyViews {
