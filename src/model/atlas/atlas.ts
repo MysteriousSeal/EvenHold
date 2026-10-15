@@ -104,6 +104,11 @@ export class Atlas {
     if (this.fog.walk(hero.x, hero.z)) this.look(hero.x, hero.z);
   }
 
+  // A place told of (a pedlar's rumour: travellers/pedlarNews.ts): what's at (x, z), come upon as though seen.
+  hear(x: number, z: number): void {
+    this.look(x, z);
+  }
+
   // The places within sight of (x, z), come upon.
   private look(x: number, z: number): void {
     const near = (p: { x: number; z: number }) => Math.abs(p.x - x) <= SIGHT && Math.abs(p.z - z) <= SIGHT && Math.hypot(p.x - x, p.z - z) <= SIGHT;
