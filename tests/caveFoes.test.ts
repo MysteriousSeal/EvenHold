@@ -117,6 +117,11 @@ describe('a cave\'s beasts', () => {
     expect(mother.state).toBe('wander');
     expect(Math.hypot(mother.x - nest.x, mother.z - nest.z)).toBeLessThan(0.01);
     model.takeEvents();
+    Object.assign(model.hero, { x: nest.x, z: nest.z + nest.r + 2 }); // (come near her nest: told she waits, once)
+    model.cave!.update(FRAME);
+    model.cave!.update(FRAME);
+    expect(model.takeEvents().filter((e) => e.kind === 'banner')).toEqual([{ kind: 'banner', title: 'The brood mother waits', line: 'Her nest lies ahead' }]);
+    expect(mother.state).toBe('wander');
     Object.assign(model.hero, { x: nest.x + 1.5, z: nest.z });
     run(model, FRAME);
     expect(mother.state).toBe('chase');
