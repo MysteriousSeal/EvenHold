@@ -30,7 +30,9 @@ describe('what gear is made of, and leaves', () => {
     expect(salvageOf('armingSword')).toEqual({ make: 'iron', needs: 1, gives: [['ironScrap', 1]] });
     expect(salvageOf(gearKey({ item: 'armingSword', level: 13, rarity: 'rare', roll: 2 }))).toEqual({ make: 'iron', needs: 13 * 3 - 8 + 20, gives: [['ironScrap', 3], ['temperedIngot', 1]] });
     expect(salvageOf(gearKey({ item: 'rubyRing', level: 7, rarity: 'epic', roll: 1 }))).toEqual({ make: 'silver', needs: 7 * 3 - 8 + 60, gives: [['silverFilings', 2], ['gemShard', 1], ['cutGem', 2]] });
-    expect(salvageOf('quarterstaff').gives).toEqual([['oakPlank', 1]]);
+    expect(salvageOf('quarterstaff').gives).toEqual([['birchPlank', 1]]); // (a wooden piece: the plank of its level's wood)
+    expect(salvageOf(gearKey({ item: 'club', level: 8, rarity: 'common', roll: 0 })).gives).toEqual([['pinePlank', 2]]);
+    expect(salvageOf(gearKey({ item: 'plankShield', level: 16, rarity: 'common', roll: 0 })).gives).toEqual([['oakPlank', 3]]);
   });
 });
 

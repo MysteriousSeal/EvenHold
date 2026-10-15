@@ -21,7 +21,7 @@ import { rollHoard } from '../src/model/loot/hoard';
 import { makeEnemy } from '../src/model/enemies/enemies';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { buyBack } from '../src/model/shops/shopStock';
-import { BREAK_SECONDS, SCRAP_OF, makeOf, salvageOf } from '../src/model/skills/salvage';
+import { BREAK_SECONDS, makeOf, salvageOf, scrapOf } from '../src/model/skills/salvage';
 import { gearSellPrice, sellGear, smithBuys, smithShopAt, smithShopIn } from '../src/model/smithy/smithShop';
 import { BOSS_PIECE, bossPiece } from '../src/model/strongholds/strongholdLoot';
 import type { EnemyKind } from '../src/model/types';
@@ -136,7 +136,7 @@ describe("a stronghold's named pieces", () => {
       }
       // At the bench: not past the skill it asks (an epic's, a legendary's: a good deal); with it, broken down.
       const { needs, gives } = salvageOf(piece);
-      expect(gives[0][0]).toBe(SCRAP_OF[makeOf(NAMED[id].item)]);
+      expect(gives[0][0]).toBe(scrapOf(makeOf(NAMED[id].item), levelOf(piece)));
       expect(model.salvage.candidates).toContain(piece);
       expect(model.salvage.start(piece)).toBe('skill');
       hero.skills = { ...hero.skills, salvaging: { level: needs, toward: 0 } as never };
