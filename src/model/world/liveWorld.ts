@@ -52,6 +52,7 @@ export interface WorldHost {
   readonly chickens?: { readonly lost: ReadonlySet<number>; readonly off?: ReadonlySet<number>; readonly trees?: readonly Tree[]; statues?(): ReadonlyArray<{ x: number; z: number; half: number }> };
   readonly swaps?: { remade(beings: ReadonlyArray<Npc | Enemy | Traveller>): void }; // those a charm's changed, changed again as they're made (spells/swaps.ts)
   felled?(tree: Tree): boolean; // (skills/lumber.ts)
+  settle?(area: Area): void; // what lies about in a region just made, set on its ground (a save's loot, coins and quest foes, put down before it was)
   slay(enemy: Enemy): void; // a foe slain by someone else (a guard on the road)
 }
 
@@ -242,6 +243,7 @@ export class LiveWorld {
     for (const traveller of [...band.list]) if (chickens?.off?.has(traveller.id)) band.lose(traveller);
     this.live(index, alive, band);
     swaps?.remade([...alive.npcs, ...alive.enemies, ...band.list]);
+    this.host.settle?.(this.contents(index)!.area);
   }
 
   // What's known of region `index`, from its first making: kept, its lists added to the world's, its crypts, caves and strongholds

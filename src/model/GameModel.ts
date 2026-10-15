@@ -150,6 +150,11 @@ export class GameModel {
   readonly roads = new Roads(this); // (the witch-finders' patrols, the dead walking at night: roads/roads.ts)
   readonly dice = new DiceHall(() => this); // (the dice at the inns' tables, tonight's sharps: inn/diceHall.ts)
   felled = (tree: Tree): boolean => this.lumber.felled(tree); // (the world's: a felled tree not there, nor in the way)
+  // A region just made: what was put down on it before (a save's loot and coins, its quests' foes gathered; at the
+  // height of the land unmade, 0) set on its ground.
+  settle = ({ x0, z0, x1, z1 }: Area): void => {
+    for (const thing of [...this.ground.loot, ...this.ground.coins, ...this.world.enemies.filter((e) => e.quest)]) if (thing.x >= x0 && thing.x < x1 && thing.z >= z0 && thing.z < z1) thing.y = this.getGroundY(thing.x, thing.z);
+  };
 
   // Dev cheats: speed factor (1 = normal); walking through everything; enemies' blows don't hurt; every blow of the hero's
   // a kill; drawn with nothing on (what's worn stays worn, and counts); enemies standing still (enemiesFrozen, below).
