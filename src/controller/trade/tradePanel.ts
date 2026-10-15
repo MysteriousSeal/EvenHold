@@ -42,7 +42,8 @@ export interface Trade {
   note?(): string | null; // a line at the foot of their window, if there's one to say (the inn's cupboard)
   service?(): { label: string; tip: string; can: boolean; act(): string } | null; // a button of theirs beside Sell junk (the smith's Mend: its label, a tip, whether it can be done, and done: their word)
   about(id: BagItem): string; // their word on one of their wares, just bought
-  offered(name: string): string; // their word on what the hero's just sold them
+  greet?(): string | null; // their word on opening, if they've one of their own just now (else one of their hellos)
+  offered(name: string, id: BagItem): string; // their word on what the hero's just sold them
   junk(name: string | null, paid: string): string; // and on junk sold them: one thing (its name), or a whole lot at once (null), and what they paid ("5 copper")
   boughtBack(name: string, paid: string): string; // and on the hero buying back what they'd sold (its name, "3 wolf fangs"), for what
   blurb(id: BagItem): string; // what it is
@@ -210,7 +211,7 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
     price: (id) => (isJunk(id) && !trade.wanted(id) ? sellValue(id)! : trade.price(id, true)), // (what they want of the junk: at their own price)
     sell: (id) => {
       const result = sellOne(id);
-      answer(result, result === 'sold' ? (isJunk(id) ? trade.junk(nameOf(id).toLowerCase(), coinWords(sellValue(id)!)) : trade.offered(nameOf(id))) : undefined);
+      answer(result, result === 'sold' ? (isJunk(id) ? trade.junk(nameOf(id).toLowerCase(), coinWords(sellValue(id)!)) : trade.offered(nameOf(id), id)) : undefined);
     },
   };
   // Every bit of junk in the bag, sold while the keeper's purse holds.
@@ -268,7 +269,7 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
       if (menu.isOpen && keeper === npc) return; // already trading with them
       keeper = npc;
       for (const page of pages) page.at = 0;
-      says = pick(trade.lines.hello);
+      says = trade.greet?.() ?? pick(trade.lines.hello);
       menu.setTitle(`${npc.name}'s ${trade.title.toLowerCase()}`);
       menu.open(0); // on Buy, whichever tab it was left on
     },
