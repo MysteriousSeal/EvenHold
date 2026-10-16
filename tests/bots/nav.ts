@@ -13,6 +13,8 @@ import { noticeBoards } from '../../src/model/quests/noticeBoards';
 import { boardNumber } from '../../src/model/quests/quests';
 import { zoneLevel } from '../../src/model/enemies/enemyLevels';
 import { spawnOf } from '../../src/model/map/grid';
+import { letUntil } from '../../src/model/inn/roomLetting';
+import { ownsHere } from '../../src/model/homestead/cottage';
 
 export type Arrival = 'going' | 'there' | 'stuck' | 'no way';
 
@@ -213,6 +215,12 @@ export class Nav {
 
 // The nearest door of a kind of building to the hero (`but` those), if there's one: on ground made just now (a streamed
 // world's farther regions, not made yet, can't be walked to: their villages are known, but not the way there).
+// A bed the hero may lie in (setbacks.ts: an owner at home turns them out): the inn with their room let, their own
+// cottage, else the nearest house whose folk are out; none free, null.
+export function freeBed(model: GameModel): Entrance | null {
+  return nearestDoor(model, 'inn', (e) => letUntil(e) === null) ?? model.entrances.find((e) => ownsHere(model.hero, e)) ?? nearestDoor(model, 'house', (e) => model.folk.some((n) => n.home === e && n.where === e));
+}
+
 export function nearestDoor(model: GameModel, type: Entrance['type'], but: (e: Entrance) => boolean = () => false, within = Infinity): Entrance | null {
   const { hero } = model;
   return model.entrances.filter((e) => e.type === type && !but(e) && model.isMade(e.x, e.z) && Math.hypot(e.x - hero.x, e.z - hero.z) < within).sort((a, b) => Math.hypot(a.x - hero.x, a.z - hero.z) - Math.hypot(b.x - hero.x, b.z - hero.z))[0] ?? null;

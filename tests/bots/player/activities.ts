@@ -24,6 +24,7 @@ import { RECIPES } from '../../../src/model/skills/woodworking';
 import { skillOf } from '../../../src/model/skills/skills';
 import { isGear } from '../../../src/model/human/items/gear';
 import { better } from '../errands';
+import { freeBed } from '../nav';
 import { bestRecipe } from '../../../src/controller/skills/recipeBook';
 import { buyGear, gearPrice, smithShopIn } from '../../../src/model/smithy/smithShop';
 import { PICKUP_RANGE } from '../../../src/model/loot/loot';
@@ -157,7 +158,8 @@ export const ACTIVITIES: Activity[] = [
     options: (p) => {
       const { hero } = p.model;
       const [tired, hurt] = [hero.energy < maxEnergyOf(hero) * 0.6, hero.hp < maxHpOf(hero) * 0.5];
-      return (tired || hurt) && door(p, 'house').length ? [{ label: hurt ? 'a bed, to mend' : 'a bed, to sleep', at: door(p, 'house')[0].at }] : []; // (tired, or hurt: a bed mends, for free)
+      const bed = (tired || hurt) && freeBed(p.model); // (one it may lie in: nav.ts)
+      return bed ? [{ label: hurt ? 'a bed, to mend' : 'a bed, to sleep', at: bed }] : []; // (tired, or hurt: a bed mends, for free)
     },
     steps: (p) => p.go('sleep'),
   },

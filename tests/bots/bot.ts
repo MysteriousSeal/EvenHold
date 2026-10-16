@@ -26,10 +26,9 @@ import { barmaidHere, callFor, serveOrder, type BarMenuItem } from '../../src/co
 import { ROOM_PRICE, letDoor, letUntil, lettingHours, rentRoom, roomAction } from '../../src/model/inn/roomLetting';
 import { shopAt } from '../../src/model/inn/tavernShop';
 import { doorNumber } from '../../src/model/interiors/interiors';
-import { ownsHere } from '../../src/model/homestead/cottage';
 import { TALK_RANGE } from '../../src/model/npcs/talk';
 import { PICKUP_RANGE } from '../../src/model/loot/loot';
-import { boardFor, heroState, nearestDoor, openNear } from './nav';
+import { boardFor, freeBed, heroState, nearestDoor, openNear } from './nav';
 import { Errands, better, isGear, type Status } from './errands';
 import { type Report, type Step } from './botSteps';
 import { BotVentures } from './ventures';
@@ -232,13 +231,11 @@ export abstract class Bot extends BotVentures {
       case 'nap':
       case 'sleep':
       {
-        // A bed it may lie in (setbacks.ts: an owner at home turns it out): its own room let, its own cottage, else a
-        // house whose folk are out; none free, nothing to do.
+        // A bed it may lie in (nav.ts freeBed); none free, nothing to do.
         const rested = this.until(() => hero.energy >= maxEnergyOf(hero) * 0.95 && hero.hp >= maxHpOf(hero) * 0.95, 120, 'slept in bed, not rested and mended');
-        const lodging = nearestDoor(this.model, 'inn', (e) => letUntil(e) === null);
-        if (lodging) return [...this.enter(lodging), ...this.upstairs(rested), () => (this.stats.sleeps++, 'ok'), ...this.leave()]; // (up from the bed in it)
-        const bed = this.model.entrances.find((e) => ownsHere(hero, e)) ?? nearestDoor(this.model, 'house', (e) => this.model.folk.some((n) => n.home === e && n.where === e));
+        const bed = freeBed(this.model);
         if (!bed) return [];
+        if (bed.type === 'inn') return [...this.enter(bed), ...this.upstairs(rested), () => (this.stats.sleeps++, 'ok'), ...this.leave()]; // (up from the bed in it)
         return [...this.enter(bed), this.sitOn((k) => k === 'bed' || k === 'doubleBed'), rested, () => ((this.stats.sleeps++, this.model.sitOrStand()), 'ok'), ...this.leave()];
       }
       case 'loot':
