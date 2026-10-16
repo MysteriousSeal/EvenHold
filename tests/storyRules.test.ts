@@ -193,6 +193,8 @@ describe('where quests are set', () => {
   it("offers one whose giver speaks as a man or a woman (\"my wife\", \"my husband\") only from one", () => {
     const model = world();
     const { story } = model;
+    story.accept('wordToTheInn');
+    story.handIn('wordToTheInn'); // (the first village's own asked only after)
     const seen = { offered: 0, locked: 0 };
     for (const who of model.npcs.filter((n) => n.role === 'villager')) {
       for (const q of story.questsOf(who)) {
@@ -278,5 +280,27 @@ describe('the first village, its line under way', () => {
     // As saved: where it was kept.
     model.story.load(saved);
     expect(model.story.people!.village).toBe(trailed);
+  }, 120_000);
+});
+
+describe("the first village's keepers, before the carter's word is carried", () => {
+  it("hold their own asks till it's done (one thread at a time); other villages' and a quest already taken (an older save) as they were", () => {
+    const model = new GameModel(7, STREAMED_SIZE);
+    const { story } = model;
+    const { carter, barmaid, smith, village } = story.people!;
+    const here = () => story.asking.filter(({ who }) => who === carter || ('village' in who && who.village === village)).map(({ who, mark }) => [who === carter ? 'carter' : (who as { role: string }).role, mark]);
+    expect(here()).toEqual([['carter', 'offer']]);
+    expect(story.asking.some(({ who }) => 'village' in who && who.village !== village)).toBe(true); // (elsewhere: as ever)
+    const shift = story.questsOf(barmaid).find((q) => q.scope === 'village' && q.set)!; // (hers: a shift, bowls, a threat to carry)
+    expect(shift.state).toBe('locked');
+    expect(story.accept(shift.key)).toBe(false);
+    story.accept('wordToTheInn');
+    story.handIn('wordToTheInn');
+    expect(story.markOf(barmaid)).toBe('offer');
+    expect(story.questsOf(barmaid).find((q) => q.key === shift.key)!.state).toBe('offered');
+    if (smith) expect(story.markOf(smith)).toBe('offer');
+    // An older save: the barmaid's shift taken before the carter's word was.
+    story.load({ states: { [shift.key]: 'taken' } });
+    expect([story.stateOf('wordToTheInn'), story.stateOf(shift.key)]).toEqual(['offered', 'taken']);
   }, 120_000);
 });

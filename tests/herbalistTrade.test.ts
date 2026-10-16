@@ -117,6 +117,8 @@ describe("a keeper's word on the story, greeting the hero at their window", () =
   it("what they're waiting on, then what they say of it done (not left unsaid for their wares)", () => {
     const model = fresh();
     const { story, hero } = model;
+    story.accept('wordToTheInn');
+    story.handIn('wordToTheInn'); // (the first village's keepers ask nothing before)
     const key = story.keysOf('meatForTheBroth')[0];
     const herbalist = model.npcs.find((n) => n.role === 'herbalist' && story.talk(n, key))!;
     hero.look.build = herbalist.look.build; // (no supper after it)

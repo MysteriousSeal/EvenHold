@@ -42,6 +42,7 @@ export type { SaintState } from './saint/saintState';
 const REACH = 1.7; // tiles from the carter, or a villager, for a word
 const CALLS = 6; // tiles: the carter, his ! over him, calls the hero over from this far (the start: a few steps off him)
 const PER_LEVEL = 0.25; // more coin, a level of the village's over the first
+const FIRST_WORD = 'wordToTheInn@first'; // (the carter's first errand: the first village's keepers ask nothing before it's done)
 const hasTrade = (who: Who): boolean => 'role' in who && (who.role === 'barkeep' || who.role === 'smith' || who.role === 'herbalist' || who.role === 'pedlar' || who.role === 'witch' || (who.role as string) === 'pardoner'); // (Greyminster's pardoner: his relic stall, the cathedral town's)
 
 export class Story {
@@ -108,6 +109,8 @@ export class Story {
     if (i.quest.night && !this.l.freed.has(key) && i.at?.who[i.quest.giver]?.look.build === this.host.hero.look.build) return 'locked';
     // (One whose giver speaks as a man, or a woman: offered only by one.)
     if (i.quest.sex && !this.l.freed.has(key) && i.at && i.at.who[i.quest.giver]?.look.build !== i.quest.sex) return 'locked';
+    // (The first village's keepers' own: held till the carter's word is carried, the newcomer led one thread at a time.)
+    if (i.quest.scope === 'village' && i.at && i.at.village === this.set.first?.village && this.set.all.has(FIRST_WORD) && this.l.state.get(FIRST_WORD) !== 'done' && !this.l.freed.has(key)) return 'locked';
     const saint = i.quest.scope === 'saint';
     const before = i.quest.follows && (saint ? keyBefore(i.quest.follows, this.l.state, this.set.all) : keyOf(i.quest.follows, i.at)); // (the second arc's: the one before set in another place)
     if (!before || this.l.state.get(before) === 'done' || this.l.freed.has(key)) return 'offered';

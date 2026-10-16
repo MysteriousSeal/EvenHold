@@ -19,6 +19,24 @@ const SEEN: Record<string, string> = {
   left: 'You walked past a chained woman and did not look back. Most people do. It is what makes my work possible.',
 };
 const exposed = (t: { chose?(id: string): string | undefined }) => t.chose?.('theSaintsBargain') === 'expose';
+// The herbalist's word on the chained witch (saintQuests.ts: smokeOnTheRoad), by how the bishop's bargain went; the
+// pedlar has it too (travellers/pedlarNews.ts: the staple, the two silver). (Older saves without the choice: nothing.)
+const HEARTH: Record<'told' | 'kept', Record<string, string>> = {
+  told: {
+    free: "And a woman came to my back door a week since, hex-ink still on her fingers. She said somebody kicked a staple out of a wall for her. She is asleep in my loft. Mind the third stair, it talks.",
+    handed: 'And you sold a woman on the north road to them for two silver. She wrote to me from the cart, with a burnt stick on a bit of sacking. My grandmother went the same road in the same cart. I have not decided what you are.',
+    left: 'The woman chained on the north road. You walked past her. So did everyone. I will not hate you for it. Not much.',
+  },
+  kept: {
+    free: "You kicked the staple out of a witch's wall, and then you took their purse. She came to my back door, so I know. I do not understand you.",
+    handed: 'You sold a woman to them for two silver. I know, because she wrote to me from the cart. My grandmother burned for less. You did not even haggle.',
+    left: 'And the woman chained on the north road. You walked past her. Of course you did.',
+  },
+};
+const hearth = (t: { chose?(id: string): string | undefined }): string[] => {
+  const line = HEARTH[exposed(t) ? 'told' : 'kept'][t.chose?.('smokeOnTheRoad') ?? ''];
+  return line ? [line] : [];
+};
 
 export const SAINT_TOWN_QUESTS: StoryQuest[] = [
   saint({
@@ -243,10 +261,12 @@ export const SAINT_TOWN_QUESTS: StoryQuest[] = [
         ? [
             'He came in at my door and sat down at my table as if he had done it every day for thirty years. I gave him soup. He cried into it. Then he told me the rest.',
             'A bishop in the stocks, and the witch-finders gone over the hills like sheep. And the thing that healed them was eating their prayers. Oh, that is good. That is even better than the finger.',
+            ...hearth(t),
             'Come here. There is a place called EvenHold. My grandmother used to talk of it: where the road goes when it runs out of villages. Nobody I know has been. Go and find it, and come back and tell me.',
           ]
         : [
             'He told me. All of it. He thinks you were clever. He would.',
+            ...hearth(t),
             'I know what was in that purse, and I know whose work it pays for. I will sell to you. I will not speak to you again.',
           ],
     accept: "I'm home.",
