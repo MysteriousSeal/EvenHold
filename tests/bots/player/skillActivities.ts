@@ -7,6 +7,8 @@ import { skillOf } from '../../../src/model/skills/skills';
 import { COOK_RECIPES, COOK_RECIPE_IDS } from '../../../src/model/skills/cooking';
 import { SMITH_RECIPE_IDS } from '../../../src/model/skills/smithing';
 import { BREW_RECIPE_IDS } from '../../../src/model/skills/alchemy';
+import { tableOf } from '../../../src/model/inn/diceHall';
+import { castDice, startGame } from '../../../src/model/inn/diceTable';
 import { SMITH_PICK, buyGear, smithShopIn } from '../../../src/model/smithy/smithShop';
 import { doorNumber, type Entrance } from '../../../src/model/interiors/interiors';
 import { COTTAGE_PRICE, UPGRADES, hasBuilt, isCottage, offerOf, pieceInReach, type UpgradeId } from '../../../src/model/homestead/cottage';
@@ -41,6 +43,51 @@ const brewOf = (p: Parameters<Activity['options']>[0]) =>
 const WANTED: UpgradeId[] = ['bed', 'hearth', 'cauldron', 'chest']; // (what a home wants first)
 
 export const SKILL_ACTIVITIES: Activity[] = [
+  {
+    // Hazard at an inn's table (inn/diceTable.ts): sat across from a villager at it, a few games at the least stake,
+    // main seven, cast till each's won or lost; then up. Crying foul's left alone (a loser's game played blind).
+    id: 'dice',
+    indoors: true,
+    serves: { company: 0.6, coin: 0.4, rest: 0.3 },
+    traits: { bold: 0.4, greedy: 0.4, cautious: -0.4, social: 0.3 },
+    options: (p) => {
+      if (p.model.hero.money < 30 || p.model.work.shift) return [];
+      const inn = [...p.known.doors].filter((d) => d.type === 'inn').sort((a, b) => near(p, a) - near(p, b))[0];
+      return inn && near(p, inn) < 150 ? [{ label: 'the dice, at the inn', at: inn, data: inn }] : [];
+    },
+    steps: (p, t) => {
+      const inn = t.data as Entrance;
+      const seatAt = () => { // (a free chair at a table a villager's sat at)
+        const inside = p.model.inside;
+        if (!inside) return null;
+        const sat = p.model.folk.filter((n) => n.where === inside.entrance && n.role === 'villager' && n.seat).map((n) => tableOf(inside.furniture, n.seat!.piece)).filter(Boolean);
+        return inside.furniture.find((f) => f.kind === 'chair' && sat.includes(tableOf(inside.furniture, f)) && !p.model.folk.some((n) => n.seat?.piece === f)) ?? null;
+      };
+      let [games, t2] = [0, 0];
+      return [
+        ...p.enter(inn),
+        (dt) => { // (to the chair, and sat)
+          const chair = seatAt();
+          if (!chair || (t2 += dt) > 30) return 'fail';
+          if (p.model.seatInReach?.piece === chair) return p.model.sitOrStand() ? 'ok' : 'fail';
+          return p.walk(() => ({ x: chair.x, z: chair.z }), 0.6)(dt) === 'fail' ? 'fail' : 'run';
+        },
+        () => { // (the games: three at most, or till either's done)
+          const across = p.model.dice.across(p.model.folk);
+          const at = across && p.model.dice.play(across);
+          if (!at) return 'fail';
+          for (; games < 3 && !at.sitting.over; games++) {
+            if (!startGame(at.sitting, p.model.hero, 7, at.sitting.stakes[0], p.rng)) break;
+            for (let i = 0; i < 40 && castDice(at.sitting, p.model.hero, p.rng); i++);
+          }
+          p.log(`played ${games} game${games === 1 ? '' : 's'} of hazard with ${across.name}`);
+          return games > 0 ? 'ok' : 'fail';
+        },
+        () => (p.model.seated && p.model.sitOrStand(), 'ok'),
+        ...p.leave(),
+      ];
+    },
+  },
   {
     id: 'brew',
     serves: { craft: 0.9, coin: 0.4, safety: 0.2 },
