@@ -23,9 +23,10 @@ import { boardSpot } from '../../src/model/quests/noticeBoards';
 import { squareBenches } from '../../src/model/worldgen/benches';
 import { doorAt, stairsInReach, stairsOf, takeStairs, useHallDoor } from '../../src/model/interiors/upstairs';
 import { barmaidHere, callFor, serveOrder, type BarMenuItem } from '../../src/controller/trade/barOrder';
-import { ROOM_PRICE, letUntil, lettingHours, rentRoom, roomAction } from '../../src/model/inn/roomLetting';
+import { ROOM_PRICE, letDoor, letUntil, lettingHours, rentRoom, roomAction } from '../../src/model/inn/roomLetting';
 import { shopAt } from '../../src/model/inn/tavernShop';
 import { doorNumber } from '../../src/model/interiors/interiors';
+import { ownsHere } from '../../src/model/homestead/cottage';
 import { TALK_RANGE } from '../../src/model/npcs/talk';
 import { PICKUP_RANGE } from '../../src/model/loot/loot';
 import { boardFor, heroState, nearestDoor, openNear } from './nav';
@@ -81,14 +82,15 @@ export abstract class Bot extends BotVentures {
     this.model.update(this.move[0], this.move[1], dt);
     this.afterFrame(); // (a roll under way: watched)
     this.balance.xp('kills', before); // (all a frame brings: blows land in it)
-    // Fallen (health gone, in this frame): woken at an inn, healed, some coin gone; whatever it was doing, over.
-    const fell = hero.hp > before.hp && hero.hp >= maxHpOf(hero) && hero.level === before.level && (this.model.inside !== null || Math.hypot(hero.x - before.x, hero.z - before.z) > 3) && !hero.drinking; // (a level up heals them whole too: not a fall)
+    // Fallen (the model's own word of it, this frame): woken at an inn, healed, some coin gone; whatever it was doing, over.
+    const events = this.model.takeEvents();
+    const fell = events.some((e) => e.kind === 'fallen'); // (not any heal to full indoors: a night's sleep, a shift's end)
     if (hero.money !== before.money) this.balance.coin(fell ? 'lost on falling' : working && !this.model.work.shift ? 'shifts' : 'coins found', hero.money - before.money);
     if (fell) {
       this.balance.fell(about);
       this.fresh('fell');
     }
-    for (const e of this.model.takeEvents()) if (e.kind === 'hit' && e.on !== 'hero' && !(e.amount > 0)) this.report('blow for nothing', `${e.on}: ${e.amount}`);
+    for (const e of events) if (e.kind === 'hit' && e.on !== 'hero' && !(e.amount > 0)) this.report('blow for nothing', `${e.on}: ${e.amount}`);
   }
 
   // A foe at the hero's heels (chasing, close), or one of a herd it's hemmed in by: fought off first, to the end.
@@ -229,7 +231,16 @@ export abstract class Bot extends BotVentures {
         return [...this.enter(inn()), ...this.atTheBar('pie'), ...this.leave()];
       case 'nap':
       case 'sleep':
-        return [...this.enter(nearestDoor(this.model, 'house', (e) => this.model.folk.some((n) => n.home === e && n.where === e)) ?? nearestDoor(this.model, 'house')), this.sitOn((k) => k === 'bed' || k === 'doubleBed'), this.until(() => hero.energy >= maxEnergyOf(hero) * 0.95 && hero.hp >= maxHpOf(hero) * 0.95, 120, 'slept in bed, not rested and mended'), () => ((this.stats.sleeps++, this.model.sitOrStand()), 'ok'), ...this.leave()];
+      {
+        // A bed it may lie in (setbacks.ts: an owner at home turns it out): its own room let, its own cottage, else a
+        // house whose folk are out; none free, nothing to do.
+        const rested = this.until(() => hero.energy >= maxEnergyOf(hero) * 0.95 && hero.hp >= maxHpOf(hero) * 0.95, 120, 'slept in bed, not rested and mended');
+        const lodging = nearestDoor(this.model, 'inn', (e) => letUntil(e) === null);
+        if (lodging) return [...this.enter(lodging), ...this.upstairs(rested), () => (this.stats.sleeps++, 'ok'), ...this.leave()]; // (up from the bed in it)
+        const bed = this.model.entrances.find((e) => ownsHere(hero, e)) ?? nearestDoor(this.model, 'house', (e) => this.model.folk.some((n) => n.home === e && n.where === e));
+        if (!bed) return [];
+        return [...this.enter(bed), this.sitOn((k) => k === 'bed' || k === 'doubleBed'), rested, () => ((this.stats.sleeps++, this.model.sitOrStand()), 'ok'), ...this.leave()];
+      }
       case 'loot':
       {
         const go = this.walk(() => loot!, PICKUP_RANGE * 0.8);
@@ -396,8 +407,9 @@ export abstract class Bot extends BotVentures {
     ];
   }
 
-  // Up the inn's stairs, a room's door opened, a lie on its bed, and down again.
-  private upstairs(): Step[] {
+  // Up the inn's stairs, the let room's door opened, a lie on its bed (`abed`: as long as that takes), and down again.
+  // No room let (none to be had): not up at all.
+  private upstairs(abed: Step = this.wait(3)): Step[] {
     return [
       // In letting hours, with the coin, none let yet: a room off the barmaid first (its door's unlocked for it).
       (dt) => {
@@ -421,6 +433,7 @@ export abstract class Bot extends BotVentures {
         const { inside, hero } = this.model;
         if (!inside) return 'fail';
         if (inside.below) return 'ok';
+        if (letUntil(inside.entrance) === null) return 'fail'; // (every room up there locked to it)
         const stairs = stairsOf(inside);
         if (!stairs) return 'fail';
         if (stairsInReach(inside, hero)) {
@@ -435,8 +448,8 @@ export abstract class Bot extends BotVentures {
       (dt) => {
         const { inside, hero } = this.model;
         if (!inside?.below) return 'fail';
-        const door = inside.furniture.find((f) => f.kind === 'hallDoor' && !f.open);
-        if (!door) return 'ok';
+        const door = letDoor(inside.furniture); // (the let room's: the others locked)
+        if (!door || door.open) return 'ok';
         if (doorAt(inside, hero) === door) return useHallDoor(this.model) ? 'ok' : 'fail';
         // (its middle, in its wall: as near as can be got, from the hall)
         const middle = door.wall === 'left' ? { x: door.x - 0.4, z: door.z - 0.5 + door.d / 2 } : { x: door.x - 0.5 + door.w / 2, z: door.z - 0.4 };
@@ -445,7 +458,7 @@ export abstract class Bot extends BotVentures {
         return step === 'fail' ? 'ok' : 'run';
       },
       this.sitOn((k) => k === 'roomBed' || k === 'doubleBed'),
-      this.wait(3),
+      abed,
       () => (this.model.sitOrStand(), 'ok'),
     ];
   }
