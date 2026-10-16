@@ -3,6 +3,7 @@
 // travellers on the roads, wildlife, the hero's focus and health, their trades. What blocks movement and sight is kept in obstacles.ts.
 
 import { reclaimPurse, type Purse } from './hero/purse';
+import { fillNew } from './hero/actionBar';
 import { CombatMoves, GUARD_PACE } from './hero/combatMoves';
 import { stepOutdoors } from './hero/walkOutdoors';
 import { HERO_SPEED, HERO_RADIUS, ENEMY_ACTIVE_RADIUS } from './constants';
@@ -104,6 +105,7 @@ export class GameModel {
   readonly floors = new DungeonFloors(); // (and on each dungeon's floor, kept: dungeons/dungeonFloors.ts)
   readonly loot = this.ground.loot; // on the ground, until picked up
   readonly coins = this.ground.coins; // dropped coins, picked up by walking near them
+  private carried: Set<string> | null = null; // what's in the bag, as last looked (hero/actionBar.ts fillNew)
   readonly slain = new Set<number>(); // foes killed, by id (a saved world is made again without them)
   readonly shops = new Map<number, Shop>(); // each inn's, by its door's index (inn/tavernShop.ts)
   lastInn: Entrance | null = null; // the last inn entered, where the hero wakes after a fall
@@ -253,7 +255,9 @@ export class GameModel {
     if (dt <= 0) return;
     if (this.work.held) dirX = dirZ = 0; // (held where they stand: someone coming into their room at work, or going)
     this.minutes += dt; // a second played, a minute on the clock
-    [tickBlessing(this.hero, dt), regenerate(this.hero, dt)]; // a well's, wearing off; health back, by their gear's
+    [tickBlessing(this.hero, dt), regenerate(this.hero, dt)];
+    if (this.carried) fillNew(this.hero, this.carried); // (food new to the bag: on the action bar)
+    else this.carried = new Set(Object.keys(this.hero.bag)); // (what's carried as the game begins: left in the bag) // a well's, wearing off; health back, by their gear's
     this.streamer?.update(this.inside?.entrance ?? this.hero); // (a streamed world's regions round where they are on the map)
     checkOut(this, this.entrances); // (a room let at an inn, its time up)
     if (Math.hypot(dirX, dirZ) > 1e-6) this.hero.eating = null; // (up off the ground: a meal from the bag left)

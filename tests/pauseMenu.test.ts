@@ -262,7 +262,17 @@ describe('the pause menu: the rest', () => {
 
   it('no new game here (a new hero is made from the main menu)', () => {
     menu.open();
-    expect(Array.from(document.querySelectorAll('.pause-item b')).map((b) => b.textContent)).toEqual(['Resume', 'Zoom', 'Inner walls', 'Graphics', 'Brightness', 'Volume', 'Effects', 'Ambience', 'Tips', 'Controls', 'Keys', 'Main menu']);
+    expect(Array.from(document.querySelectorAll('.pause-item b')).map((b) => b.textContent)).toEqual(['Resume', 'Zoom', 'Inner walls', 'Graphics', 'Brightness', 'Volume', 'Effects', 'Ambience', 'Tips', 'Performance', 'Controls', 'Keys', 'Main menu']);
+  });
+
+  it('the readout (version, seed, place, frame rate) hidden till Performance is put On; the version kept at the foot', () => {
+    menu.open();
+    expect(document.body.classList.contains('readout-on')).toBe(false);
+    row('Performance').querySelectorAll('button')[1].click();
+    expect(document.body.classList.contains('readout-on')).toBe(true);
+    row('Performance').querySelectorAll('button')[0].click();
+    expect(document.body.classList.contains('readout-on')).toBe(false);
+    expect(document.querySelector('.pause-foot')!.textContent).toMatch(/v\d+\.\d+/);
   });
 });
 

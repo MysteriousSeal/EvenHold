@@ -23,6 +23,7 @@
       }
       /* (Narrow, over the action bar's row, which is moved left beside the toolbar: hud.css.) */
       @media (max-width: 1400px) { #hud { bottom: 88px; } }
+      body:not(.readout-on) #hud { display: none; } /* (till the pause menu's Performance is On: view/hud/readout.ts) */
       #hud div {
         font-family: monospace;
         font-size: 13px;
