@@ -28,7 +28,7 @@ import { restock } from './storyRestock';
 import { goalOf, innOf } from './storyGoals';
 import type { Gift, StoryQuest, Told } from './storyQuests';
 import { Choices, choiceAnswers, type Choice } from './storyChoices';
-import { keyOf, resettle, sameWorld, settle, type Instance, type QuestSet } from './storySet';
+import { keyOf, placeOf, resettle, sameWorld, settle, type Instance, type QuestSet } from './storySet';
 import { questsOf, replay } from './storyDebug';
 import { loadLedger, saveLedger, type Ledger, type SavedStory } from './storySave';
 import { idOf, keyed, type DebugQuest, type StoryHost, type StoryMark, type TakenStory, type Talk } from './storyTypes';
@@ -186,10 +186,19 @@ export class Story {
     const { hero } = this.host;
     this.raise();
     this.count((q, key) => {
-      const at = this.set.all.get(key)?.at ?? null;
+      const at = this.placed(key);
       const place = q.needs?.kind === 'reach' ? (at?.place[q.needs.place] ?? this.l.kept.get(key)?.goal) : undefined; // (its place off the maps: as kept)
       return (!!place && q.needs?.kind === 'reach' && Math.hypot(place.x - hero.x, place.z - hero.z) <= q.needs.within) || alreadyDone(this.host, q, at);
     });
+  }
+
+  // Where a quest under way is set, its own place (the ruin, camp or cave it asks of) as it was when taken: kept, not
+  // the nearest as more of a streamed world's made. (An older save's, with none kept: the nearest as the world stands.)
+  private placed(key: string): Setting | null {
+    const i = this.set.all.get(key);
+    const place = i && placeOf(i.quest);
+    const goal = this.l.kept.get(key)?.goal;
+    return i?.at && place && goal ? { ...i.at, place: { ...i.at.place, [place]: goal } } : (i?.at ?? null);
   }
 
   // What the quests under way send the hero for, kept there to be had (storyRestock.ts): looked to every couple of seconds.
@@ -197,7 +206,7 @@ export class Story {
     const { host } = this;
     if (host.minutes - this.haunted < 2) return;
     this.haunted = host.minutes;
-    const wants = [...this.l.state].filter(([, state]) => state === 'taken').map(([key]) => ({ quest: STORY_QUESTS[idOf(key)], at: this.set.all.get(key)?.at ?? null, left: this.progress(key).of - this.progress(key).have }));
+    const wants = [...this.l.state].filter(([, state]) => state === 'taken').map(([key]) => ({ quest: STORY_QUESTS[idOf(key)], at: this.placed(key), left: this.progress(key).of - this.progress(key).have }));
     restock(host, wants.filter((w) => w.quest));
   }
 
@@ -313,7 +322,8 @@ export class Story {
     this.l.state.set(key, 'taken');
     if (i.quest.scope === 'first' && i.at && (this.l.home === null || this.l.home === 'nearest')) this.l.home = { x: i.at.village.x, z: i.at.village.z }; // (its line under way: there for good)
     this.l.counted.delete(key);
-    const goal = i.quest.needs?.kind === 'reach' ? i.at?.place[i.quest.needs.place] : undefined;
+    const place = placeOf(i.quest);
+    const goal = place ? i.at?.place[place] : undefined; // (its place, kept as it is now: placed)
     this.l.kept.set(key, { to: i.quest.receiver ? t.receiver : '', from: t.giver, x: i.at?.village.x ?? this.host.hero.x, z: i.at?.village.z ?? this.host.hero.z, village: t.village, next: t.next, camp: t.camp, ...(goal ? { goal } : {}) });
     if (i.quest.needs?.kind === 'reach' && i.quest.needs.place === 'onward' && goal) this.l.road = goal; // (the witch's village, sent there: kept)
     room ? this.l.untracked.delete(key) : this.l.untracked.add(key);
@@ -400,7 +410,7 @@ export class Story {
       const back = quest.receiver && !to ? { x: kept.x, z: kept.z } : null; // (whoever takes it in off the maps: back to their village)
       return {
         id: key, name: quest.name, task: quest.task({ ...told, giver: kept.from, receiver: kept.to || kept.from }), ready, tracked: !this.l.untracked.has(key), ...this.progress(key),
-        to, toName: kept.to, fromName: kept.from, door: to && 'where' in to ? to.where : null, goal: ready ? back : (goalOf(this.host, quest, i?.at ?? null) ?? kept.goal ?? back), within: ready ? null : innOf(this.host, quest, i?.at ?? null),
+        to, toName: kept.to, fromName: kept.from, door: to && 'where' in to ? to.where : null, goal: ready ? back : (goalOf(this.host, quest, this.placed(key)) ?? kept.goal ?? back), within: ready ? null : innOf(this.host, quest, i?.at ?? null),
       };
     });
   }
