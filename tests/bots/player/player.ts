@@ -24,7 +24,7 @@ import { Memory, describe, draw, drawPersona, score, type Drive, type Persona } 
 
 const SEEN = 45; // tiles: how far off a place is noticed (about what's on screen, and a little beyond)
 const UNEXPLORED_WINDOW = 15; // minutes: with nothing new seen in so long, they've explored the country round
-const FIGHTS = new Set(['dungeon', 'camp', 'hunt', 'quest', 'fight', 'story']); // (what starts a fight, or walks into one)
+const FIGHTS = new Set(['dungeon', 'camp', 'hunt', 'quest', 'fight']); // (what starts a fight, or walks into one; the story's own fights: storyActivity.ts)
 const BUDGET = 8 * 60; // game seconds an activity may take, at most (a shift, a dungeon: their own): past it, given up, said so
 
 // What's been done, start to finish: for the diary and the report.

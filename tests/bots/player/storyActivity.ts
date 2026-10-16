@@ -15,8 +15,14 @@ import { bumpsFurniture } from '../../../src/model/interiors/furniture';
 import type { Step } from '../botSteps';
 import type { Toolkit } from './player';
 import type { Trait } from './persona';
-import type { Activity, Target } from './activities';
+import { ACTIVITIES, type Activity, type Target } from './activities';
+import { WOOD, woodOf as woodOfTree } from '../../../src/model/skills/lumber';
+import { skillOf } from '../../../src/model/skills/skills';
+import { maxHpOf } from '../../../src/model/hero/attributes';
+import { buyGear, gearPrice, smithShopIn } from '../../../src/model/smithy/smithShop';
+import type { Enemy, Tree } from '../../../src/model/types';
 
+const woodName = (p: Toolkit, tree: Tree) => woodOfTree(tree, p.model.seed).name;
 const main = (scope: string | undefined) => scope === 'first' || scope === 'saint'; // (the story's own: not a village's errand)
 // The same building (a door's object may be a copy: by where it is).
 const sameDoor = (a: Entrance | null, b: Entrance | null) => (a && b ? a.x === b.x && a.z === b.z : a === b);
@@ -95,19 +101,19 @@ export function speakWith(p: Toolkit, who: Carter | Npc): Step[] {
 // walked, a sidestep tried, and after FAILS of them, given up.
 const LEG = 80;
 const NEAR = 60;
-const FAILS = 4;
-export function travel(p: Toolkit, to: () => { x: number; z: number }): Step {
+const FAILS = 6;
+export function travel(p: Toolkit, to: () => { x: number; z: number }, near = NEAR): Step {
   let leg: Step | null = null;
   let fails = 0;
   return (dt) => {
     const { hero } = p.model;
     const at = to();
     const far = Math.hypot(at.x - hero.x, at.z - hero.z);
-    if (far <= NEAR) return 'ok';
+    if (far <= near) return 'ok';
     if (!leg) {
       const turn = fails * 0.6 * (fails % 2 ? 1 : -1); // (straight on; then a little to either side)
       const a = Math.atan2(at.z - hero.z, at.x - hero.x) + turn;
-      const go = Math.min(LEG, far);
+      const go = Math.min(LEG / (1 + fails), far); // (a leg that came to nothing: a shorter one, on land made round the hero)
       const aim = { x: hero.x + Math.cos(a) * go, z: hero.z + Math.sin(a) * go };
       leg = p.walk(() => aim, 4);
     }
@@ -132,21 +138,50 @@ export const STORY_ACTIVITY: Activity = {
       const ours = mark === 'ready' ? story.taken.some((t) => t.ready && t.to === who && main(STORY_QUESTS[idOf(t.id)]?.scope)) : story.questsOf(who).some((q) => q.set && q.state === 'offered' && main(q.scope));
       if (ours) out.push({ label: `${who.name}, for the story`, at: whereOf(who), data: { who } });
     }
+    const { hero } = p.model;
+    const far = (a: { x: number; z: number }) => Math.hypot(a.x - hero.x, a.z - hero.z);
     for (const t of story.taken) {
       if (!main(STORY_QUESTS[idOf(t.id)]?.scope)) continue;
+      // What it asks, done: logs felled (an axe bought first, if none), its foes sought out.
+      const needs = STORY_QUESTS[idOf(t.id)]?.needs;
+      const wood = needs?.kind === 'bring' && (hero.bag[needs.item] ?? 0) < needs.count ? Object.values(WOOD).find((w) => w.log === needs.item) : undefined;
+      if (wood && !p.model.lumber.axe) {
+        const smithy = [...p.known.doors].filter((d) => d.type === 'smithy').sort((a, b) => far(a) - far(b))[0];
+        if (smithy && hero.money >= gearPrice('hatchet')) out.push({ label: `the smith, for an axe ("${t.name}" wants ${wood.name})`, at: smithy, data: { axe: smithy } });
+      } else if (wood) {
+        const level = skillOf(hero, 'lumberjacking').level;
+        const tree = p.model.trees.filter((tr) => Math.abs(tr.x - hero.x) < 120 && Math.abs(tr.z - hero.z) < 120 && !p.model.lumber.felled(tr) && woodName(p, tr) === wood.name && wood.needs <= level && p.model.isMade(tr.x, tr.z)).sort((a, b) => far(a) - far(b))[0];
+        if (tree) out.push({ label: `a ${wood.name}, for "${t.name}"`, at: tree, data: { tree } });
+      }
+      if (needs?.kind === 'slay' && hero.hp >= maxHpOf(hero) * 0.6) { // (its foes: not sought half dead)
+        const foe = p.model.enemies.filter((e) => e.kind === needs.foe && e.state !== 'dead' && e.level <= hero.level + 1 && far(e) < 90).sort((a, b) => far(a) - far(b))[0];
+        if (foe) out.push({ label: `a ${needs.foe}, for "${t.name}"`, at: foe, data: { foe } });
+      }
       if (t.ready && t.to && !out.some((o) => (o.data as { who?: unknown }).who === t.to)) out.unshift({ label: `${t.toName}, to hand in "${t.name}"`, at: t.door ?? whereOf(t.to), data: { who: t.to } }); // (however far: who it's handed in to)
-      else if (t.goal) out.push({ label: t.ready ? `back towards ${t.toName}` : `where "${t.name}" leads`, at: t.within ?? t.goal, data: { goal: t.goal, within: t.within } });
+      else if (t.goal && hero.hp >= maxHpOf(hero) * 0.6) out.push({ label: t.ready ? `back towards ${t.toName}` : `where "${t.name}" leads`, at: t.within ?? t.goal, data: { goal: t.goal, within: t.within } });
     }
     return out.slice(0, 3);
   },
   steps: (p, t) => {
-    const data = t.data as { who?: Carter | Npc; goal?: { x: number; z: number }; within?: Entrance | null };
+    const data = t.data as { who?: Carter | Npc; goal?: { x: number; z: number }; within?: Entrance | null; tree?: Tree; foe?: Enemy; axe?: Entrance };
+    if (data.tree) return [travel(p, () => data.tree!), ...ACTIVITIES.find((a) => a.id === 'chop')!.steps(p, { label: t.label, at: data.tree, data: data.tree })];
+    if (data.foe) return [p.walk(() => data.foe!, 6), ...p.go('fight', { foe: data.foe })];
+    if (data.axe) {
+      const buy: Step = () => {
+        const shop = smithShopIn(p.model);
+        if ((shop.stock.hatchet ?? 0) > 0 && buyGear(shop, p.model.hero, 'hatchet') === 'bought') [p.model.equipFromBag('hatchet'), p.log('bought a hatchet, for the story')];
+        return p.model.lumber.axe ? 'ok' : 'fail';
+      };
+      return [travel(p, () => data.axe!), ...p.enter(data.axe), buy, ...p.leave()];
+    }
     const way = travel(p, () => t.at ?? p.model.hero);
     if (data.who) return [way, ...speakWith(p, data.who)];
     const goal = data.goal!;
     let waited = 0;
     const stay = (seconds: number): Step => (dt) => ((waited += dt) >= seconds ? 'ok' : 'run'); // (a while there: what it asks there comes of being there)
-    if (data.within) return [way, ...p.enter(data.within), stay(20), ...p.leave()]; // (or of the shift the player works)
-    return [way, p.walk(() => goal, 2), stay(10)]; // (a place reached; a foe met is fought off on the way)
+    if (data.within) return [travel(p, () => data.within!, 6), ...p.enter(data.within), stay(20), ...p.leave()]; // (or of the shift the player works)
+    const close = p.walk(() => goal, 3);
+    const near: Step = (dt) => { const s = close(dt); return s === 'fail' && Math.hypot(goal.x - p.model.hero.x, goal.z - p.model.hero.z) < 8 ? 'ok' : s; }; // (the spot itself may be a stone: near it does)
+    return [travel(p, () => goal, 6), near, stay(10)]; // (a place reached, all the way to it; a foe met is fought off on the way)
   },
 };
