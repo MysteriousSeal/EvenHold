@@ -19,6 +19,7 @@ import { LOOT, type LootId } from '../loot/loot';
 import type { Npc } from '../npcs/npcs';
 import type { Ruin } from '../ruins/ruins';
 import type { Enemy, GameEvent } from '../types';
+import type { Point } from '../map/obstacles';
 import { hashUnit, mulberry32 } from '../../util/random';
 import { carterDress, type Carter } from './carter';
 import { STORY_QUESTS } from './quests/catalog';
@@ -72,9 +73,9 @@ export class Story {
   }
 
   // The first village's people (the line a new game opens with), once they're all on the maps.
-  get people(): { carter: Carter; barmaid: Npc; smith: Npc | null; village: Setting['village']; inn: Entrance; ruin: Ruin | null } | null {
+  get people(): { carter: Carter; barmaid: Npc; smith: Npc | null; village: Setting['village']; inn: Entrance; ruin: Ruin | null; camp: Point | null } | null {
     const { first, firstRuin } = this.set;
-    return first && first.inn ? { carter: first.who.carter as Carter, barmaid: first.who.barmaid as Npc, smith: (first.who.smith as Npc) ?? null, village: first.village, inn: first.inn, ruin: firstRuin } : null;
+    return first && first.inn ? { carter: first.who.carter as Carter, barmaid: first.who.barmaid as Npc, smith: (first.who.smith as Npc) ?? null, village: first.village, inn: first.inn, ruin: firstRuin, camp: first.place.camp ?? null } : null; // (camp: its way in)
   }
 
   // Those a quest is `who`'s: given by them, or handed in to them (someone on the road: their calling's).
