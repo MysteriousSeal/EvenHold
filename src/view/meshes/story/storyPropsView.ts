@@ -15,12 +15,12 @@ const VOXEL = 0.05;
 const POST_GRID: [number, number, number] = [7, 19, 3];
 const CANDLE_GRID: [number, number, number] = [2, 6, 2];
 const SLAB_GRID: [number, number, number] = [11, 2, 21];
-const HOOD_GRID: [number, number, number] = [8, 20, 7];
+const HOOD_GRID: [number, number, number] = [8, 15, 7];
 const CART_GRID: [number, number, number] = [14, 18, 24];
 const MULE_GRID: [number, number, number] = [5, 14, 16];
 // Weathered wood (light, shade, the cut letters), iron (plate, rim), the nails, wax, the flame (deep, core); stone (face,
 // cracks); the grey cloth (cloak, its folds, the hood's shadow); canvas; the mule's hide (coat, muzzle and hooves).
-const PALETTE = [0x8a6a48, 0x5e4630, 0x2e2018, 0x4c535c, 0x363b42, 0xb8c0c8, 0xd8d0b8, 0x3f7fe0, 0xbfe2ff, 0x8d8a82, 0x5f5c56, 0x7c7e84, 0x5c5e64, 0x1c1c22, 0xb4afa2, 0x6e5e4c, 0x3a2e24];
+const PALETTE = [0x8a6a48, 0x5e4630, 0x2e2018, 0x4c535c, 0x363b42, 0xb8c0c8, 0xd8d0b8, 0x3f7fe0, 0xbfe2ff, 0x8d8a82, 0x5f5c56, 0xa4a6ac, 0x84868e, 0x24242c, 0xb4afa2, 0x6e5e4c, 0x3a2e24];
 const [WOOD, WOOD_DARK, CUT, IRON, IRON_DARK, NAIL, WAX, FLAME, FLAME_CORE, STONE, CRACK, CLOAK, FOLD, SHADOW, CANVAS, HIDE, MUZZLE] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
 const GLOW_SIZE = 0.9;
 const LOOK_EVERY = 1; // seconds
@@ -59,14 +59,14 @@ function slab(): VoxelGrid {
 // A man in grey: a cloak widening to the ground, the hood up, its opening a shadow on the front (+Z).
 function hood(): VoxelGrid {
   const g = createGrid(HOOD_GRID);
-  for (let y = 0; y < 15; y++) {
-    const r = y < 4 ? 3 : y < 10 ? 2.6 : 2.2;
-    for (let x = 0; x < 8; x++) for (let z = 0; z < 7; z++) if (Math.abs(x - 3.5) <= r + 0.01 && Math.abs(z - 3) <= r - 0.4) setColor(g, x, y, z, (x + y) % 4 === 0 ? FOLD : CLOAK);
+  for (let y = 0; y < 11; y++) {
+    const r = y < 3 ? 3.5 : y < 7 ? 3 : 2.5; // (wide at the hem, narrowing to the shoulders)
+    for (let x = 0; x < 8; x++) for (let z = 0; z < 7; z++) if (Math.abs(x - 3.5) <= r + 0.01 && Math.abs(z - 3) <= r - 0.5) setColor(g, x, y, z, (x + y) % 4 === 0 ? FOLD : CLOAK);
   }
-  fillBox(g, 2, 15, 1, 5, 18, 5, CLOAK); // the hood
-  fillBox(g, 3, 19, 2, 4, 19, 4, FOLD); // its peak
-  fillBox(g, 3, 15, 5, 4, 17, 5, SHADOW); // no face to be seen
-  fillBox(g, 3, 11, 5, 4, 12, 6, FOLD); // hands folded in the sleeves
+  fillBox(g, 2, 11, 1, 5, 13, 5, CLOAK); // the hood
+  fillBox(g, 3, 14, 2, 4, 14, 4, FOLD); // its peak
+  fillBox(g, 3, 11, 5, 4, 12, 5, SHADOW); // no face to be seen
+  fillBox(g, 3, 7, 5, 4, 8, 6, FOLD); // hands folded in the sleeves
   return g;
 }
 
@@ -142,16 +142,17 @@ export class StoryPropsView {
   private glowMat: THREE.SpriteMaterial | null = null;
   private readonly made = new Map<StoryPropKind, THREE.BufferGeometry>();
   private shown = '';
-  private since = LOOK_EVERY;
+  private lookedAt = -Infinity; // (by the wall clock: the game held still, by a window or a talk, still looks)
 
   constructor(scene: THREE.Scene) {
     scene.add(this.group);
   }
 
-  update(model: GameModel, dt: number): void {
+  update(model: GameModel): void {
     if (this.glowMat) this.glowMat.opacity = 0.7 * dark(model.minutes);
-    if ((this.since += dt) < LOOK_EVERY) return;
-    this.since = 0;
+    const now = performance.now() / 1000;
+    if (now - this.lookedAt < LOOK_EVERY) return;
+    this.lookedAt = now;
     const props = storyProps(model.story, firstArcPlaces(model));
     const key = props.map((p) => `${p.kind}${p.x},${p.z},${model.getGroundY(p.x, p.z).toFixed(2)}`).join(";"); // (the ground's height too: placed again once its region's made)
     if (key === this.shown) return;

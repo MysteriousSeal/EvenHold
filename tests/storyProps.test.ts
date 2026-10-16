@@ -58,9 +58,9 @@ describe("the first arc's marks in the world", () => {
 });
 
 describe("the first arc's marks, drawn", () => {
-  it('each kind a look of its own, at a sensible size (a grave post knee-to-chest high, a man in grey a man\'s height, a slab flat)', async () => {
+  it('each kind a look of its own, at a sensible size (a grave post knee-to-chest high, a man in grey as tall as the hero, a slab flat)', async () => {
     const { storyPropGeometry } = await import('../src/view/meshes/story/storyPropsView');
-    const tall = { gravePost: [0.8, 1], ironPost: [0.8, 1], blueCandle: [0.2, 0.35], stepSlab: [0.05, 0.12], greyHood: [0.9, 1.05], coveredCart: [0.8, 0.95], mule: [0.6, 0.75] } as const;
+    const tall = { gravePost: [0.8, 1], ironPost: [0.8, 1], blueCandle: [0.2, 0.35], stepSlab: [0.05, 0.12], greyHood: [0.7, 0.8], coveredCart: [0.8, 0.95], mule: [0.6, 0.75] } as const;
     for (const [kind, [lo, hi]] of Object.entries(tall) as Array<[keyof typeof tall, readonly [number, number]]>) {
       const g = storyPropGeometry(kind);
       g.computeBoundingBox();
