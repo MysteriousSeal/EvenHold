@@ -4,7 +4,7 @@
 // back to the start), Sights (rocks and landmarks, wildflowers, wildlife),
 // Hero (powers first, then health and energy, level and stats), Appearance
 // (body, outfits, each slot), Items (money, into the bag, on the ground), Foes
-// (spawn, control, dungeons) and World (time, shops, debug, and facts about
+// (spawn, control, dungeons) and World (time, weather, shops, debug, and facts about
 // where the hero stands); each tab's rows in groups under a header, two
 // columns wide, each named by what it does. The game keeps running while it's open, so a teleport or a
 // summon shows at once.
@@ -16,6 +16,7 @@ import { createQuestDebug } from './questDebug';
 import { charmActions } from './charmCheats';
 import { strongholdAction } from './strongholdCheats';
 import { hourCheat } from './roomCheats';
+import { weatherActions } from './weatherCheats';
 import { SPELL_ICONS } from '../../view/ui/spellIcons';
 import {
   nextCamp,
@@ -306,6 +307,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }, talk
               run: () => ((time.scale = SPEEDS[(SPEEDS.indexOf(time.scale) + 1) % SPEEDS.length]), `The game runs at ×${time.scale}.`),
             },
           ]),
+          ...group('Weather', weatherActions()), // (weatherCheats.ts)
           ...group('Shops', [
             { icon: lootIcon('ale'), title: 'Restock the inns', detail: "Every barmaid's wares and purse back to full", run: () => `${restockAll(model.shops, model.seed)} barmaids restocked (the rest are full anyway).` },
           ]),

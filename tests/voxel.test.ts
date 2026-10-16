@@ -12,6 +12,7 @@ import { addVoxelInstances } from '../src/view/meshes/voxel/voxelInstances';
 import { eagerSink } from '../src/view/world/chunkLayer';
 import { CHUNK_SIZE } from '../src/view/world/chunks';
 import { addWindSway } from '../src/view/meshes/common/wind';
+import { natureUniforms, setWindStrength, tickWind, windPace } from '../src/view/meshes/common/nature';
 
 function grid(size: [number, number, number], voxels: Array<[number, number, number, number]>): VoxelGrid {
   const g: VoxelGrid = { size, cells: new Uint8Array(size[0] * size[1] * size[2]) };
@@ -202,5 +203,25 @@ describe('wind sway', () => {
     };
     expect(keyFor(0.3)).not.toBe(keyFor(1.5));
     expect(keyFor(0.3)).toBe(keyFor(0.3));
+  });
+
+  it('bends further and slower in a strong wind, easing into a gust, never leaping', () => {
+    expect(windPace(1)).toBe(1);
+    expect(windPace(2.5)).toBeLessThan(0.75);
+    for (let s = 0; s < 2.5; s += 0.1) expect(windPace(s + 0.1)).toBeLessThanOrEqual(windPace(s));
+    const u = natureUniforms;
+    setWindStrength(1);
+    tickWind(1000); // (long since the start: the drift may not go by time × strength)
+    setWindStrength(2.5); // (a gale, all at once: the weather cheat's)
+    const [clock, drift] = [u.uWindClock.value, u.uWindDrift.value.clone()];
+    tickWind(1000.1);
+    expect(u.uWindStrength.value).toBeLessThan(1.2); // (eased, not snapped)
+    expect(u.uWindDrift.value.distanceTo(drift)).toBeLessThan(0.1 * 2.5);
+    expect(u.uWindClock.value - clock).toBeLessThanOrEqual(0.1);
+    for (let t = 1000.2; t < 1010; t += 0.05) tickWind(t);
+    expect(u.uWindStrength.value).toBeCloseTo(2.5, 1);
+    const before = u.uWindClock.value;
+    tickWind(1010.05);
+    expect((u.uWindClock.value - before) / 0.05).toBeCloseTo(windPace(2.5), 2); // (the sway slower in the gale)
   });
 });

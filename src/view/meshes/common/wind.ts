@@ -18,8 +18,10 @@
 // sinks, the tops most.
 //
 // The weather and the season have their say (nature.ts, the skies' to set):
-// the wind's strength scales every sway, it blows the way the weather's wind
-// does, and the season's tint colours every leaf and blade (but an
+// the wind's strength scales every sway (its bend, never its speed: the sway
+// runs on the wind's own clock, slower as it rises, and the leaves' flutter
+// no harder than a fresh breeze's, else a gale makes them shiver), it blows
+// the way the weather's wind does, and the season's tint colours every leaf and blade (but an
 // evergreen's: `evergreen`); a broadleaf tree's leaves blossom, turn, fall
 // and are gone in winter (seasonLeaves.ts); the ground cover sinks away under
 // snow (`snowShrink`).
@@ -48,12 +50,13 @@ export function setWindPusher(x: number, z: number): void {
   pusher.value.set(x, z);
 }
 
-// Returns the time uniform to advance each frame.
+// Returns a time uniform, for its callers to advance each frame (kept: the sway runs on the wind's own clock,
+// nature.ts `tickWind`).
 export function addWindSway(material: THREE.Material, options: WindOptions): { value: number } {
   const time = { value: 0 };
   const f = (v: number) => v.toFixed(4);
   material.onBeforeCompile = (shader) => {
-    shader.uniforms.uWindTime = time;
+    shader.uniforms.uWindTime = natureUniforms.uWindClock;
     shader.uniforms.uWindPusher = pusher;
     shader.uniforms.uWindStrength = natureUniforms.uWindStrength;
     shader.uniforms.uWindDir = natureUniforms.uWindDir;
@@ -75,9 +78,8 @@ export function addWindSway(material: THREE.Material, options: WindOptions): { v
         vec2 windOrigin = vec2(instanceMatrix[3][0], instanceMatrix[3][2]);
         float windPhase = dot(windOrigin, uWindDir) * 1.22 * ${f(WIND_WAVELENGTH)} - uWindTime * ${f(options.speed)};
         float windBend = pow(clamp(position.y / ${f(options.height)}, 0.0, 1.0), 2.0);
-        float windAmount = (sin(windPhase) * 0.7 + sin(windPhase * 2.3 + 1.7) * 0.3) * ${f(options.strength)}
-          + sin(uWindTime * 4.7 + dot(position, vec3(9.0, 5.0, 7.0))) * ${f(options.flutter ?? 0)};
-        windAmount *= uWindStrength;
+        float windAmount = (sin(windPhase) * 0.7 + sin(windPhase * 2.3 + 1.7) * 0.3) * ${f(options.strength)} * uWindStrength
+          + sin(uWindTime * 4.7 + dot(position, vec3(9.0, 5.0, 7.0))) * ${f(options.flutter ?? 0)} * min(uWindStrength, 1.0);
         ${options.waves ? 'windAmount *= 0.75 + 0.9 * smoothstep(0.35, 1.0, sin(dot(windOrigin, uWindDir) * 0.09 - uWindTime * 0.8));' : ''}
         // World wind direction in the instance's own (rotated) frame.
         vec3 windDir = transpose(mat3(instanceMatrix)) * vec3(uWindDir.x, 0.0, uWindDir.y);

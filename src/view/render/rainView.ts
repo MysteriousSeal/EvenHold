@@ -29,7 +29,8 @@ const VERTEX = /* glsl */ `
   void main() {
     float fall = fract(aSeed.z + uTime * uSpeed / ${HEIGHT.toFixed(1)});
     float above = ${HEIGHT.toFixed(1)} * (1.0 - fall);
-    vec2 drift = uWind * above + vec2(sin(uTime * 1.3 + aSeed.x * 40.0), cos(uTime * 1.1 + aSeed.y * 40.0)) * uSway;
+    vec2 drift = -uWind * above + // (downwind as it falls: uWind across per unit down, the streak's own lean behind it)
+      vec2(sin(uTime * 1.3 + aSeed.x * 40.0), cos(uTime * 1.1 + aSeed.y * 40.0)) * uSway;
     vec2 at = aSeed.xy * ${SPAN.toFixed(1)} + drift;
     at = uFocus.xz + mod(at - uFocus.xz, ${SPAN.toFixed(1)}) - ${(SPAN / 2).toFixed(1)};
     vec3 p = vec3(at.x, uFocus.y - ${BELOW.toFixed(1)} + above, at.y) + vec3(-uWind.x, 1.0, -uWind.y) * uStreak * aTail;
@@ -177,7 +178,7 @@ export class Precipitation {
   // tiles are lake (for the rings).
   update(rain: number, snow: number, wind: { x: number; z: number; strength: number }, focus: THREE.Vector3, elapsed: number, light: number, lake: (x: number, z: number) => boolean): void {
     this.rings.update(rain, focus, elapsed, lake);
-    this.set(this.rain, rain, { x: wind.x * (0.12 + wind.strength * 0.5), z: wind.z * (0.12 + wind.strength * 0.5) }, focus, elapsed, 0.22 + 0.13 * light);
+    this.set(this.rain, rain, { x: wind.x * wind.strength * 0.55, z: wind.z * wind.strength * 0.55 }, focus, elapsed, 0.22 + 0.13 * light);
     this.set(this.snow, snow, { x: wind.x * wind.strength * 0.5, z: wind.z * wind.strength * 0.5 }, focus, elapsed, 0.55 + 0.35 * light);
   }
 
