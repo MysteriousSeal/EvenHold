@@ -40,6 +40,7 @@ export class BotVentures extends BotSteps {
   protected enter(door: Entrance | null): Step[] {
     if (!door) return [() => 'fail'];
     return [
+      () => (this.nav.reset(), 'ok'), // (a walk afresh: one just ended 'there', out of another door, isn't taken for there at this one)
       this.walk(() => door, ENTER_RANGE * 0.9),
       () => {
         if (!this.model.useDoor()) {
