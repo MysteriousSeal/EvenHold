@@ -153,7 +153,7 @@ export class StoryPropsView {
     if ((this.since += dt) < LOOK_EVERY) return;
     this.since = 0;
     const props = storyProps(model.story, firstArcPlaces(model));
-    const key = props.map((p) => `${p.kind}${p.x},${p.z}`).join(';');
+    const key = props.map((p) => `${p.kind}${p.x},${p.z},${model.getGroundY(p.x, p.z).toFixed(2)}`).join(";"); // (the ground's height too: placed again once its region's made)
     if (key === this.shown) return;
     this.shown = key;
     this.group.clear();
