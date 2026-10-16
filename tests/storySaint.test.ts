@@ -8,6 +8,7 @@ import { GameModel as Model } from '../src/model/GameModel';
 import type { Npc } from '../src/model/npcs/npcs';
 import { restore, snapshot } from '../src/model/save';
 import { FIRST_QUESTS } from '../src/model/story/quests/catalog';
+import { SAINT_TOWN_QUESTS } from '../src/model/story/quests/saintQuestsTown';
 import type { Talk } from '../src/model/story/story';
 import type { GameEvent } from '../src/model/types';
 import { STREAMED_SIZE } from '../src/model/worldgen/regions';
@@ -150,6 +151,7 @@ describe("the second arc: the bishop's saint", () => {
     const last = toTheEnd(model, /Out on the steps/, home);
     expect(story.saint.ending).toBe('exposed');
     expect(last.lines.join(' ')).toMatch(/EvenHold/);
+    expect(last.lines.join(' ')).toMatch(/kicked a staple out of a wall/); // (the witch freed: in her loft)
     expect(model.hero.money).toBeGreaterThan(money);
     expect(Object.keys(model.hero.bag).some((k) => k.startsWith('sunwardAegis'))).toBe(true); // (the truth told: the herbalist's gift)
     expect(story.talk(of(model, 'herbalist', home), id(model, 'theLastWord'), true)!.lines.join(' ')).toMatch(/end of the road/);
@@ -167,6 +169,7 @@ describe("the second arc: the bishop's saint", () => {
     expect(story.saint.ending).toBe('kept');
     expect(model.hero.money - money).toBeGreaterThan(600); // (the purse, and the rest)
     expect(last.lines.join(' ')).toMatch(/not speak to you again/);
+    expect(last.lines.join(' ')).toMatch(/two silver/); // (the witch sold: she wrote from the cart)
     expect(story.talk(of(model, 'herbalist', home), undefined, true)!.lines.join(' ')).toMatch(/^Pay, and go.$/);
     expect([story.talk(of(model, 'herbalist', home)), story.markOf(of(model, 'herbalist', home))]).toEqual([null, null]); // (her wares, and no quests of hers)
   }, 60_000);
@@ -205,6 +208,23 @@ describe("the second arc: the bishop's saint", () => {
     expect(again.story.saint.act).toBe(2);
     expect((snapshot(again).story as { road?: unknown }).road).toEqual(road);
   }, 60_000);
+});
+
+describe("the herbalist's last word on the chained witch", () => {
+  const last = SAINT_TOWN_QUESTS.find((q) => q.id === 'theLastWord')!;
+  const words = (bargain: string, witch?: string) =>
+    last.offer({ giver: 'Mag', receiver: 'Mag', chose: (id: string) => (id === 'theSaintsBargain' ? bargain : id === 'smokeOnTheRoad' ? witch : undefined) } as never).join(' ');
+  it('answers each way the hero went at her hearth, the truth told or the purse taken', () => {
+    for (const bargain of ['expose', 'purse']) {
+      expect(words(bargain, 'free')).toMatch(/staple/);
+      expect(words(bargain, 'handed')).toMatch(/two silver/);
+      expect(words(bargain, 'left')).toMatch(/walked past her/);
+    }
+  });
+  it('says nothing of her where no way was chosen (an older save)', () => {
+    expect(words('expose')).not.toMatch(/staple|two silver|walked past/);
+    expect(words('purse')).not.toMatch(/staple|two silver|walked past/);
+  });
 });
 
 describe('an older save (of 0.8, before the second arc)', () => {
