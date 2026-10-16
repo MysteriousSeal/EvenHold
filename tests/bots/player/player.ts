@@ -76,6 +76,9 @@ export class Player extends Bot {
   readonly persona: Persona;
   readonly memory = new Memory();
   readonly known = { villages: new Set<number>(), doors: new Set<Entrance>(), camps: new Set<Camp>() };
+  protected override knows(e: Entrance): boolean {
+    return this.known.doors.has(e);
+  }
   readonly diary: Done[] = [];
   readonly found: Found[] = [];
   readonly kit: Toolkit;

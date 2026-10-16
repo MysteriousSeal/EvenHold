@@ -216,9 +216,12 @@ export class Nav {
 // The nearest door of a kind of building to the hero (`but` those), if there's one: on ground made just now (a streamed
 // world's farther regions, not made yet, can't be walked to: their villages are known, but not the way there).
 // A bed the hero may lie in (setbacks.ts: an owner at home turns them out): the inn with their room let, their own
-// cottage, else the nearest house whose folk are out; none free, null.
-export function freeBed(model: GameModel): Entrance | null {
-  return nearestDoor(model, 'inn', (e) => letUntil(e) === null) ?? model.entrances.find((e) => ownsHere(model.hero, e)) ?? nearestDoor(model, 'house', (e) => model.folk.some((n) => n.home === e && n.where === e));
+// cottage, else the nearest house whose folk are out; of the doors `known` (a player's: come across), `within` tiles;
+// none free, null.
+export function freeBed(model: GameModel, known: (e: Entrance) => boolean = () => true, within = 250): Entrance | null {
+  const { hero } = model;
+  const own = model.entrances.find((e) => ownsHere(hero, e) && known(e) && Math.hypot(e.x - hero.x, e.z - hero.z) < within) ?? null;
+  return nearestDoor(model, 'inn', (e) => !known(e) || letUntil(e) === null, within) ?? own ?? nearestDoor(model, 'house', (e) => !known(e) || model.folk.some((n) => n.home === e && n.where === e), within);
 }
 
 export function nearestDoor(model: GameModel, type: Entrance['type'], but: (e: Entrance) => boolean = () => false, within = Infinity): Entrance | null {

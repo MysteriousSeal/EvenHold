@@ -106,6 +106,11 @@ export abstract class Bot extends BotVentures {
     this.steps.unshift(this.defense);
   }
 
+  // Whether it knows of the door `e` (a player: only those come across).
+  protected knows(_e: Entrance): boolean {
+    return true;
+  }
+
   private fresh(why: string): void {
     if (why === 'fell') {
       this.stats.deaths++;
@@ -233,7 +238,7 @@ export abstract class Bot extends BotVentures {
       {
         // A bed it may lie in (nav.ts freeBed); none free, nothing to do.
         const rested = this.until(() => hero.energy >= maxEnergyOf(hero) * 0.95 && hero.hp >= maxHpOf(hero) * 0.95, 120, 'slept in bed, not rested and mended');
-        const bed = freeBed(this.model);
+        const bed = freeBed(this.model, (e) => this.knows(e));
         if (!bed) return [];
         if (bed.type === 'inn') return [...this.enter(bed), ...this.upstairs(rested), () => (this.stats.sleeps++, 'ok'), ...this.leave()]; // (up from the bed in it)
         return [...this.enter(bed), this.sitOn((k) => k === 'bed' || k === 'doubleBed'), rested, () => ((this.stats.sleeps++, this.model.sitOrStand()), 'ok'), ...this.leave()];
