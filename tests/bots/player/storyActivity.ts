@@ -18,6 +18,8 @@ import type { Trait } from './persona';
 import type { Activity, Target } from './activities';
 
 const main = (scope: string | undefined) => scope === 'first' || scope === 'saint'; // (the story's own: not a village's errand)
+// The same building (a door's object may be a copy: by where it is).
+const sameDoor = (a: Entrance | null, b: Entrance | null) => (a && b ? a.x === b.x && a.z === b.z : a === b);
 const whereOf = (who: Who) => ('where' in who && who.where ? who.where : who);
 
 // How a choice's ways lean, by their words: which trait draws a player to each.
@@ -46,7 +48,7 @@ export function speakWith(p: Toolkit, who: Carter | Npc): Step[] {
   const { story, hero } = p.model;
   const indoors = 'where' in who ? who.where : null;
   const word: Step = () => {
-    if (Math.hypot(who.x - hero.x, who.z - hero.z) > 2.6 || ('where' in who && who.where !== (p.model.inside?.entrance ?? null))) return 'fail'; // (walked off meanwhile: another time)
+    if (Math.hypot(who.x - hero.x, who.z - hero.z) > 2.6 || ('where' in who && !sameDoor(who.where, p.model.inside?.entrance ?? null))) return 'fail'; // (walked off meanwhile: another time)
     let said = 0;
     for (; said < 3; said++) {
       const talk = story.talk(who);
@@ -69,8 +71,23 @@ export function speakWith(p: Toolkit, who: Carter | Npc): Step[] {
     const spot = [[1.6, 0], [0, 1.6], [-1.6, 0], [0, -1.6], [2.2, 0], [0, 2.2], [-2.2, 0], [0, -2.2]].map(([dx, dz]) => ({ x: who.x + dx, z: who.z + dz })).find((s) => open(s.x, s.z));
     return spot ?? who;
   };
-  const upTo: Step = (dt) => (Math.hypot(who.x - hero.x, who.z - hero.z) <= 1.8 ? 'ok' : p.walk(beside, 0.5)(dt) === 'run' ? 'run' : 'ok'); // (as near as can be got: the word says whether it's near enough)
-  return indoors ? [...p.enter(indoors), upTo, word, ...p.leave()] : [upTo, word];
+  // Up to them and a word, followed if they've moved on meanwhile (re-aimed, a few tries; gone indoors elsewhere: given up).
+  let leg: Step | null = null;
+  let tries = 0;
+  const reach: Step = (dt) => {
+    const room = 'where' in who ? who.where : null;
+    if (!sameDoor(room, p.model.inside?.entrance ?? null)) return 'fail'; // (gone in, or out: another time)
+    if (Math.hypot(who.x - hero.x, who.z - hero.z) <= 1.8) return word(dt);
+    leg ??= p.walk(beside, 0.5);
+    if (leg(dt) === 'run') return 'run';
+    leg = null;
+    if (Math.hypot(who.x - hero.x, who.z - hero.z) <= 2.6) return word(dt);
+    return ++tries > 4 ? 'fail' : 'run';
+  };
+  const here = p.model.inside?.entrance ?? null;
+  const out = here && !sameDoor(here, indoors) ? p.leave() : []; // (in some other building just now: out of it first)
+  const into = indoors && !sameDoor(here, indoors) ? p.enter(indoors) : [];
+  return indoors ? [...out, ...into, reach, ...p.leave()] : [...out, reach];
 }
 
 // A long road in legs (the bots' own walking plans only so far through the land made round them): a leg of LEG
@@ -79,7 +96,7 @@ export function speakWith(p: Toolkit, who: Carter | Npc): Step[] {
 const LEG = 80;
 const NEAR = 60;
 const FAILS = 4;
-function travel(p: Toolkit, to: () => { x: number; z: number }): Step {
+export function travel(p: Toolkit, to: () => { x: number; z: number }): Step {
   let leg: Step | null = null;
   let fails = 0;
   return (dt) => {

@@ -29,7 +29,7 @@ import { buyGear, gearPrice, smithShopIn } from '../../../src/model/smithy/smith
 import { PICKUP_RANGE } from '../../../src/model/loot/loot';
 import { INN_WANTS, buyPrice, innWants } from '../../../src/model/inn/tavernShop';
 import type { Step } from '../botSteps';
-import { STORY_ACTIVITY, speakWith } from './storyActivity';
+import { STORY_ACTIVITY, speakWith, travel } from './storyActivity';
 import type { Toolkit } from './player';
 import type { Drive, Trait } from './persona';
 
@@ -66,7 +66,14 @@ export const ACTIVITIES: Activity[] = [
     serves: { curiosity: 1, growth: 0.2 },
     traits: { curious: 0.8, cautious: -0.3 },
     options: (p) => [{ label: p.unexplored() ? 'somewhere new' : 'the country round', at: null }],
-    steps: (p) => p.go('explore'),
+    steps: (p) => {
+      if (!p.unexplored()) return p.go('explore'); // (the country round: a stroll)
+      // Somewhere new: a hundred tiles or so off one way, walked in legs (a long road in one walk comes to nothing).
+      const a = p.rng() * Math.PI * 2;
+      const { hero } = p.model;
+      const to = { x: hero.x + Math.cos(a) * 160, z: hero.z + Math.sin(a) * 160 }; // (some 100 walked: the leg's done within 60)
+      return [travel(p, () => to)];
+    },
   },
   {
     id: 'quest',
@@ -422,7 +429,8 @@ export const ACTIVITIES: Activity[] = [
     traits: { industrious: 0.8, cautious: 0.2 },
     options: (p) => {
       const best = bestRecipe(p.model) as keyof typeof RECIPES | null; // (woodworking's)
-      const targets = best ? [{ label: `making ${RECIPES[best].name}s`, at: null, data: best }] : [];
+      const can = (id: keyof typeof RECIPES) => !p.model.work.shift && p.model.woodworking.canMake(id) > 0 && p.model.woodworking.roomFor(id); // (the stuff for it in the bag, and room for what's made)
+      const targets = best && can(best) ? [{ label: `making ${RECIPES[best].name}s`, at: null, data: best }] : [];
       // And a bedroll, once it can be made and none's carried: the thing itself wanted, not the practice.
       if (best !== 'bedroll' && !(p.model.hero.bag.bedroll ?? 0) && p.model.woodworking.canMake('bedroll') > 0) targets.push({ label: 'making a bedroll', at: null, data: 'bedroll' });
       return targets;
