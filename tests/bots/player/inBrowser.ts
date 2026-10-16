@@ -1,7 +1,7 @@
 // The player bot at the keys of the real game, in a browser (npm run player with PLAY_HEADED=1: playthrough.ts opens
 // it at ?seed=…&bot): the same player (player.ts) as a playthrough's, each frame's choosing and doing in place of the
 // keys, the game drawn as it plays. A panel bottom left tells who they are, how far the story's got, and the diary as
-// it goes (also in the console). Dev only (main.ts loads it only under vite's dev server).
+// it goes (also in the console); + and − change the game's speed, 0 puts it back. Dev only (main.ts loads it only under vite's dev server).
 
 import type { GameModel } from '../../../src/model/GameModel';
 import type { GameController } from '../../../src/controller/GameController';
@@ -29,6 +29,17 @@ export function drive(model: GameModel, controller: GameController): void {
   const player = new Player(model, report, mulberry32(model.seed ^ 0x5eed), say);
   const speed = Number(new URLSearchParams(location.search).get('speed') ?? 1);
   if (speed > 0) controller.timeScale = speed;
+  // + and − (or = and _): the game twice as fast, or half; 0: as it comes. (The keys are the bot's otherwise.)
+  const SPEEDS = [0.25, 0.5, 1, 2, 4, 8, 16];
+  window.addEventListener('keyup', (e) => { // (on letting go: an open window, a talk, takes the keys going down for its own)
+    const at = SPEEDS.findIndex((s) => s >= controller.timeScale);
+    const to = e.key === '+' || e.key === '=' ? SPEEDS[Math.min(SPEEDS.length - 1, at + 1)] : e.key === '-' || e.key === '_' ? SPEEDS[Math.max(0, at - 1)] : e.key === '0' ? 1 : null;
+    if (to === null) return;
+    controller.timeScale = to;
+    say(`speed ${to}x`);
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }, true);
   let t = 0;
   let second = 0;
   controller.driver = (dt) => {
@@ -40,6 +51,6 @@ export function drive(model: GameModel, controller: GameController): void {
   const head = `the player bot: ${describe(player.persona)}`;
   setInterval(() => {
     const { hero } = model;
-    panel.textContent = `${head}\nlevel ${hero.level} · ${Math.round(hero.hp)} hp · ${hero.money} copper · story: ${ACTS[model.story.saint.act]}\n\n${lines.join('\n')}`;
+    panel.textContent = `${head}\nspeed ${controller.timeScale}x (+ / − / 0) · level ${hero.level} · ${Math.round(hero.hp)} hp · ${hero.money} copper · story: ${ACTS[model.story.saint.act]}\n\n${lines.join('\n')}`;
   }, 250);
 }

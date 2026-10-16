@@ -5,7 +5,7 @@ A player of its own mind that plays a fresh game — the story pushed towards an
 ```
 npm run player                      # a new world, a new player, 600 game minutes (about 15 min of real time)
 PLAY_HEADED=1 npm run player        # watched: the same player at the keys of the real game, in a browser window
-PLAY_HEADED=1 PLAY_SPEED=4 npm run player # watched, four times as fast (close the window to stop)
+PLAY_HEADED=1 PLAY_SPEED=4 npm run player # watched, four times as fast (in the window: + / − to change it, 0 for normal; close it to stop)
 PLAY_SEED=2052870920 npm run player # the same world and player again (every run prints its seed)
 PLAY_MINUTES=60 npm run player      # shorter (or longer)
 PLAYERS=4 npm run player            # up to four at once, one a core: each its own world and report
