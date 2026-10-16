@@ -1,6 +1,6 @@
 // A crypt's floor plan, rolled from the seed and its ruin (the same for
 // everyone on that seed): a long corridor winding away from the stairs
-// (onward and to either side, never back), two tiles wide, now and then
+// (straight on from them first, then onward and to either side, never back), two tiles wide, now and then
 // opening into a hall on the way; side rooms off it every segment or two,
 // each through a short passage; and at the far end the great burial hall.
 // Not a labyrinth: one way on, the side rooms dead ends.
@@ -86,6 +86,7 @@ export function planCrypt(seed: number, ruin: { x: number; z: number }): CryptPl
     const sides: Array<readonly [number, number]> = dir[0] === 0 ? [[1, 0], [-1, 0]] : [NORTH];
     const turns = rng() < 0.45 ? [dir, ...sides] : [...sides, dir];
     if (rng() < 0.5) turns.reverse();
+    if (s === 0) turns.splice(0, turns.length, NORTH); // (the first straight on: off the stairs onto floor ahead, not a wall a step off)
     const length = roll(STRETCH);
     const turn = turns.find((d) => clear(ahead(hx, hz, d, length), head));
     if (!turn) {
