@@ -7,7 +7,9 @@ import { skillOf } from '../../../src/model/skills/skills';
 import { COOK_RECIPES, COOK_RECIPE_IDS } from '../../../src/model/skills/cooking';
 import { SMITH_RECIPE_IDS } from '../../../src/model/skills/smithing';
 import { SMITH_PICK, buyGear, smithShopIn } from '../../../src/model/smithy/smithShop';
-import type { Entrance } from '../../../src/model/interiors/interiors';
+import { doorNumber, type Entrance } from '../../../src/model/interiors/interiors';
+import { COTTAGE_PRICE, UPGRADES, hasBuilt, isCottage, offerOf, pieceInReach, type UpgradeId } from '../../../src/model/homestead/cottage';
+import { homeAction, useHome } from '../../../src/model/homestead/home';
 import type { Step } from '../botSteps';
 import type { Activity, Target } from './activities';
 
@@ -31,7 +33,48 @@ const dishOf = (p: Parameters<Activity['options']>[0]) =>
 const forgeOf = (p: Parameters<Activity['options']>[0]) =>
   SMITH_RECIPE_IDS.filter((id) => p.model.smithing.knows(id) && p.model.smithing.canMake(id) > 0 && p.model.smithing.roomFor(id)).sort((a, b) => p.model.smithing.canMake(b) - p.model.smithing.canMake(a))[0];
 
+const WANTED: UpgradeId[] = ['bed', 'hearth', 'cauldron', 'chest']; // (what a home wants first)
+
 export const SKILL_ACTIVITIES: Activity[] = [
+  {
+    id: 'home',
+    indoors: true,
+    serves: { rest: 0.5, growth: 0.5, craft: 0.4 },
+    traits: { cautious: 0.4, industrious: 0.4, bold: -0.2 },
+    options: (p) => {
+      const { hero } = p.model;
+      const known = [...p.known.doors].filter((d) => near(p, d) < 250);
+      if (!hero.cottage) {
+        if (hero.money < COTTAGE_PRICE + 100) return [];
+        const door = known.filter((d) => isCottage(d) && offerOf(p.model, d).ok).sort((a, b) => near(p, a) - near(p, b))[0];
+        return door ? [{ label: 'a cottage for sale, to buy', at: door, data: door }] : [];
+      }
+      const next = WANTED.find((id) => !hasBuilt(hero, id) && hero.money >= UPGRADES[id].price + 50);
+      const door = next && known.find((d) => doorNumber(d) === hero.cottage!.door);
+      return door ? [{ label: `home, to build ${UPGRADES[next!].name.toLowerCase()}`, at: door, data: door }] : [];
+    },
+    steps: (p, t) => {
+      const door = t.data as Entrance;
+      const kind = p.model.hero.cottage ? 'cottageSpot' : 'saleNotice';
+      let [t2, side, leg] = [0, 0, null as Step | null];
+      const piece = () => p.model.inside?.furniture.find((f) => f.kind === kind && (kind === 'saleNotice' || (f.upgrade && !hasBuilt(p.model.hero, f.upgrade) && WANTED.includes(f.upgrade))));
+      return [
+        ...p.enter(door),
+        (dt) => { // (up to it: before it on whichever side's open, a side at a time, half a minute at most)
+          const at = piece();
+          if (!at || (t2 += dt) > 30) return 'fail';
+          if (pieceInReach(p.model.inside, p.model.hero, kind)) return 'ok';
+          const sides = [[0, 1], [1, 0], [-1, 0], [0, -1]].map(([dx, dz]) => ({ x: at.x + dx, z: at.z + dz }));
+          leg ??= p.walk(() => sides[side % 4], 0.4);
+          if (leg(dt) === 'run') return 'run';
+          [leg, side] = [null, side + 1];
+          return 'run';
+        },
+        () => { const action = homeAction(p.model); return action && action.kind !== 'trophies' && useHome(p.model, action) ? (p.log(action.kind === 'buy' ? 'bought a cottage: a home' : `built ${UPGRADES[action.upgrade].name.toLowerCase()} at home`), 'ok') : 'fail'; },
+        ...p.leave(),
+      ];
+    },
+  },
   {
     id: 'forge',
     indoors: true,
