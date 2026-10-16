@@ -73,7 +73,7 @@ describe('a doll', () => {
         const [door, stood, foes] = [model.inside!.entrance, [foe.x, foe.z], model.foes.filter(mayTurn).length];
         pickOut(model, foe);
         expect(castSpell(model, 'doll'), said).toBe('cast');
-        expect([lying(model), model.loot.length], said).toEqual([[stood], 0]); // (its floor's: not the world's)
+        expect([lying(model), model.loot.filter((l) => !l.find).length], said).toEqual([[stood], 0]); // (its floor's: not the world's; the finds off the road aside)
         // Up and out; nothing of it out of doors; down again: there, and the foe not back.
         model.inside = null;
         model.teleport(door.x, door.z);

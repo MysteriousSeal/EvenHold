@@ -40,6 +40,7 @@ export interface GroundLoot {
   x: number;
   y: number;
   z: number;
+  find?: string; // a find off the road's (loot/wildFinds.ts): taken once for good
 }
 
 // What a slain enemy of `source`'s family drops, or null: decided by its id.
