@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { DAY_MINUTES, SEASON_DAYS, seasonAt, yearAt } from '../src/model/clock';
-import { CLEAR_SPELLS, dampAt, daylightAt, forcedMinutes, skyAt, TURN_HOURS, WEATHER_HOURS, weatherAt, type WeatherKind } from '../src/model/world/weather';
+import { CLEAR_SPELLS, dampAt, daylightAt, forcedMinutes, heldWeather, holdWeather, skyAt, TURN_HOURS, WEATHER_HOURS, weatherAt, type WeatherKind } from '../src/model/world/weather';
 import type { Tiles } from '../src/model/map/tiles';
 
 const H = 60;
@@ -122,5 +122,19 @@ describe('a forced sky (a look at it)', () => {
     const sky = skyAt(7, 1000, { weather: 'snow', season: 'autumn' });
     expect(sky.season).toBe('autumn');
     expect(sky.weather).toMatchObject({ kind: 'snow', snow: 1, rain: 0 });
+  });
+});
+
+describe('the weather held (the cheat menu)', () => {
+  it('holds the kind and wind asked for till let go, then the world goes on with its own', () => {
+    const own = weatherAt(3, 50000);
+    holdWeather({ kind: 'snow', wind: 1.2 });
+    expect(weatherAt(3, 50000)).toMatchObject({ kind: 'snow', snow: 1, rain: 0, wind: 1.2, windX: own.windX, gust: own.gust });
+    expect(skyAt(3, 90000).weather.kind).toBe('snow'); // (hours on: still held)
+    holdWeather({ wind: 9 });
+    expect(weatherAt(3, 50000)).toMatchObject({ kind: own.kind, wind: 1.5 }); // (the wind alone, and never past a gale)
+    holdWeather({});
+    expect(heldWeather()).toEqual({});
+    expect(weatherAt(3, 50000)).toEqual(own);
   });
 });

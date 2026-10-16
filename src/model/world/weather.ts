@@ -79,8 +79,24 @@ function spell(seed: number, n: number): { kind: WeatherKind; angle: number } {
   return { kind, angle: PREVAILING + (hashUnit(n, seed, 0x3d1) - 0.5) * VEERS };
 }
 
-// The weather at `minutes` in the world of `seed`.
+// A weather held (the cheat menu's): this kind now, and the wind this hard (0..1.5) if given, till let go
+// (`holdWeather({})`); the world's own after. Not saved.
+export interface HeldWeather {
+  kind?: WeatherKind;
+  wind?: number;
+}
+let held: HeldWeather = {};
+export const holdWeather = (hold: HeldWeather): void => void (held = { ...hold });
+export const heldWeather = (): Readonly<HeldWeather> => held;
+
+// The weather at `minutes` in the world of `seed` (or as held).
 export function weatherAt(seed: number, minutes: number): Weather {
+  const own = ownWeatherAt(seed, minutes);
+  const weather = held.kind ? { ...own, ...LOOKS[held.kind], kind: held.kind } : own;
+  return held.wind === undefined ? weather : { ...weather, wind: Math.min(1.5, Math.max(0, held.wind)) };
+}
+
+function ownWeatherAt(seed: number, minutes: number): Weather {
   const n = Math.floor(minutes / (WEATHER_HOURS * 60));
   const into = (minutes - n * WEATHER_HOURS * 60) / 60;
   const t = smooth(0, TURN_HOURS, into);

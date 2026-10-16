@@ -13,7 +13,7 @@ import { dampAt, forcedMinutes, skyAt, weatherAt, type SkyForcing } from '../../
 import { hourAt, SEASONS, type Season } from '../../model/clock';
 import type { GameModel } from '../../model/GameModel';
 import { FOG_FAR, FOG_NEAR, SHAFT_COLOR, SUN_DIRECTION } from '../constants';
-import { setSeasonTint, setSeasonWeights, setSnow, setWindDirection, setWindStrength } from '../meshes/common/nature';
+import { setSeasonTint, setSeasonWeights, setSnow, setWindDirection, setWindStrength, tickWind } from '../meshes/common/nature';
 import type { Lights } from './lighting';
 import type { PostProcessing } from './postprocessing';
 import { Precipitation } from './rainView';
@@ -164,6 +164,7 @@ export class SkyView {
     // The wind and the season, for the plants (flora's), the smoke and the creatures (sky.ts).
     setWindStrength(Math.min(2.5, 0.6 + wind * 1.1));
     setWindDirection(weather.windX, weather.windZ);
+    tickWind(elapsed);
     skyUniforms.uWindDir.value.set(weather.windX, weather.windZ);
     skyUniforms.uWindGust.value = weather.gust;
     skyUniforms.uNight.value = night;

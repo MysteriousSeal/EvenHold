@@ -29,9 +29,9 @@ export function createFallingLeaves(): FallingLeaves {
   const time = { value: 0 };
   const centre = { value: new THREE.Vector3() };
   material.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, { uLeafTime: time, uLeafCentre: centre, uSeason: natureUniforms.uSeason, uWindDir: natureUniforms.uWindDir, uWindStrength: natureUniforms.uWindStrength });
+    Object.assign(shader.uniforms, { uLeafTime: time, uLeafCentre: centre, uSeason: natureUniforms.uSeason, uWindDrift: natureUniforms.uWindDrift });
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute vec3 leafBase;\nuniform float uLeafTime;\nuniform vec3 uLeafCentre;\nuniform vec4 uSeason;\nuniform vec2 uWindDir;\nuniform float uWindStrength;')
+      .replace('#include <common>', '#include <common>\nattribute vec3 leafBase;\nuniform float uLeafTime;\nuniform vec3 uLeafCentre;\nuniform vec4 uSeason;\nuniform vec2 uWindDrift;')
       .replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
@@ -40,7 +40,7 @@ export function createFallingLeaves(): FallingLeaves {
         transformed = vec3(transformed.x, transformed.y * cos(spin) - transformed.z * sin(spin), transformed.y * sin(spin) + transformed.z * cos(spin));
         transformed *= smoothstep(${SHOWN.toFixed(2)}, 0.4, uSeason.z);
         float fallen = mod(leafBase.y - uLeafTime * (0.3 + leafSeed * 0.25), ${HIGH.toFixed(1)});
-        vec2 drift = uWindDir * uLeafTime * 0.4 * uWindStrength + vec2(sin(uLeafTime * 1.3 + leafSeed * 6.28), cos(uLeafTime * 1.1 + leafSeed * 6.28)) * 0.35;
+        vec2 drift = uWindDrift * 0.4 + vec2(sin(uLeafTime * 1.3 + leafSeed * 6.28), cos(uLeafTime * 1.1 + leafSeed * 6.28)) * 0.35;
         vec2 at = mod(leafBase.xz + drift - uLeafCentre.xz, ${SPAN.toFixed(1)}) - ${(SPAN / 2).toFixed(1)} + uLeafCentre.xz;
         transformed += vec3(at.x, uLeafCentre.y + fallen, at.y);`,
       ); // (its instances' matrices left as they're made, the identity: where each is, all here)
