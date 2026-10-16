@@ -129,6 +129,7 @@ export class BotSteps {
       since ??= { at: this.model.minutes, health: this.balance.health(), lowest: this.balance.health() };
       this.model.focus(foe.id);
       if (this.tactics(foe, dt)) return 'run'; // (rolling, or behind the guard: no blow this frame)
+      if (this.model.seated) this.model.sitOrStand(); // (sat or lying when it came: up first, a blow can't be struck sitting)
       this.model.startAttack();
       if (foe.hp < hpThen) [hpThen, inReach, away] = [foe.hp, 0, 0];
       else if ((inReach += dt) > 20) {
