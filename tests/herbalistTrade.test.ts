@@ -5,9 +5,10 @@
 // abed at night, their shop shut, the pox seen to all the same.
 import { describe, expect, it, vi } from 'vitest';
 import { fresh } from './support/testWorld';
-import { buyFromHerbalist, herbalistBuys, herbalistPrice, herbalistShopAt, sellToHerbalist, wantsPart } from '../src/model/herbalist/herbalistShop';
+import { buyFromHerbalist, herbalistBuys, herbalistPrice, herbalistShopAt, orderFee, sellToHerbalist, wantsPart } from '../src/model/herbalist/herbalistShop';
 import { LOOT } from '../src/model/loot/loot';
 import { POTIONS } from '../src/model/loot/potions';
+import type { BagItem } from '../src/model/hero/bag';
 import { PROVISIONS } from '../src/model/loot/provisions';
 import { WANTS } from '../src/model/shops/shopStock';
 import { isJunk, saleOf, sellValue } from '../src/model/shops/sellValue';
@@ -106,9 +107,15 @@ describe("a herbalist's cave parts and prices", () => {
     expect(saleOf('rustyBuckle')).toEqual({ price: LOOT.rustyBuckle.value, to: 'anyone' }); // (real junk, as it was)
   });
 
+  it('what she charges for a brew, and to brew one to order, as ever; what she pays for one the hero brewed, more than its herbs', () => {
+    expect(['antidote', 'purge', 'shadowDraught', 'oxDraught', 'barkDraught', 'superiorEnergyPotion', 'hawkDraught'].map((id) => herbalistPrice(id as BagItem, false))).toEqual([25, 15, 35, 45, 50, 44, 55]);
+    expect([orderFee('antidote'), orderFee('hawkDraught'), orderFee('oxDraught')]).toEqual([8, 17, 14]);
+    expect([herbalistPrice('hawkDraught', true), herbalistPrice('antidote', true), herbalistPrice('minorHealthPotion', true)]).toEqual([73, 24, 10]); // (herbs 29: 2.5 times them; 14: 1.65; a potion already worth more, half its price as ever)
+  });
+
   it('energy at most half again what an ale costs, a share point; health left as it was', () => {
     const ale = PROVISIONS.ale.value / (PROVISIONS.ale.energy! * 100);
-    for (const id of ['minorEnergyPotion', 'lesserEnergyPotion', 'greaterEnergyPotion'] as const) expect(POTIONS[id].value / (POTIONS[id].energy * 100)).toBeLessThanOrEqual(ale * 1.5);
+    for (const id of ['minorEnergyPotion', 'lesserEnergyPotion', 'greaterEnergyPotion', 'superiorEnergyPotion'] as const) expect(POTIONS[id].value / (POTIONS[id].energy * 100), id).toBeLessThanOrEqual(ale * 1.5);
     expect([POTIONS.minorHealthPotion.value, POTIONS.lesserHealthPotion.value, POTIONS.greaterHealthPotion.value]).toEqual([20, 50, 120]);
   });
 });
