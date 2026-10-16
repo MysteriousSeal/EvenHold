@@ -12,8 +12,9 @@ import { middleOf, type Furniture } from '../interiors/furniture';
 import type { Npc } from '../npcs/npcs';
 import type { GameEvent, Hero } from '../types';
 import { gainXp } from '../hero/heroStats';
-import { payRate } from './shift';
+import { dayShare, payRate } from './shift';
 import { JOBS, rankIn, recordOf, type JobId } from './jobs';
+import { DAY_MINUTES } from '../clock';
 import { InnShift, type Order, type ShiftAction } from './innShift';
 import { BarShift, type BarAction } from './barShift';
 import { RoomShift, type Client, type RoomHost } from './room/roomShift';
@@ -58,7 +59,7 @@ export class Work {
     if (this.shift || this.host.inside?.entrance !== inn) return false;
     const { rank } = rankIn(job, recordOf(this.host.hero, job).xp);
     this.shift = job === 'innBarkeep' ? new BarShift(inn, rank, this.host.seed) : job === 'innCompanion' ? new RoomShift(inn, rank, this.host.seed, this.host) : new InnShift(inn, rank, this.host.seed);
-    this.shift.rate = payRate(this.host.hero.level); // (the inn's pay keeping up with the hero, as a quest's does)
+    this.shift.rate = payRate(this.host.hero.level) * dayShare(this.begunToday(job)); // (the inn's pay keeping up with the hero, as a quest's does; the day's second and on, less)
     if (this.shift instanceof RoomShift) return (this.shift.onServed = (great) => this.served(great)), true; // (no one's work taken over: the room's their own)
     if (this.shift instanceof BarShift) {
       // The inn's own tankards (sold to her: inn/tavernShop.ts INN_WANTS) out on the shelves, so many at most: the shift
@@ -136,6 +137,17 @@ export class Work {
       this.host.report({ kind: 'jobRank', job: JOBS[job].name, rank: now.rank.name });
       if (this.shift) this.shift.rank = now.rank; // (its perks from now on, this shift too)
     }
+  }
+
+  // How many shifts were begun today before this one (any job's), this one counted with its own job's record.
+  private begunToday(job: JobId): number {
+    const day = Math.floor(this.host.minutes / DAY_MINUTES);
+    const records = Object.values(this.host.hero.jobs ?? {});
+    const before = records.reduce((sum, r) => sum + (r.day === day ? r.today ?? 0 : 0), 0);
+    const record = recordOf(this.host.hero, job);
+    record.today = record.day === day ? (record.today ?? 0) + 1 : 1;
+    record.day = day;
+    return before;
   }
 
   // The shift over (`early`: left before its time): paid all it earned at once (a clean shift's bonus besides), the
