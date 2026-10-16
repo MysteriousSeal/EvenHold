@@ -364,7 +364,7 @@ export abstract class Bot extends BotVentures {
   // Steps.
 
   // Sits on a seat of a kind `wanted` says (a bed, a bar stool), walking to the nearest free one.
-  private sitOn(wanted: (kind: string) => boolean): Step {
+  private sitOn(wanted: (kind: string) => boolean, nearTo?: () => { x: number; z: number } | null): Step { // (`nearTo`: the one nearest that, not the hero)
     let t = 0;
     return (dt) => {
       const { inside, hero } = this.model;
@@ -377,7 +377,7 @@ export abstract class Bot extends BotVentures {
       const taken = (p: unknown) => this.model.npcs.some((n) => n.seat?.piece === p);
       const seat = inside.furniture
         .filter((f) => wanted(f.kind) && !taken(f))
-        .sort((a, b) => Math.hypot(a.x - hero.x, a.z - hero.z) - Math.hypot(b.x - hero.x, b.z - hero.z))[0];
+        .sort((a, b) => { const o = nearTo?.() ?? hero; return Math.hypot(a.x - o.x, a.z - o.z) - Math.hypot(b.x - o.x, b.z - o.z); })[0];
       if (!seat) return 'fail';
       return this.walk(() => ({ x: seat.x + (seat.w - 1) / 2, z: seat.z + (seat.d - 1) / 2 }), seat.w > 1 || seat.d > 1 ? 0.9 : 0.3)(dt) === 'fail' ? 'fail' : 'run'; // (a bed's middle can't be stood in: beside it, its reach)
     };
@@ -491,7 +491,7 @@ export abstract class Bot extends BotVentures {
         if (step === 'fail') this.report('hall door out of reach', `${door.wall} door at ${door.x},${door.z}, hero at ${hero.x.toFixed(2)},${hero.z.toFixed(2)}`);
         return step === 'fail' ? 'ok' : 'run';
       },
-      this.sitOn((k) => k === 'roomBed' || k === 'doubleBed'),
+      this.sitOn((k) => k === 'roomBed' || k === 'doubleBed', () => letDoor(this.model.inside?.furniture ?? [])), // (the let room's bed: by its door, not another locked room's)
       abed,
       () => (this.model.sitOrStand(), 'ok'),
     ];
