@@ -28,6 +28,7 @@ import { bestRecipe } from '../../../src/controller/skills/recipeBook';
 import { buyGear, gearPrice, smithShopIn } from '../../../src/model/smithy/smithShop';
 import { PICKUP_RANGE } from '../../../src/model/loot/loot';
 import { INN_WANTS, buyPrice, innWants } from '../../../src/model/inn/tavernShop';
+import { ROOM_PRICE, letUntil, lettingHours } from '../../../src/model/inn/roomLetting';
 import type { Step } from '../botSteps';
 import { STORY_ACTIVITY, speakWith, travel } from './storyActivity';
 import type { Toolkit } from './player';
@@ -261,7 +262,8 @@ export const ACTIVITIES: Activity[] = [
     id: 'upstairs',
     serves: { rest: 0.6, curiosity: 0.2 },
     traits: { curious: 0.2 },
-    options: (p) => door(p, 'inn').map((t) => ({ ...t, label: "the inn's upper floor, for a lie down" })),
+    // (only with a room let there, or one to be had: letting hours and its price; else every door up there locked)
+    options: (p) => door(p, 'inn').filter((t) => letUntil(t.data as Entrance) !== null || (lettingHours(p.model.minutes) && p.model.hero.money >= ROOM_PRICE)).map((t) => ({ ...t, label: "the inn's upper floor, for a lie down" })),
     steps: (p) => p.go('upstairs'),
   },
   {

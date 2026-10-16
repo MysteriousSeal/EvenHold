@@ -24,10 +24,11 @@ import { boardSpot } from '../../src/model/quests/noticeBoards';
 import { squareBenches } from '../../src/model/worldgen/benches';
 import { doorAt, stairsInReach, stairsOf, takeStairs, useHallDoor } from '../../src/model/interiors/upstairs';
 import { barmaidHere, callFor, serveOrder, type BarMenuItem } from '../../src/controller/trade/barOrder';
-import { ROOM_PRICE, letDoor, letUntil, lettingHours, rentRoom, roomAction } from '../../src/model/inn/roomLetting';
+import { ROOM_PRICE, letDoor, letUntil, lettingHours, rentRoom, roomAction, sleepTillMorning } from '../../src/model/inn/roomLetting';
 import { shopAt } from '../../src/model/inn/tavernShop';
 import { doorNumber } from '../../src/model/interiors/interiors';
-import { TALK_RANGE } from '../../src/model/npcs/talk';
+import { talkingTo } from '../../src/model/npcs/talk';
+import { bumpsFurniture } from '../../src/model/interiors/furniture';
 import { PICKUP_RANGE } from '../../src/model/loot/loot';
 import { boardFor, freeBed, heroState, nearestDoor, openNear } from './nav';
 import { Errands, better, isGear, type Status } from './errands';
@@ -250,10 +251,16 @@ export abstract class Bot extends BotVentures {
       {
         // A bed it may lie in (nav.ts freeBed); none free, nothing to do.
         const rested = this.until(() => hero.energy >= maxEnergyOf(hero) * 0.95 && hero.hp >= maxHpOf(hero) * 0.95, 120, 'slept in bed, not rested and mended');
-        const bed = freeBed(this.model, (e) => this.knows(e));
+        const found = freeBed(this.model, (e) => this.knows(e));
+        // (no room let, but one to be had at the inn: rented and slept in, as a player with the coin would; not a stranger's bed)
+        const rentable = found?.type !== 'inn' && lettingHours(this.model.minutes) && hero.money >= ROOM_PRICE ? nearestDoor(this.model, 'inn') : null;
+        const bed = rentable ?? found;
         if (!bed) return [];
-        if (bed.type === 'inn') return [...this.enter(bed), ...this.upstairs(rested), () => (this.stats.sleeps++, 'ok'), ...this.leave()]; // (up from the bed in it)
-        return [...this.enter(bed), this.sitOn((k) => k === 'bed' || k === 'doubleBed'), rested, () => ((this.stats.sleeps++, this.model.sitOrStand()), 'ok'), ...this.leave()];
+        // Lain in its own bed (the let room's, at night; their own home's): the night slept, as a player would ('Sleep till
+        // morning'); else lain there till rested.
+        const night: Step = (dt) => (roomAction(this.model)?.kind === 'sleep' ? (sleepTillMorning(this.model), 'ok') : rested(dt));
+        if (bed.type === 'inn') return [...this.enter(bed), ...this.upstairs(night), () => (this.stats.sleeps++, 'ok'), ...this.leave()]; // (up from the bed in it)
+        return [...this.enter(bed), this.sitOn((k) => k === 'bed' || k === 'doubleBed'), night, () => ((this.stats.sleeps++, this.model.sitOrStand()), 'ok'), ...this.leave()];
       }
       case 'loot':
       {
@@ -372,7 +379,7 @@ export abstract class Bot extends BotVentures {
         .filter((f) => wanted(f.kind) && !taken(f))
         .sort((a, b) => Math.hypot(a.x - hero.x, a.z - hero.z) - Math.hypot(b.x - hero.x, b.z - hero.z))[0];
       if (!seat) return 'fail';
-      return this.walk(() => ({ x: seat.x + (seat.w - 1) / 2, z: seat.z + (seat.d - 1) / 2 }), 0.3)(dt) === 'fail' ? 'fail' : 'run';
+      return this.walk(() => ({ x: seat.x + (seat.w - 1) / 2, z: seat.z + (seat.d - 1) / 2 }), seat.w > 1 || seat.d > 1 ? 0.9 : 0.3)(dt) === 'fail' ? 'fail' : 'run'; // (a bed's middle can't be stood in: beside it, its reach)
     };
   }
 
@@ -431,7 +438,16 @@ export abstract class Bot extends BotVentures {
         if (!inside || inside.below || !lettingHours(this.model.minutes) || hero.money < ROOM_PRICE || letUntil(inside.entrance) !== null) return 'ok';
         const barmaid = barmaidHere(this.model);
         if (!barmaid) return 'ok';
-        if (Math.hypot(barmaid.x - hero.x, barmaid.z - hero.z) > TALK_RANGE * 0.8) return this.walk(() => barmaid, TALK_RANGE * 0.7)(dt) === 'fail' ? 'ok' : 'run';
+        // To where she's the one spoken to (the nearest of the folk, inside talking range: not a drinker at the bar).
+        if (talkingTo(this.model.folk, inside, hero) !== barmaid) {
+          const open = (x: number, z: number) => x > 0 && z > 0 && x < inside.room.width - 1 && z < inside.room.depth - 1 && !bumpsFurniture(inside.furniture, x, z, 0.3);
+          const spots = [1.2, 1.6, 2]
+            .flatMap((r) => Array.from({ length: 12 }, (_, i) => ({ x: barmaid.x + Math.cos((i * Math.PI) / 6) * r, z: barmaid.z + Math.sin((i * Math.PI) / 6) * r })))
+            .filter((p) => open(p.x, p.z) && talkingTo(this.model.folk, inside, p) === barmaid)
+            .sort((a, b) => Math.hypot(a.x - hero.x, a.z - hero.z) - Math.hypot(b.x - hero.x, b.z - hero.z));
+          if (!spots[0]) return 'ok';
+          return this.walk(() => spots[0], 0.25)(dt) === 'fail' ? 'ok' : 'run';
+        }
         const action = roomAction(this.model);
         if (action?.kind !== 'rent') return 'ok';
         const money = hero.money;
