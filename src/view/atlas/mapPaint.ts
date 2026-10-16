@@ -144,7 +144,15 @@ export interface MapPaint {
   mark?: number; // the marks' and pins' size (1; the corner map's, smaller, a place's drawn whole within its frame or not at all)
   pins: readonly MapPin[];
   places: readonly Place[];
-  landmarks?: readonly Landmark[]; // (the map's; the corner map's too small for them)
+  landmarks?: readonly Landmark[];
+  corner?: Corner; // the corner map's (minimap.ts): its colours stronger, the hero ringed, no compass (it's on the frame)
+}
+
+// What the corner map shows besides: the foes near (red dots), and the gold "!" and "?" over those with a quest to give or
+// take ('waiting': a grey "?").
+export interface Corner {
+  foes: ReadonlyArray<{ x: number; z: number }>;
+  asks: ReadonlyArray<{ x: number; z: number; mark: 'offer' | 'waiting' | 'ready' }>;
 }
 
 // The map as `look` sees it, on `ctx` (its canvas `width` by `height` CSS pixels, already scaled to the screen).
@@ -177,6 +185,7 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
   }
   ctx.imageSmoothingEnabled = scale < 2; // (soft as a wash; close up, its cells, crisp)
   ctx.save();
+  if (paint.corner) ctx.filter = 'saturate(1.25) contrast(1.1)'; // (the wash, small against the game's ground, stronger)
   ctx.translate(...at(c0 * CHUNK, d0 * CHUNK));
   ctx.rotate(TURN);
   ctx.drawImage(sheet, 0, 0, sheet.width * CHART_CELL * scale, sheet.height * CHART_CELL * scale);
@@ -232,8 +241,8 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
   for (const l of paint.landmarks ?? []) {
     const [x, y] = at(l.x + 0.5, l.z + 0.5);
     if (x < -10 || y < -10 || x > width + 10 || y > height + 10) continue;
-    drawMark(ctx, l.kind, x, y);
-    take(x - 7, y - 7, x + 7, y + 6);
+    sized(x, y, (x, y) => drawMark(ctx, l.kind, x, y));
+    take(x - 7 * m, y - 7 * m, x + 7 * m, y + 6 * m);
   }
   const villages = charts.flatMap((chart) => chart.villages.filter((v) => seen(v.x, v.z)));
   for (const v of villages) {
@@ -262,6 +271,11 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
   for (const pin of paint.pins) {
     const [x, y] = at(pin.x + 0.5, pin.z + 0.5);
     take(x - 6 * m, y - 18 * m, x + 6 * m, y);
+  }
+  if (paint.corner) take(width / 2 - 10, height / 2 - 10, width / 2 + 10, height / 2 + 10); // (the hero's ring: no name over it)
+  for (const ask of paint.corner?.asks ?? []) {
+    const [x, y] = at(ask.x + 0.5, ask.z + 0.5);
+    take(x - 4, y - 12, x + 4, y + 2);
   }
   // Then the names, under their marks: the villages' (and their levels, in how dangerous they are to the hero), nearest
   // the middle first; drawn in a little, the places'.
@@ -294,12 +308,36 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
       label(place.name, x, y, 11);
     }
   }
+  const inView = (x: number, y: number) => x > 4 && y > 4 && x < width - 4 && y < height - 4;
+  for (const foe of paint.corner?.foes ?? []) {
+    const [x, y] = at(foe.x, foe.z);
+    if (!inView(x, y)) continue;
+    ctx.fillStyle = '#d4281c';
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
   for (const pin of paint.pins) {
     const [x, y] = atRim(...at(pin.x + 0.5, pin.z + 0.5), width, height);
     sized(x, y, (x, y) => drawPin(ctx, pin, x, y));
   }
-  hero(ctx, ...at(model.inside?.entrance.x ?? model.hero.x, model.inside?.entrance.z ?? model.hero.z), screenFacing(model.hero.facing));
-  compass(ctx, width - 16, 30, INK);
+  for (const ask of paint.corner?.asks ?? []) {
+    const [x, y] = at(ask.x + 0.5, ask.z + 0.5);
+    if (!inView(x, y - 6)) continue;
+    ctx.font = font(14, 800);
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = INK;
+    ctx.strokeText(ask.mark === 'offer' ? '!' : '?', x, y);
+    ctx.fillStyle = ask.mark === 'waiting' ? '#b8b0a0' : '#ffc83a';
+    ctx.fillText(ask.mark === 'offer' ? '!' : '?', x, y);
+  }
+  const [hx, hz] = [model.inside?.entrance.x ?? model.hero.x, model.inside?.entrance.z ?? model.hero.z];
+  hero(ctx, ...(paint.corner ? ([width / 2, height / 2] as const) : at(hx, hz)), screenFacing(model.hero.facing), !!paint.corner);
+  if (!paint.corner) compass(ctx, width - 16, 30, INK);
 }
 
 // A pin: a coloured head on a short stem (one off the map's edge already held at the edge: mapView.ts atRim).
@@ -321,8 +359,17 @@ function drawPin(ctx: CanvasRenderingContext2D, pin: MapPin, px: number, py: num
   }
 }
 
-// The hero: a red arrowhead pointing the way they face.
-function hero(ctx: CanvasRenderingContext2D, x: number, y: number, facing: number): void {
+// The hero: a red arrowhead pointing the way they face (`ringed`, on a pale disc: the corner map's, no mark of a place).
+function hero(ctx: CanvasRenderingContext2D, x: number, y: number, facing: number, ringed = false): void {
+  if (ringed) {
+    ctx.fillStyle = '#fff4d8';
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
   const [dx, dy] = [Math.sin(facing), Math.cos(facing)]; // (on the screen: x across, y down)
   const point = (along: number, aside: number) => [x + dx * along - dy * aside, y + dy * along + dx * aside] as const;
   ctx.fillStyle = '#c8321e';

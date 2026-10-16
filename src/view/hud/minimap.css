@@ -1,18 +1,29 @@
 /* The corner map (minimap.ts): to the clock's left, its top level with it, the parchment in an ink frame on a sand
-   mount; clicked, the whole map. */
+   mount, north's arrow on the mount's top edge (never over the map); clicked, the whole map. */
 .minimap {
   position: fixed;
   top: 16px;
   right: 222px; /* the clock's 184 wide at 22 in, and 16 between */
   width: 150px;
   height: 150px;
-  padding: 4px;
+  padding: 15px 4px 4px;
   background: #efdcb8;
   box-shadow: 0 0 0 3px #2e1f14, 4px 4px 0 3px rgba(24, 12, 4, 0.35);
   cursor: pointer;
 }
 .minimap[hidden] { display: none; }
-.minimap canvas { display: block; width: 150px; height: 150px; box-shadow: inset 0 0 18px rgba(122, 74, 32, 0.45); }
+.minimap canvas { display: block; width: 150px; height: 150px; box-shadow: 0 0 0 1px #2e1f14; }
+.minimap-north {
+  position: absolute;
+  top: 1px;
+  right: 5px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  font: 800 11px/13px 'Fredoka', system-ui, sans-serif;
+  color: #2e1f14;
+}
+.minimap-north i { display: inline-block; font-style: normal; font-size: 10px; transform: rotate(-90deg); }
 
 /* [ui-layout] The corner map up, the blessings under the clock two to a row (more below), clear of it to their left. */
 body:has(.minimap:not([hidden])) .blessing-hud { max-width: calc(2 * 58px + 22px); }
