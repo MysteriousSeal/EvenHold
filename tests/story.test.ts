@@ -47,6 +47,7 @@ describe('the quests people give', () => {
       expect(herbalist?.look.build, `seed ${model.seed}: the opening line's herbalist, the burned woman's granddaughter`).toBe('female');
       expect(model.story.markOf(cast!.carter)).toBe('offer');
       expect(model.story.stateOf(quest.id)).toBe('offered');
+      expect([model.story.accept(quest.id), model.story.handIn(quest.id)]).toEqual([true, true]); // (the first village's keepers ask nothing before)
       const asking = model.story.asking;
       expect(asking.length).toBeGreaterThan(3);
       for (const { who, mark } of asking) expect(model.story.talk(who), `${who.name}: ${mark}`).not.toBeNull();
