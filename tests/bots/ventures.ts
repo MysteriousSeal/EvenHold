@@ -309,6 +309,7 @@ export class BotVentures extends BotSteps {
       }
       const shop = pedlarShopAt(this.model.shops, this.model.seed, traveller);
       this.buyOne(shop, (id) => pedlarPrice(id, false), (id) => buyFromPedlar(shop, this.model.hero, id), 'pedlar');
+      if (!this.model.fishing.rod && this.model.hero.money >= pedlarPrice('fishingRod', false) + 30 && buyFromPedlar(shop, this.model.hero, 'fishingRod') === 'bought') this.stats.trades++; // (a rod, coin to spare: the lakes too)
       this.stats.pedlars++;
       return 'ok';
     };

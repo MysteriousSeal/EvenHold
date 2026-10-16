@@ -25,12 +25,13 @@ import { isGear, weaponTypeOf } from '../../../src/model/human/items/gear';
 import { better } from '../errands';
 import { freeBed } from '../nav';
 import { bestRecipe } from '../../../src/controller/skills/recipeBook';
-import { buyGear, gearPrice, smithShopIn } from '../../../src/model/smithy/smithShop';
+import { SMITH_PICK, buyGear, gearPrice, smithShopIn } from '../../../src/model/smithy/smithShop';
 import { PICKUP_RANGE } from '../../../src/model/loot/loot';
 import { INN_WANTS, buyPrice, innWants } from '../../../src/model/inn/tavernShop';
 import { ROOM_PRICE, letUntil, lettingHours } from '../../../src/model/inn/roomLetting';
 import type { Step } from '../botSteps';
 import { STORY_ACTIVITY, speakWith, travel } from './storyActivity';
+import { SKILL_ACTIVITIES } from './skillActivities';
 import type { Toolkit } from './player';
 import type { Drive, Trait } from './persona';
 
@@ -234,6 +235,7 @@ export const ACTIVITIES: Activity[] = [
         if (lumber.axe || !p.model.inside || p.model.inside.entrance.type !== 'smithy' || p.persona.traits.industrious < 0.4) return 'ok';
         const shop = smithShopIn(p.model);
         if ((shop.stock.hatchet ?? 0) > 0 && hero.money >= gearPrice('hatchet') && buyGear(shop, hero, 'hatchet') === 'bought') [p.model.equipFromBag('hatchet'), p.log('bought a hatchet: lumberjacking it is'), p.stats.trades++];
+        if (!p.model.mining.pick && hero.money >= 80 && buyGear(shop, hero, SMITH_PICK) === 'bought') [p.log('bought a copper pickaxe: the rocks too'), p.stats.trades++]; // (and a pick, coin to spare)
         return 'ok';
       };
       return [...trade.slice(0, -1), hatchet, ...trade.slice(-1)]; // (before leaving)
@@ -332,6 +334,7 @@ export const ACTIVITIES: Activity[] = [
     steps: (p, t) => speakWith(p, t.data as Carter | Npc), // (storyActivity.ts: a choice answered as the player would)
   },
   STORY_ACTIVITY,
+  ...SKILL_ACTIVITIES,
   {
     id: 'herbalist',
     serves: { safety: 0.4, curiosity: 0.3, coin: 0.2 },
