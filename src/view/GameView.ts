@@ -378,7 +378,7 @@ export class GameView {
     this.campFires.update(model, this.elapsed);
     this.kindledFire.update(model, this.elapsed);
     (this.herbPatches ??= new HerbPatches(this.scene)).update(model, this.elapsed);
-    (this.storyProps ??= new StoryPropsView(this.scene)).update(model, dt);
+    (this.storyProps ??= new StoryPropsView(this.scene)).update(model);
     this.campChests.update(model);
     this.boardMarks.update(hero.x, hero.z, this.elapsed);
     this.mist.update(hero.x, hero.z, model.minutes, dt);
