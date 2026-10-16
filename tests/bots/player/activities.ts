@@ -212,7 +212,7 @@ export const ACTIVITIES: Activity[] = [
     id: 'barmaid',
     serves: { company: 0.8, coin: 0.3 },
     traits: { social: 0.9, greedy: 0.2 },
-    options: (p) => door(p, 'inn').map((t) => ({ ...t, label: 'the inn, to trade and talk' })),
+    options: (p) => door(p, 'inn').map((t) => ({ ...t, label: (p.model.hero.bag.woodenBowl ?? 0) + (p.model.hero.bag.carvedTankard ?? 0) > 0 ? 'the inn, to sell her my cups' : 'the inn, to trade and talk' })),
     steps: (p) => p.go('barmaid'),
   },
   {
@@ -454,6 +454,8 @@ export const ACTIVITIES: Activity[] = [
       const best = bestRecipe(p.model) as keyof typeof RECIPES | null; // (woodworking's)
       const can = (id: keyof typeof RECIPES) => !p.model.work.shift && p.model.woodworking.canMake(id) > 0 && p.model.woodworking.roomFor(id); // (the stuff for it in the bag, and room for what's made)
       const targets = best && can(best) ? [{ label: `making ${RECIPES[best].name}s`, at: null, data: best }] : [];
+      // And what the inn buys (a bowl, a tankard), the planks for it in the bag: goods to sell her, not just practice.
+      for (const cup of ['carvedTankard', 'woodenBowl'] as const) if (cup !== best && p.model.woodworking.knows(cup) && can(cup)) targets.push({ label: `making ${RECIPES[cup].name}s, to sell the inn`, at: null, data: cup });
       // And a bedroll, once it can be made and none's carried: the thing itself wanted, not the practice.
       if (best !== 'bedroll' && !(p.model.hero.bag.bedroll ?? 0) && p.model.woodworking.canMake('bedroll') > 0) targets.push({ label: 'making a bedroll', at: null, data: 'bedroll' });
       return targets;
