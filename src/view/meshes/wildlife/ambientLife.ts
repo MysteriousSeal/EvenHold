@@ -7,15 +7,17 @@
 // and fish leaping out on the water. Where they are comes from the seed, by
 // patches of ground round the hero (made as the hero comes near, let go as
 // they're left), so they're always the same there. Crows on the sown fields'
-// fences, a heron in the shallows, a flock over in a V now and then. How each moves:
-// ambientMoves.ts; their tiny voxel models: ambientVoxels.ts. One instanced
+// fences, a heron in the shallows, a flock over in a V now and then. Each country
+// its own: hares and grouse on the heath, goats on the hills, boar and an owl in
+// the woods. How each moves: ambientMoves.ts; their tiny voxel models:
+// ambientVoxels.ts (each country's: countryVoxels.ts). One instanced
 // mesh a kind, drawn only as many as are out. With them, the villages'
 // livestock in their fields (livestockViews.ts) and the smoke from the
 // chimneys (smoke/chimneySmoke.ts), round the hero as they are. The
 // weather has its say (common/weatherNow.ts): in the rain the birds and the
 // butterflies are under cover, and the frogs out, day or night.
 
-import { createBiomes } from '../../../model/scenery/biomes';
+import { aroundVillages, createBiomes } from '../../../model/scenery/biomes';
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
 import { LIFE_CELL, lifeIn, lifeOut, perchesOn, type LifeKind, type LifeSpot, type LifeWorld } from '../../../model/scenery/ambientSpots';
@@ -31,18 +33,23 @@ import { weatherNow, type WeatherNow } from '../common/weatherNow';
 import { lifeShare } from '../../render/graphics';
 import { LivestockViews } from './livestockViews';
 import { ChimneySmoke } from '../smoke/chimneySmoke';
-import { bird, butterfly, dragonfly, firefly, fish, flock, frog, heron, rabbit, splash, type Creature, type Moment } from './ambientMoves';
+import { bird, butterfly, dragonfly, firefly, fish, flock, frog, grazer, heron, owl, rabbit, splash, type Creature, type Moment } from './ambientMoves';
+import { BOAR_PALETTE, GOAT_PALETTE, GROUSE_PALETTE, HARE_PALETTE, OWL_PALETTE, boarGrid, goatGrid, grouseGrid, hareGrid, owlGrid } from './countryVoxels';
 
 const V = 0.025; // the creatures' voxels: finer than the world's (they're small)
 const CELL = LIFE_CELL; // tiles a side of each patch of ground they're found by
 const REACH = 4; // patches out from the hero's (each way) that have their life
-const MOST: Record<LifeKind | 'splash', number> = { butterfly: 48, bird: 56, firefly: 90, rabbit: 24, dragonfly: 24, frog: 40, fish: 24, crow: 32, heron: 6, splash: 32 };
+const MOST: Record<LifeKind | 'splash', number> = { butterfly: 48, bird: 56, firefly: 90, rabbit: 24, dragonfly: 24, frog: 40, fish: 24, crow: 32, heron: 6, hare: 12, grouse: 24, goat: 24, boar: 12, owl: 4, splash: 32 };
+// Each country's own, drawn how big (and their middles how high over the ground: half their voxels' height).
+const [HARE, GROUSE, GOAT, BOAR] = [1.5, 1.5, 1.7, 1.6];
+const UP = { hare: (11 * V * HARE) / 2, grouse: (6 * V * GROUSE) / 2, goat: (12 * V * GOAT) / 2, boar: (8 * V * BOAR) / 2 };
 const KINDS = Object.keys(MOST).filter((k) => k !== 'splash') as LifeKind[];
 const TINTS: Partial<Record<LifeKind, number[]>> = {
   butterfly: [0xf0a33a, 0xf2f0e6, 0x7aa2e8], // orange, white, blue
   bird: [0xffffff, 0xd8b090], // plain, a warmer brown
   rabbit: [0xffffff, 0xc8c4c0], // brown, a greyer one
   dragonfly: [0x2fa8b8, 0x2fa8b8, 0x4a7ee0], // teal (most), blue
+  goat: [0xffffff, 0xffffff, 0xb08a64, 0x6a5a4c], // white (most), brown, dark
 };
 
 // How many of `kind` are out (0 none .. 1 all), its hours (`out`), the weather and the season considered: birds and
@@ -106,9 +113,14 @@ export class AmbientLife {
       fish: mesh(fishGrid(), FISH_PALETTE, lit, MOST.fish),
       crow: mesh(crowGrid(), CROW_PALETTE, lit, MOST.crow),
       heron: mesh(heronGrid(), HERON_PALETTE, lit, MOST.heron),
+      hare: mesh(hareGrid(), HARE_PALETTE, lit, MOST.hare),
+      grouse: mesh(grouseGrid(), GROUSE_PALETTE, lit, MOST.grouse),
+      goat: mesh(goatGrid(), GOAT_PALETTE, lit, MOST.goat),
+      boar: mesh(boarGrid(), BOAR_PALETTE, lit, MOST.boar),
+      owl: mesh(owlGrid(), OWL_PALETTE, lit, MOST.owl),
       splash: mesh(splashGrid(), [0xffffff], foam, MOST.splash),
     };
-    this.life = { seed: model.seed, tiles: model.tiles, isOpenTile: (x, z) => model.isOpenTile(x, z), biomes: createBiomes(model.seed, model.tiles) };
+    this.life = { seed: model.seed, tiles: model.tiles, isOpenTile: (x, z) => model.isOpenTile(x, z), biomes: aroundVillages(createBiomes(model.seed), model.villages) }; // (as the ground's: the villages' meadows round them)
     this.livestock = new LivestockViews(scene, model);
     this.smoke = new ChimneySmoke(scene, model);
     this.moment = { time: 0, dt: 0, hour: 0, hero: { x: 0, z: 0 }, ground: (x, z) => model.getGroundY(x, z), matrix: new THREE.Matrix4(), splash: (x, z, age) => this.splash(x, z, age) };
@@ -139,6 +151,10 @@ export class AmbientLife {
           : c.kind === 'heron' ? heron(c, m)
           : c.kind === 'firefly' ? firefly(c, m, V)
           : c.kind === 'rabbit' ? rabbit(c, m, fits)
+          : c.kind === 'hare' ? rabbit(c, m, fits, HARE, UP.hare)
+          : c.kind === 'grouse' ? bird(c, m, GROUSE, UP.grouse)
+          : c.kind === 'goat' || c.kind === 'boar' ? grazer(c, m, fits, c.kind, c.kind === 'goat' ? GOAT : BOAR, UP[c.kind])
+          : c.kind === 'owl' ? owl(c, m)
           : c.kind === 'dragonfly' ? dragonfly(c, m)
           : c.kind === 'frog' ? frog(c, m)
           : fish(c, m);
