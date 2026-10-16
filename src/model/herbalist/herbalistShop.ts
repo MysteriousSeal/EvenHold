@@ -52,8 +52,19 @@ const CAVE_PREMIUM = 1.5;
 // What they'll buy: potions, ingredients from the wild, and those cave parts.
 export const herbalistBuys = (id: string): id is BagItem => isPotion(id) || isCavePart(id) || (isIngredient(id) && (WILD.has(id) || isFish(id) || isHerb(id)));
 
+// What she pays for a brew (as much as for one bought, at the least): more than its herbs would fetch raw, the more the
+// higher the skill it wants (BREW_MARGIN times them, and the skill's share of the top's 1 more); its dearest recipe's.
+const BREW_MARGIN = 1.5;
+const TOP_SKILL = 270;
+const brewPaid = (potion: PotionId): number =>
+  Math.max(0, ...BREW_RECIPE_IDS.filter((id) => BREW_RECIPES[id].makes === potion).map((id) => {
+    const { from, needs } = BREW_RECIPES[id];
+    const herbs = Object.entries(from).reduce((sum, [herb, n]) => sum + herbalistPrice(herb as BagItem, true) * (n as number), 0); // (as she'd pay for them raw)
+    return Math.ceil(herbs * (BREW_MARGIN + needs / TOP_SKILL));
+  }));
+
 // What a potion costs here, or a potion or an ingredient fetches (an ingredient its worth; a cave part more).
-export const herbalistPrice = (id: BagItem, selling: boolean): number => (isPotion(id) ? potionPrice(id, selling) : id === KIT ? TOOL_ITEMS.brewersKit.value : Math.round(LOOT[id as keyof typeof LOOT].value * (isCavePart(id) ? CAVE_PREMIUM : 1)));
+export const herbalistPrice = (id: BagItem, selling: boolean): number => (isPotion(id) ? (selling ? Math.max(potionPrice(id, true), brewPaid(id)) : potionPrice(id, false)) : id === KIT ? TOOL_ITEMS.brewersKit.value : Math.round(LOOT[id as keyof typeof LOOT].value * (isCavePart(id) ? CAVE_PREMIUM : 1)));
 
 // Whether they'd take another of a cave part at their price (fewer than WANTS.goods bought of it, not yet sold on).
 export const wantsPart = (shop: Shop, id: string): boolean => !isCavePart(id) || (shop.bought?.[id] ?? 0) < WANTS.goods;

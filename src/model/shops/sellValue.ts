@@ -37,7 +37,7 @@ export function saleOf(item: BagItem): { price: number; to: string } | null {
   if (smithTakesWood(item)) return { price: woodPrice(item), to: 'a smith or a pedlar' };
   if (smithTakesPick(item)) return { price: pickPrice(item, true), to: 'a smith' };
   if (isFish(item)) return { price: LOOT[item].value, to: 'a pedlar or a herbalist' };
-  if (isPotion(item)) return { price: potionPrice(item, true), to: 'a herbalist or a pedlar' };
+  if (isPotion(item)) return { price: herbalistPrice(item, true), to: herbalistPrice(item, true) > potionPrice(item, true) ? 'a herbalist' : 'a herbalist or a pedlar' }; // (a brew, at a herbalist, more than its herbs)
   if (herbalistBuys(item)) return { price: herbalistPrice(item, true), to: 'a herbalist' };
   if (isGear(item) && isJewelrySlot(slotOfGear(item))) return { price: gearSellPrice(item), to: 'a pedlar' };
   if (isBagItem(item) || (pedlarBuys(item) && !isProvision(item))) return { price: pedlarPrice(item, true), to: 'a pedlar' };
