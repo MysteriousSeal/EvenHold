@@ -1,7 +1,7 @@
 // The journal's Places (controller/quests/placesTab.ts): what the hero's found, under the lands of the village found
 // nearest each; the dungeons and camps cleared or not; a tally a region, and the world's.
 import { describe, expect, it } from 'vitest';
-import { placesFound, type FoundWorld } from '../src/controller/quests/placesTab';
+import { placesFound, placesTab, type FoundWorld } from '../src/controller/quests/placesTab';
 import { villageName } from '../src/model/villages/villageNames';
 import type { Place } from '../src/model/atlas/atlas';
 
@@ -32,5 +32,12 @@ describe('the places found', () => {
 
   it('nothing found: no lands', () => {
     expect(placesFound({ ...world, atlas: { fog: { seen: () => false }, places: () => [], landmarks: () => [] } })).toEqual({ regions: [], total: '0 places found · 0/0 cleared' });
+  });
+
+  it('a row clicked: the map opened on it', () => {
+    const shown: number[][] = [];
+    const { cells } = placesTab(world, (x, z) => shown.push([x, z])).slots!() as { cells: Array<{ use?(): void }> };
+    cells[1].use!(); // (the crypt, under the first village's lands)
+    expect(shown).toEqual([[100, 0]]);
   });
 });

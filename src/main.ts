@@ -238,7 +238,7 @@ async function boot(): Promise<void> {
   const sheet = createHeroSheet(model, { levelUp: () => levelUp.menu.open() });
   const sound = startSound(import.meta.env.BASE_URL); // (heard from the first key or click: view/audio/)
   const minimap = createMinimap(model); // (the corner map; M, the whole map)
-  createMapWindow(model, { setPaused: holdStill('map'), minimap });
+  createMapWindow(model, { setPaused: holdStill('map'), minimap, journal });
   model.atlas.marks.set('purse', () => (model.purse && model.purse.under === null ? [{ kind: 'purse', x: model.purse.x, z: model.purse.z, label: `Your purse (${model.purse.amount} copper)` }] : [])); // (a fall's purse, out of doors: on the map)
   const pause = createPauseMenu({
     volumes: { get: () => sound.sound.volumes, set: (v) => sound.sound.setVolumes(v) }, // (its steppers: soundSettings.ts)

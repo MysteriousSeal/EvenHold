@@ -19,7 +19,7 @@ import { line } from '../../view/ui/dom';
 import { capitalize } from '../../util/text';
 
 
-export function createJournal(model: GameModel): { menu: Menu; update(): void } {
+export function createJournal(model: GameModel): { menu: Menu; update(): void; showOnMap: ((x: number, z: number) => void) | null } {
   const { quests } = model;
   const shown = new WeakMap<MenuSlot, TakenQuest>();
   let armed: string | null = null; // the quest whose Abandon was clicked once: a second click abandons it
@@ -135,7 +135,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
         detail,
         header,
       },
-      placesTab(model), // (what's been found, land by land)
+      placesTab(model, (x, z) => api.showOnMap?.(x, z)), // (what's been found, land by land; clicked, on the map)
     ],
   });
   // Kept up with the hunt while open: redrawn when a quest moves along.
@@ -147,6 +147,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
     seen = now;
     menu.refresh();
   };
-  return { menu, update };
+  const api = { menu, update, showOnMap: null as ((x: number, z: number) => void) | null }; // (the map window's: open it there)
+  return api;
 }
 

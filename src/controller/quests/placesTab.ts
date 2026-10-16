@@ -21,6 +21,8 @@ export interface FoundRow {
   kind: MarkKind;
   name: string;
   state?: 'Cleared' | 'Not cleared'; // (a place's: a village's or a landmark's, none)
+  x: number;
+  z: number;
 }
 export interface Region {
   name: string;
@@ -34,19 +36,20 @@ const tally = (rows: readonly FoundRow[]) => `${rows.length} found · ${rows.fil
 // The lands found, each under the village found nearest (none found: none), and the world's tally.
 export function placesFound(world: FoundWorld): { regions: Region[]; total: string } {
   const found = world.villages.filter((v) => world.atlas.fog.seen(v.x, v.z));
-  const rows = found.map((v): FoundRow[] => [{ kind: v.town ? 'town' : 'village', name: villageName(v, world.seed) }]);
+  const rows = found.map((v): FoundRow[] => [{ kind: v.town ? 'town' : 'village', name: villageName(v, world.seed), x: v.x, z: v.z }]);
   const nearest = (x: number, z: number) => found.reduce((best, v, i) => (Math.hypot(v.x - x, v.z - z) < Math.hypot(found[best].x - x, found[best].z - z) ? i : best), 0);
   if (found.length) {
-    for (const p of world.atlas.places()) rows[nearest(p.x, p.z)].push({ kind: p.kind, name: p.name, state: p.cleared ? 'Cleared' : 'Not cleared' });
-    for (const l of world.atlas.landmarks()) rows[nearest(l.x, l.z)].push({ kind: l.kind, name: MARK_NAME[l.kind] });
+    for (const p of world.atlas.places()) rows[nearest(p.x, p.z)].push({ kind: p.kind, name: p.name, state: p.cleared ? 'Cleared' : 'Not cleared', x: p.x, z: p.z });
+    for (const l of world.atlas.landmarks()) rows[nearest(l.x, l.z)].push({ kind: l.kind, name: MARK_NAME[l.kind], x: l.x, z: l.z });
   }
   const regions = found.map((v, i) => ({ name: `${villageName(v, world.seed)}'s lands`, tally: tally(rows[i]), rows: rows[i] }));
   const all = rows.flat();
   return { regions, total: tally(all).replace('found', all.length === 1 ? 'place found' : 'places found') };
 }
 
-// The tab: a row a thing found (its mark, its name, what it is; cleared or not), under its land's header and tally.
-export function placesTab(world: FoundWorld): MenuTab {
+// The tab: a row a thing found (its mark, its name, what it is; cleared or not), under its land's header and tally;
+// clicked, the map opened on it (`show`: mapWindow.ts showAt).
+export function placesTab(world: FoundWorld, show?: (x: number, z: number) => void): MenuTab {
   return {
     name: 'Places',
     slots: () => {
@@ -60,6 +63,7 @@ export function placesTab(world: FoundWorld): MenuTab {
             icon: (px) => markIcon(row.kind, px),
             title: capitalize(row.name), // ("the grave halls of…": at a row's head)
             note: LANDMARKS.has(row.kind) ? 'Landmark' : MARK_NAME[row.kind],
+            use: () => show?.(row.x, row.z),
             ...(row.state && { badge: row.state, badgeTone: row.state === 'Cleared' ? ('ready' as const) : ('progress' as const) }),
           });
         }
