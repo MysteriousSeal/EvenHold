@@ -82,7 +82,9 @@ export function speakWith(p: Toolkit, who: Carter | Npc): Step[] {
   // Up to them and a word, followed if they've moved on meanwhile (re-aimed, a few tries; gone indoors elsewhere: given up).
   let leg: Step | null = null;
   let tries = 0;
+  let after = 0;
   const reach: Step = (dt) => {
+    if ((after += dt) > 90) return 'fail'; // (followed a minute and a half, never caught: another time)
     const room = 'where' in who ? who.where : null;
     if (!sameDoor(room, p.model.inside?.entrance ?? null)) return 'fail'; // (gone in, or out: another time)
     if (Math.hypot(who.x - hero.x, who.z - hero.z) <= 1.8) return word(dt);
@@ -107,7 +109,9 @@ const FAILS = 6;
 export function travel(p: Toolkit, to: () => { x: number; z: number }, near = NEAR): Step {
   let leg: Step | null = null;
   let fails = 0;
+  let walked = 0;
   return (dt) => {
+    if ((walked += dt) > 300) return 'fail'; // (five minutes on the road and not there: another time)
     const { hero } = p.model;
     const at = to();
     const far = Math.hypot(at.x - hero.x, at.z - hero.z);
@@ -144,6 +148,11 @@ export const STORY_ACTIVITY: Activity = {
     const far = (a: { x: number; z: number }) => Math.hypot(a.x - hero.x, a.z - hero.z);
     for (const t of story.taken) {
       if (!main(STORY_QUESTS[idOf(t.id)]?.scope)) continue;
+      if (t.ready) { // (all it asks had: only its handing in, below)
+        if (t.to && !out.some((o) => (o.data as { who?: unknown }).who === t.to)) out.unshift({ label: `${t.toName}, to hand in "${t.name}"`, at: t.door ?? whereOf(t.to), data: { who: t.to } });
+        else if (!t.to && t.goal) out.push({ label: `back towards ${t.toName}`, at: t.goal, data: { goal: t.goal, within: null } });
+        continue;
+      }
       // What it asks, done: logs felled (an axe bought first, if none), its foes sought out.
       const needs = STORY_QUESTS[idOf(t.id)]?.needs;
       const wood = needs?.kind === 'bring' && (hero.bag[needs.item] ?? 0) < needs.count ? Object.values(WOOD).find((w) => w.log === needs.item) : undefined;
@@ -188,7 +197,7 @@ export const STORY_ACTIVITY: Activity = {
       };
       return [travel(p, () => data.axe!, 6), ...p.enter(data.axe), buy, ...p.leave()];
     }
-    const way = travel(p, () => t.at ?? p.model.hero);
+    const way = travel(p, () => t.at ?? p.model.hero, 6); // (right up to them, or their door: a last walk of sixty tiles may never end)
     if (data.who) return [way, ...speakWith(p, data.who)];
     const goal = data.goal!;
     let waited = 0;

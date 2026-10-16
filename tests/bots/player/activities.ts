@@ -165,6 +165,7 @@ export const ACTIVITIES: Activity[] = [
   },
   {
     id: 'sleep',
+    budget: 4 * 60, // (a lie down: no more than four minutes, whatever holds it up)
     serves: { rest: 1, safety: 0.7 },
     traits: { cautious: 0.3, industrious: -0.2 },
     options: (p) => {
@@ -260,6 +261,7 @@ export const ACTIVITIES: Activity[] = [
   },
   {
     id: 'upstairs',
+    budget: 4 * 60, // (a lie down: no more than four minutes, whatever holds it up)
     serves: { rest: 0.6, curiosity: 0.2 },
     traits: { curious: 0.2 },
     // (only with a room let there, or one to be had: letting hours and its price; else every door up there locked)

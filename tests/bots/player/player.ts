@@ -20,6 +20,7 @@ import { Bot, type PlanContext } from '../bot';
 import type { BotStats, Report, Step } from '../botSteps';
 import type { Status } from '../errands';
 import { ACTIVITIES, type Activity, type Target } from './activities';
+import { heroState } from '../nav';
 import { Memory, describe, draw, drawPersona, score, type Drive, type Persona } from './persona';
 
 const SEEN = 45; // tiles: how far off a place is noticed (about what's on screen, and a little beyond)
@@ -254,10 +255,10 @@ export class Player extends Bot {
   // stuck somewhere the steps don't see, a finding as much as a bug).
   private budgeted(activity: Activity, target: Target, steps: Step[]): Step[] {
     const budget = activity.budget ?? BUDGET;
-    return steps.map((step) => (dt) => {
+    return steps.map((step, i) => (dt) => {
       if (this.seconds - this.current!.at > budget) {
         // Taking far too long (stuck somewhere the steps don't see): given up on, and said: a finding as much as a bug.
-        this.report('player stuck in an activity', `${activity.id}: ${target.label}, ${Math.round(this.seconds - this.current!.at)} s${this.model.inside ? ` in the ${this.model.inside.entrance.type}` : ''}${this.model.seated ? ', seated' : ''}`);
+        this.report('player stuck in an activity', `${activity.id}: ${target.label}, ${Math.round(this.seconds - this.current!.at)} s, at its step ${i + 1} of ${steps.length}${this.model.inside ? ` in the ${this.model.inside.entrance.type}${this.model.inside.below ? ' upstairs' : ''}` : ' outdoors'}${this.model.seated ? ', seated' : ''}, hero ${this.model.hero.x.toFixed(1)},${this.model.hero.z.toFixed(1)}${heroState(this.model)}`);
         this.cooled.set(activity.id, this.seconds + 300);
         return 'fail';
       }

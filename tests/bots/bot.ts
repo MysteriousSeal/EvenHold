@@ -437,9 +437,11 @@ export abstract class Bot extends BotVentures {
   // Up the inn's stairs, the let room's door opened, a lie on its bed (`abed`: as long as that takes), and down again.
   // No room let (none to be had): not up at all.
   private upstairs(abed: Step = this.wait(3)): Step[] {
+    let asking = 0;
     return [
       // In letting hours, with the coin, none let yet: a room off the barmaid first (its door's unlocked for it).
       (dt) => {
+        if ((asking += dt) > 30) return 'ok'; // (half a minute and no room had: up anyway, it says so)
         const { inside, hero } = this.model;
         if (!inside || inside.below || !lettingHours(this.model.minutes) || hero.money < ROOM_PRICE || letUntil(inside.entrance) !== null) return 'ok';
         const barmaid = barmaidHere(this.model);
