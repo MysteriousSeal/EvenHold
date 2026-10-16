@@ -32,10 +32,11 @@ export function blowTarget(hero: Hero, enemies: readonly Enemy[], focus: Enemy |
   return best;
 }
 
-// What a blow of theirs does (as hard as their weapon's kind lands it), `roll` deciding a critical one (double).
+// What a blow of theirs does (as hard as their weapon's kind lands it), `roll` deciding a critical one (double). Not
+// rounded (a foe's health takes fractions, as a spell's harm): each kind's harm a second its own, whatever the blow.
 export function heroBlow(hero: Hero, roll: number): { damage: number; crit: boolean } {
   const crit = roll < critChanceOf(hero);
-  return { damage: Math.max(1, Math.round(blowDamage(hero, blowOf(hero)) * profileOf(hero).harm)) * (crit ? 2 : 1), crit };
+  return { damage: blowDamage(hero, blowOf(hero)) * profileOf(hero).harm * (crit ? 2 : 1), crit };
 }
 
 // What a foe's blow of `damage` (a foe of `foeLevel`) does to them, `roll` deciding a dodge: nothing then, else what

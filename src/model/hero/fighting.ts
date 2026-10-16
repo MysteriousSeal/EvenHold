@@ -78,8 +78,8 @@ export function landBlow(fight: Fight): void {
   // shoved off, or fallen).
   const second = weapon.sweep ? blowTarget(hero, fight.foes, null, fight.clear, target) : null;
   const wielded = wieldedOf(hero);
-  if (strike(fight, target, Math.round(blow.damage * riposte), blow.crit || riposte > 1, weapon.poise, { weapon: wielded, riposte: riposte > 1 })) shoveOff(fight, target, distance); // (shrugged off: it stands its ground, its blow coming on)
-  if (second && weapon.sweep && strike(fight, second.target, Math.max(1, Math.round(blow.damage * weapon.sweep)), false, weapon.poise, { weapon: wielded })) shoveOff(fight, second.target, second.distance);
+  if (strike(fight, target, blow.damage * riposte, blow.crit || riposte > 1, weapon.poise, { weapon: wielded, riposte: riposte > 1 })) shoveOff(fight, target, distance); // (shrugged off: it stands its ground, its blow coming on)
+  if (second && weapon.sweep && strike(fight, second.target, blow.damage * weapon.sweep, false, weapon.poise, { weapon: wielded })) shoveOff(fight, second.target, second.distance);
 }
 
 // A foe struck, shoved off (a heavy one hardly moved).

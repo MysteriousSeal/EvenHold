@@ -73,9 +73,9 @@ describe("what the hero's blow does", () => {
   });
 
   it('double on a critical blow (Agility, and the roll under its chance)', () => {
-    const hero = heroWith('dagger'); // +3 Agility: 3%
-    expect(heroBlow(hero, 0.02)).toEqual({ damage: 2, crit: true });
-    expect(heroBlow(hero, 0.04)).toEqual({ damage: 1, crit: false });
+    const hero = heroWith('dagger'); // +3 Agility: 3%; a dagger's blow 0.72 of a sword's (quicker: not rounded)
+    expect(heroBlow(hero, 0.02)).toEqual({ damage: 1.44, crit: true });
+    expect(heroBlow(hero, 0.04)).toEqual({ damage: 0.72, crit: false });
   });
 
   it("a point more with the well's Strong blessing", () => {

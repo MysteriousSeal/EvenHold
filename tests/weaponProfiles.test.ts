@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { WEAPON_PROFILES, profileText, wieldedOf } from '../src/model/hero/weaponProfiles';
 import { blowTarget, heroBlow } from '../src/model/hero/combat';
 import { landBlow } from '../src/model/hero/fighting';
+import { blowOf } from '../src/model/hero/attributes';
 import { makeEnemy } from '../src/model/enemies/enemies';
 import { flinches } from '../src/model/enemies/poise';
 import { ATTACK_DURATION, ATTACK_REACH, ENEMY_STATS } from '../src/model/constants';
@@ -16,6 +17,16 @@ const run = (model: ReturnType<typeof fresh>, seconds: number, step = 1 / 60) =>
 describe('weapons, each its own', () => {
   it('about as much harm a second whatever the kind (the slow ones hit the harder)', () => {
     for (const [kind, p] of Object.entries(WEAPON_PROFILES)) expect(p.harm / p.time, kind).toBeGreaterThan(0.85), expect(p.harm / p.time, kind).toBeLessThan(1.1);
+  });
+
+  it('a blow\'s harm not rounded: at a starter\'s blow, a dagger and a hammer land a sword\'s harm a second, near enough', () => {
+    const perSecond = (weapon: string) => {
+      const hero = fresh().hero;
+      hero.equipment.mainHand = weapon as never;
+      return heroBlow(hero, 0.99).damage / WEAPON_PROFILES[wieldedOf(hero)].time / blowOf(hero); // (a blow of 1 or 2: the weapon's own Strength)
+    };
+    const sword = perSecond('armingSword');
+    for (const weapon of ['dagger', 'warHammer']) expect(perSecond(weapon) / sword, weapon).toBeCloseTo(1, 2); // (rounded, a dagger 1.39, a hammer 0.71)
   });
 
   it('a war hammer\'s blow slow and dear in breath; a dagger\'s quick and cheap', () => {
