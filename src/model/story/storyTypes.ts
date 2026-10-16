@@ -39,8 +39,10 @@ export interface TakenStory {
 }
 
 // A quest under way's people and village, by name, and where its village is: for when they're off the maps. (`village`,
-// `next`, `camp`: since saves of 2026-10; an older save's, unsaid. `goal`: the place it asks to be reached, kept for
-// when its own setting's off the maps: the second arc's, whose roads run from one place to the next.)
+// `next`, `camp`: since saves of 2026-10; an older save's, unsaid. `goal`: its own place (the one it asks to be reached,
+// the ruin, camp or cave it's done at), as it was when taken: not the nearest as more of a streamed world's made, and
+// for when its own setting's off the maps (the second arc's, whose roads run from one place to the next). Kept for a
+// reach alone before 2026-10-16: an older save's others, the nearest as the world stands.)
 export type Kept = { to: string; from: string; x: number; z: number; village?: string; next?: string; camp?: string; goal?: Point };
 
 export interface StoryHost extends CastHost, RestockHost {

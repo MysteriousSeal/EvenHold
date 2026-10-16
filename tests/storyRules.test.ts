@@ -304,3 +304,33 @@ describe("the first village's keepers, before the carter's word is carried", () 
     expect([story.stateOf('wordToTheInn'), story.stateOf(shift.key)]).toEqual(['offered', 'taken']);
   }, 120_000);
 });
+
+describe("a quest's own place, once taken", () => {
+  it('stays the ruin it was set by as more of the world is made (a nearer one found after): kept in the save; an older save, as the world now stands', () => {
+    const model = new GameModel(7, STREAMED_SIZE);
+    const { story } = model;
+    const keys = Object.values(STORY_QUESTS).filter((q) => q.scope === 'village' && q.near === 'ruin' && q.needs?.kind === 'bring').flatMap((q) => story.keysOf(q.id));
+    const key = keys.find((k) => story.stateOf(k) === 'offered')!;
+    expect(key).toBeDefined();
+    expect(story.accept(key)).toBe(true);
+    const goal = () => story.taken.find((t) => t.id === key)!.goal;
+    const was = goal()!;
+    expect(was).not.toBeNull();
+    // A region made since, with a ruin nearer the village than the one it was set by.
+    const village = model.villages.find((v) => String(model.boardOf(v)) === key.split('@')[1])!;
+    const ruin = model.ruins.find((r) => Math.hypot(r.x + r.w / 2 - was.x, r.z + r.d / 2 - was.z) < 1)!;
+    model.ruins.push({ ...ruin, x: (village.x + was.x) / 2 - ruin.w / 2, z: (village.z + was.z) / 2 - ruin.d / 2 });
+    story.update();
+    expect(goal()).toEqual(was);
+    const loaded = new GameModel(7, STREAMED_SIZE);
+    restore(loaded, snapshot(model));
+    loaded.ruins.push({ ...ruin, x: (village.x + was.x) / 2 - ruin.w / 2, z: (village.z + was.z) / 2 - ruin.d / 2 });
+    loaded.story.update();
+    expect(loaded.story.taken.find((t) => t.id === key)!.goal).toEqual(was);
+    // An older save (no place kept): the nearest as the world now stands.
+    const old = story.save();
+    for (const k of Object.values(old.kept)) delete (k as { goal?: unknown }).goal;
+    story.load(old);
+    expect(goal()).not.toEqual(was);
+  }, 120_000);
+});
