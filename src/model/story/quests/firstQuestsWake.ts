@@ -137,7 +137,7 @@ export const WAKE_QUESTS: StoryQuest[] = [
     accept: "I'll go up and see.",
     decline: 'Let her rest.',
     waiting: (t) => [`Up to the old ruin. Stand a while by the grave. Then tell ${t.receiver} if anything still walks.`],
-    pending: () => ["Not been up yet? I can wait. Waited for everything else."],
+    pending: () => ['You have not been up there yet. I can wait. I have waited for everything else.'],
     after: () => ["Carried a jar up forty steps on this knee. Only thing I ever carried that got lighter as I went."],
     task: (t) => `Go up to the grave in the old ruin, then tell ${t.receiver} what walks there`,
     handIn: () => [
