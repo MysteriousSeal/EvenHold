@@ -109,10 +109,11 @@ describe('the map of the land walked', () => {
 });
 
 describe('the map washed as the land looks', () => {
-  it('colours each ground from the game\'s own (under a parchment tint): the heath olive, the woods darker, the water blue', () => {
-    const [heath, meadow, forest, water] = (['heath', 'meadow', 'forest', 'water'] as const).map((g) => washColour(g, 2));
-    expect(heath[1], 'the heath olive, not pink').toBeGreaterThanOrEqual(heath[0]);
-    expect(heath[2]).toBeLessThan(heath[1] - 30);
+  it('colours each ground from the game\'s own (under a parchment tint): the heath heather, the hills grey, the woods and marsh darker, the water blue', () => {
+    const [heath, meadow, forest, marsh, hills, water] = (['heath', 'meadow', 'forest', 'marsh', 'hills', 'water'] as const).map((g) => washColour(g, 2));
+    expect(heath[0], 'the heath purple-brown, not green').toBeGreaterThan(heath[1] + 15);
+    expect(Math.max(...hills) - Math.min(...hills), 'the hills grey (the vellum warms it a little)').toBeLessThan(25);
+    expect(marsh.reduce((a, b) => a + b), 'the marsh darker than the meadow').toBeLessThan(meadow.reduce((a, b) => a + b) - 60);
     expect(meadow[1]).toBeGreaterThan(meadow[0]);
     expect(forest.reduce((a, b) => a + b), 'the woods darker than the meadow').toBeLessThan(meadow.reduce((a, b) => a + b) - 60);
     expect(water[2], 'the water blue').toBeGreaterThan(water[0] + 40);

@@ -1,6 +1,6 @@
-// The ground's colour by the kind of country (model/scenery/biomes.ts), world-design's palette: each country its own
-// green, differing from its neighbours mostly in hue (the woods a deeper green, the moor olive, the marsh a wet green,
-// the hills stony), a step darker each tier down; blended over the few tiles either side of a border (each tile's the
+// The ground's colour by the kind of country (model/scenery/biomes.ts), world-design's palette: each country its own,
+// told apart at a glance and under the dusk's grade (the meadow a bright green, the woods a deep shaded one, the heath
+// purple-brown heather, the marsh a dark wet green, the hills grey stone), a step darker each tier down; blended over the few tiles either side of a border (each tile's the
 // weighted mean of the grounds round it), so the land shades from one to the next, never a patchwork; mud here and there
 // right at the marsh's water, blended the same (a ground of its own in the mean). Handed out as a multiplier on each tile's own colour (TERRAIN_COLORS: its instance's
 // colour, no draw more), and on the grass growing on it, so tufts sit in their ground. Colour by the tile, never by
@@ -13,13 +13,13 @@ import { hashUnit } from '../../../util/random';
 import type { Tiles } from '../../../model/map/tiles';
 
 export const GROUND: Record<Biome, number> = { // (the map washes its country in these too: view/atlas/mapPaint.ts)
-  meadow: 0x7cbd58, // sunny: home (main's mid greens, on screen)
-  forest: 0x4f8a42,
-  heath: 0x9aa25e, // the moor: a lighter, yellower olive than the meadow, clear of the roads' brown (its heather its colour)
-  marsh: 0x5f8a5a, // a touch lighter and bluer than the woods'
-  hills: 0x8a9a72, // rocky: stony, still green under the haze
+  meadow: 0x88c85a, // sunny: home, the brightest
+  forest: 0x3f7438, // deep in the shade of its trees
+  heath: 0x7a6274, // the moor: heather, purple-brown (clear of the roads' brown: redder, bluer)
+  marsh: 0x3f6250, // dark and wet, blue in its green
+  hills: 0x878c8e, // grey stone, cool against the warm light
 };
-const MUD = 0x5a5038; // a marsh tile at the water's edge, here and there (MUD_CHANCE): a ground of its own, blended
+const MUD = 0x4e4434; // a marsh tile at the water's edge, here and there (MUD_CHANCE): a ground of its own, blended
 const MUD_CHANCE = 0.45;
 const TIER_STEP = [0.84, 0.92, 1, 1.05, 1.08]; // the lower, the darker: a step of some 8% a tier, so the terraces read (the highest meadow never lime)
 // The countries read round a tile, and how much each counts: the 5x5 round it, the nearer the more (a border shades
