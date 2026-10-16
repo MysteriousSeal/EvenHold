@@ -72,7 +72,7 @@ describe('weapons, each its own', () => {
     expect(a.hp).toBeLessThan(999);
     expect(b.hp).toBeLessThan(999);
     const [first, second] = [999 - a.hp, 999 - b.hp].sort((m, n) => n - m);
-    expect(second).toBe(Math.max(1, Math.round(first * WEAPON_PROFILES.axe.sweep!)));
+    expect(second).toBeCloseTo(first * WEAPON_PROFILES.axe.sweep!); // (not rounded)
   });
 
   it('a hammer\'s blow shakes a steady foe at once; a dagger\'s takes four', () => {

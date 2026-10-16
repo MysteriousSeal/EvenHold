@@ -56,7 +56,7 @@ export function createLevelUpPanel(model: GameModel, hooks: { setPaused(paused: 
     for (const [label, a, b] of [
       ['Health', maxHpOf(hero), maxHpOf(after)],
       ['Energy', maxEnergyOf(hero), maxEnergyOf(after)],
-      ['Damage', blowOf(hero), blowOf(after)],
+      ['Damage', Math.round(blowOf(hero) * 10) / 10, Math.round(blowOf(after) * 10) / 10], // (a tenth: a point's share shows)
       ['Dodge', percent(dodgeChanceOf(hero)), percent(dodgeChanceOf(after))],
       ['Critical', percent(critChanceOf(hero)), percent(critChanceOf(after))],
     ] as Array<[string, number | string, number | string]>) {

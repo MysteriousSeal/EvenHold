@@ -7,7 +7,7 @@
 
 import { ATTACK_REACH, ENEMY_STATS } from '../constants';
 import type { Enemy, Hero } from '../types';
-import { blowOf, critChanceOf, dodgeChanceOf, throughArmor } from './attributes';
+import { blowOf, critChanceOf, dodgeChanceOf, guardOf, throughArmor } from './attributes';
 import { blowDamage, hitTaken, spared } from './blessing';
 import { profileOf } from './weaponProfiles';
 
@@ -43,5 +43,5 @@ export function heroBlow(hero: Hero, roll: number): { damage: number; crit: bool
 // gets through their armour and blessings.
 export function blowTaken(hero: Hero, damage: number, roll: number, foeLevel = hero.level): { dodged: boolean; damage: number } {
   if (roll < dodgeChanceOf(hero)) return { dodged: true, damage: 0 };
-  return { dodged: false, damage: throughArmor(hero, hitTaken(hero, damage), foeLevel, spared(hero)) };
+  return { dodged: false, damage: throughArmor(hero, hitTaken(hero, damage), foeLevel, spared(hero) + guardOf(hero)) };
 }

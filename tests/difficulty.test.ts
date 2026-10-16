@@ -87,3 +87,16 @@ describe("a boss's turns", () => {
     expect(phaseFloor(wolf)).toBe(-Infinity);
   });
 });
+
+describe('a build of their own (training.ts: three points a level)', () => {
+  it('level 6 in smith plate, against the brood mother: all Stamina outlasts all Strength (slower to win, longer to fall)', { timeout: 300_000 }, () => {
+    const kit = ['bascinet', 'ironPauldrons', 'breastplate', 'gauntlets', 'plateGreaves', 'sabatons', 'heaterShield', 'warHammer'].map((i): [string, number, string] => [i, 5, 'common']);
+    for (const style of ['masher', 'average'] as const) {
+      const [str, sta] = [fight({ level: 6, str: 15, sta: 0, kit }, 'broodMother', 6, style), fight({ level: 6, str: 0, sta: 15, kit }, 'broodMother', 6, style)];
+      const lasts = (r: typeof str) => (r.hp0 * r.t) / r.lost; // (seconds to fall, at the rate it lost health)
+      expect(str.t, style).toBeLessThan(sta.t);
+      expect(lasts(sta), `${style}: ${lasts(sta).toFixed(1)}s against ${lasts(str).toFixed(1)}s`).toBeGreaterThan(lasts(str) * 1.4);
+      expect(sta.hp0 - sta.lost, style).toBeGreaterThan(str.hp0 - str.lost);
+    }
+  });
+});

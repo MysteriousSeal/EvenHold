@@ -65,10 +65,10 @@ describe("what the hero's blow does", () => {
   });
 
   it.each<[ItemId, number]>([
-    ['woodenSword', 1], // +1 Strength
-    ['armingSword', 2], // +3
-    ['battleAxe', 2], // +5
-  ])('more with Strength (%s: %i a blow)', (item, damage) => {
+    ['woodenSword', 1.25], // +1 Strength (gear's: a quarter a point)
+    ['armingSword', 1.75], // +3
+    ['battleAxe', 2.25], // +5
+  ])('more with Strength (%s: %s a blow)', (item, damage) => {
     expect(heroBlow(heroWith(item), 0.99).damage).toBe(damage);
   });
 

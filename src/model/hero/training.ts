@@ -1,4 +1,4 @@
-// The hero's stat points, as Elden Ring's: a point (POINTS_PER_LEVEL) to spend with
+// The hero's stat points, as Elden Ring's: three (POINTS_PER_LEVEL) to spend with
 // each level gained (heroStats.ts gainXp), on Strength, Agility, Stamina or
 // Endurance, in the level-up window (P); a stat grows only as they choose.
 // Spending is planned first, then confirmed, all at once. Every point spent
@@ -8,7 +8,7 @@ import type { Hero } from '../types';
 import { fitToMost, maxHpOf } from './attributes';
 import { STATS, type Stat } from './statKinds';
 
-export const POINTS_PER_LEVEL = 1;
+export const POINTS_PER_LEVEL = 3; // (1 till the stats trained came to shares: older saves have every point back)
 export const RESET_PER_LEVEL = 50; // copper, a level: what having every point back costs
 
 // What having every point back costs at `level`.

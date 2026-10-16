@@ -62,7 +62,7 @@ describe('stat points', () => {
     };
     const earned = 8 * POINTS_PER_LEVEL; // at level 9
     expect(load(9, 24, 0)).toEqual([earned, 0]); // (saved when levels gave 3 each)
-    expect(load(9, 20, 2)).toEqual([earned - 2, 2]); // what's unspent, cut to fit
+    expect(load(9, 30, 2)).toEqual([earned - 2, 2]); // what's unspent, cut to fit
     expect(load(9, 0, 30)).toEqual([earned, 0]); // spent more than earned: all back to spend
     expect(load(9, 1, 2)).toEqual([1, 2]); // within: as saved
   });

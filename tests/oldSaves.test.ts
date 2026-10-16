@@ -12,6 +12,7 @@ import { doorNumber } from '../src/model/interiors/interiors';
 import { isCrafted } from '../src/model/skills/salvage';
 import { skillOf } from '../src/model/skills/skills';
 import { TEST_MAP_SIZE } from './support/testWorld';
+import { POINTS_PER_LEVEL } from '../src/model/hero/training';
 
 const VERSIONS = ['0.7.0', '0.6.0'];
 const fixture = (version: string) => readFileSync(new URL(`./fixtures/saves/save-${version}.json`, import.meta.url), 'utf8');
@@ -31,14 +32,14 @@ describe.each(VERSIONS)('a save from %s', (version) => {
     const was = old.hero;
     const model = load();
     const h = model.hero;
-    expect([h.name, h.money, h.level, h.xp, h.statPoints, h.facing]).toEqual([was.name, was.money, was.level, was.xp, was.statPoints, was.facing]);
+    expect([h.name, h.money, h.level, h.xp, h.facing]).toEqual([was.name, was.money, was.level, was.xp, was.facing]);
+    expect([h.statPoints, Object.values(h.trained).every((n) => n === 0)]).toEqual([POINTS_PER_LEVEL * (was.level - 1), true]); // (saved when a level gave 1: every point back, 3 a level)
     expect(h.look).toEqual(was.look);
     expect(h.equipment).toEqual(was.equipment);
     expect(h.bag).toEqual(was.bag);
     expect(h.bagOrder).toEqual(was.bagOrder);
     expect(h.bagCounts).toEqual(was.bagCounts);
     expect(h.bags).toEqual(was.bags);
-    expect(h.trained).toMatchObject(was.trained!);
     expect(h.skills).toEqual(was.skills);
     expect(h.jobs).toEqual(was.jobs);
     expect(h.wear).toEqual(was.wear);

@@ -91,7 +91,7 @@ export function createHeroSheet(model: GameModel, hooks: { levelUp?(): void } = 
             ['Health', `${Math.floor(hero.hp)} / ${maxHpOf(hero)}`, ['More with Stamina', 'Never comes back by itself: eat, drink, or sleep in a bed']],
             ['Energy', `${Math.floor(hero.energy)} / ${maxEnergyOf(hero)}`, ['More with Endurance', 'Spent through the day, slept back in a bed', 'Under a quarter: tired, a slower walk']],
             ['Armour', String(armor), [`${Math.round(armorShare(hero, hero.level) * 100)}% less damage from blows of foes your level (less from stronger ones), never under 1`, `With blessings, at most ${Math.round(SPARED_CAP * 100)}% off`, 'From what you wear']],
-            ['Damage', `${blowOf(hero)} a blow`, ['More with Strength', 'Double on a critical blow']],
+            ['Damage', `${Math.round(blowOf(hero) * 10) / 10} a blow`, ['More with Strength', 'Double on a critical blow']],
             ['Speed', `${HERO_SPEED} a second`, ['Tiles walked in a second (slower when tired)']],
             ['Points', String(hero.statPoints), [`To spend on your stats, in the level-up window (P)`, `${counted(POINTS_PER_LEVEL, 'point')} more with each level`]],
             ...STATS.map((s): [string, string, string[]] => [STAT_NAMES[s], gear[s] ? `${stats[s]} (+${gear[s]})` : String(stats[s]), [STAT_DOES[s], soFrom(s)]]),

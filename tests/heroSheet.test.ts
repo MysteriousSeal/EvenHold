@@ -58,15 +58,15 @@ describe('the level-up window', () => {
     expect(button(row('Agility'), '+').disabled).toBe(true); // none left
     expect(row('Stamina').querySelector('.levelup-value')!.textContent).toBe('0 → 2');
     const health = Array.from(levelUp().querySelectorAll('.levelup-effect')).find((e) => e.querySelector('dt')!.textContent === 'Health')!;
-    expect(health.querySelector('dd')!.textContent).toBe(`${maxHpOf(model.hero)} → ${maxHpOf(model.hero) + 4}`);
+    expect(health.querySelector('dd')!.textContent).toBe(`${maxHpOf(model.hero)} → ${Math.round(maxHpOf(model.hero) * 1.06)}`);
     expect(model.hero.trained.stamina).toBe(0); // only planned
     button(row('Stamina'), '−').click();
     button(levelUp(), 'Clear').click();
     expect(row('Strength').querySelector('.levelup-value')!.textContent).toBe('0');
     button(row('Stamina'), '+').click();
-    const hp = model.hero.hp;
+    const [hp, most] = [model.hero.hp, maxHpOf(model.hero)];
     button(levelUp(), 'Confirm').click();
-    expect([model.hero.statPoints, model.hero.trained.stamina, model.hero.hp]).toEqual([2, 1, hp + 2]); // spent, and the health it adds with it
+    expect([model.hero.statPoints, model.hero.trained.stamina, model.hero.hp]).toEqual([2, 1, hp + maxHpOf(model.hero) - most]); // spent, and the health it adds with it
     panel.menu.close();
     expect(paused).toEqual([true, false]);
   });

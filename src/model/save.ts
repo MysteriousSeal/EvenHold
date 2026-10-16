@@ -78,6 +78,7 @@ export interface SaveData {
     level: number;
     xp: number;
     statPoints?: number; // gained with levels, not yet spent (older saves: none kept, so every level's given back)
+    pointsPerLevel?: number; // what a level gave when saved (older saves: 1; the points then spent are all given back, 3 a level)
     trained?: Partial<Record<Stat, number>>; // spent on each stat
     hp: number;
     energy?: number; // spent through the day, slept back
@@ -159,6 +160,7 @@ export function snapshot(model: GameModel): SaveData {
       level: hero.level,
       xp: hero.xp,
       statPoints: hero.statPoints,
+      pointsPerLevel: POINTS_PER_LEVEL,
       trained: { ...hero.trained },
       hp: hero.hp,
       energy: Math.round(hero.energy),
@@ -453,7 +455,7 @@ function foesOf(model: GameModel): string {
 function pointsOf(saved: SaveData['hero'], level: number, won = 0): { statPoints: number; trained: Record<Stat, number> } {
   const whole = (n: unknown) => (typeof n === 'number' && Number.isInteger(n) && n >= 0 ? n : 0);
   const earned = POINTS_PER_LEVEL * (level - 1) + won;
-  if (saved.statPoints === undefined) return { statPoints: earned, trained: untrained() };
+  if (saved.statPoints === undefined || saved.pointsPerLevel !== POINTS_PER_LEVEL) return { statPoints: earned, trained: untrained() }; // (spent when a point did otherwise: all back)
   const trained = untrained();
   for (const s of STATS) trained[s] = whole(saved.trained?.[s]);
   const spent = STATS.reduce((sum, s) => sum + trained[s], 0);

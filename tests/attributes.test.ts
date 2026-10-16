@@ -3,7 +3,7 @@ import { lineText } from '../src/view/ui/menuTypes';
 import { ENEMY_STATS } from '../src/model/constants';
 import { ITEMS, ITEM_IDS, type ItemId } from '../src/model/human/equipment';
 import { MAX_ENERGY, maxHpAt, recover } from '../src/model/hero/heroStats';
-import { armorOf, blowOf, critChanceOf, dodgeChanceOf, gearStats, maxEnergyOf, maxHpOf, statsOf, throughArmor } from '../src/model/hero/attributes';
+import { armorOf, blowOf, critChanceOf, dodgeChanceOf, gearStats, guardOf, maxEnergyOf, maxHpOf, statsOf, throughArmor } from '../src/model/hero/attributes';
 import { STATS } from '../src/model/hero/statKinds';
 import { gearKey, gearSpecs } from '../src/model/human/items/gear';
 import { parseSave, restore, snapshot } from '../src/model/save';
@@ -38,7 +38,10 @@ describe("the hero's stats", () => {
     expect(maxHpOf(hero)).toBe(maxHpAt(4));
     hero.trained.stamina = 2;
     expect(statsOf(hero).stamina).toBe(2);
-    expect(maxHpOf(hero)).toBe(maxHpAt(4) + 4);
+    expect(maxHpOf(hero)).toBe(Math.round(maxHpAt(4) * 1.06)); // (trained: 3% more a point)
+    expect(guardOf(hero)).toBeCloseTo(0.02); // (and 1% less of a blow taken a point)
+    hero.trained.stamina = 40;
+    expect(guardOf(hero)).toBe(0.25); // (at most)
   });
 
   it("follow what's worn as it changes (in place: put on, taken off, swapped for a better one of the same)", () => {
@@ -59,7 +62,7 @@ describe("the hero's stats", () => {
   it('take what gear adds: Strength for harder blows, Stamina for health, Agility for dodges and critical blows, Endurance for energy; armour off blows taken', () => {
     const { hero } = wearing(fresh(), 'chainMail', 'armingSword', 'leatherBoots', 'runeStone');
     expect(gearStats(hero)).toEqual({ strength: 3, agility: 1, stamina: 3, endurance: 3 });
-    expect(blowOf(hero)).toBe(2); // 3 Strength: a point more
+    expect(blowOf(hero)).toBe(1.75); // 3 Strength of gear's: a quarter a point
     expect(maxHpOf(hero)).toBe(maxHpAt(1) + 6);
     expect(maxEnergyOf(hero)).toBe(MAX_ENERGY + 15);
     expect(dodgeChanceOf(hero)).toBeCloseTo(0.01);
@@ -127,7 +130,15 @@ describe('in a fight', () => {
     for (let t = 0; t < 1; t += FRAME) model.update(0, 0, FRAME);
     const hit = model.takeEvents().find((e) => e.kind === 'hit' && e.on === 'wolf');
     expect(hit).toMatchObject({ amount: 2 * blowOf(model.hero), crit: true });
-    expect(blowOf(model.hero)).toBe(2);
+    expect(blowOf(model.hero)).toBe(2.25); // (5 Strength of gear's: a quarter a point)
+  });
+
+  it('trained Strength a share more of every blow; Agility\'s chances 25% at most', () => {
+    const model = wearing(fresh(), 'battleAxe'); // +5 Strength
+    model.hero.trained.strength = 10;
+    expect(blowOf(model.hero)).toBeCloseTo(2.25 * 1.4); // (4% a point)
+    model.hero.trained.agility = 30;
+    expect(critChanceOf(model.hero)).toBe(0.25); // (all told, at most)
   });
 });
 
