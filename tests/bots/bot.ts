@@ -258,7 +258,13 @@ export abstract class Bot extends BotVentures {
         if (!bed) return [];
         // Lain in its own bed (the let room's, at night; their own home's): the night slept, as a player would ('Sleep till
         // morning'); else lain there till rested.
-        const night: Step = (dt) => (roomAction(this.model)?.kind === 'sleep' ? (sleepTillMorning(this.model), 'ok') : rested(dt));
+        let lain: { t: number; energy: number } | null = null;
+        const rest: Step = (dt) => { // (in a stranger's bed, resting slower: up after two minutes, rested well enough if a third of it came back)
+          lain ??= { t: 0, energy: hero.energy };
+          if ((lain.t += dt) < 120 && hero.energy < maxEnergyOf(hero) * 0.95) return 'run';
+          return hero.energy - lain.energy >= maxEnergyOf(hero) / 3 || hero.energy >= maxEnergyOf(hero) * 0.95 ? 'ok' : rested(dt);
+        };
+        const night: Step = (dt) => (roomAction(this.model)?.kind === 'sleep' ? (sleepTillMorning(this.model), 'ok') : rest(dt));
         if (bed.type === 'inn') return [...this.enter(bed), ...this.upstairs(night), () => (this.stats.sleeps++, 'ok'), ...this.leave()]; // (up from the bed in it)
         return [...this.enter(bed), this.sitOn((k) => k === 'bed' || k === 'doubleBed'), night, () => ((this.stats.sleeps++, this.model.sitOrStand()), 'ok'), ...this.leave()];
       }
