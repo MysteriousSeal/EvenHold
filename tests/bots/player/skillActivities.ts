@@ -5,6 +5,9 @@
 import { VEINS, isRock, middleOf } from '../../../src/model/skills/mining';
 import { skillOf } from '../../../src/model/skills/skills';
 import { COOK_RECIPES, COOK_RECIPE_IDS } from '../../../src/model/skills/cooking';
+import { SMITH_RECIPE_IDS } from '../../../src/model/skills/smithing';
+import { SMITH_PICK, buyGear, smithShopIn } from '../../../src/model/smithy/smithShop';
+import type { Entrance } from '../../../src/model/interiors/interiors';
 import type { Step } from '../botSteps';
 import type { Activity, Target } from './activities';
 
@@ -24,7 +27,34 @@ const working = (start: () => boolean, busy: () => boolean): Step => {
 const dishOf = (p: Parameters<Activity['options']>[0]) =>
   COOK_RECIPE_IDS.filter((id) => !COOK_RECIPES[id].hearth && p.model.cooking.knows(id) && p.model.cooking.canMake(id) > 0 && p.model.cooking.roomFor(id)).sort((a, b) => p.model.cooking.canMake(b) - p.model.cooking.canMake(a))[0];
 
+// What it can forge at an anvil just now (the ore or ingots in the bag), the most of it first.
+const forgeOf = (p: Parameters<Activity['options']>[0]) =>
+  SMITH_RECIPE_IDS.filter((id) => p.model.smithing.knows(id) && p.model.smithing.canMake(id) > 0 && p.model.smithing.roomFor(id)).sort((a, b) => p.model.smithing.canMake(b) - p.model.smithing.canMake(a))[0];
+
 export const SKILL_ACTIVITIES: Activity[] = [
+  {
+    id: 'forge',
+    indoors: true,
+    serves: { craft: 1, coin: 0.3, growth: 0.3 },
+    traits: { industrious: 0.8, social: -0.2 },
+    options: (p) => {
+      if (!forgeOf(p) || p.model.work.shift) return [];
+      const smithy = [...p.known.doors].filter((d) => d.type === 'smithy').sort((a, b) => near(p, a) - near(p, b))[0];
+      return smithy && near(p, smithy) < 250 ? [{ label: 'the smithy\'s anvil, to forge', at: smithy, data: smithy }] : [];
+    },
+    steps: (p, t) => {
+      const smithy = t.data as Entrance;
+      const anvil = () => p.model.inside?.furniture.find((f) => f.kind === 'anvil');
+      return [
+        ...p.enter(smithy),
+        () => { if (!p.model.mining.pick && p.model.hero.money >= 80 && buyGear(smithShopIn(p.model), p.model.hero, SMITH_PICK) === 'bought') p.log('bought a copper pickaxe, while at the smithy'); return 'ok'; }, // (the rocks too)
+        (dt) => { const at = anvil(); if (!at) return 'fail'; return p.walk(() => ({ x: at.x, z: at.z + 1 }), 0.25)(dt) === 'fail' ? 'fail' : p.model.smithing.anvilInReach ? 'ok' : 'run'; }, // (before it, as at the salvage bench)
+        () => { const what = forgeOf(p); return what && p.model.smithing.start(what, Infinity) ? 'ok' : 'fail'; },
+        working(() => true, () => p.model.smithing.progress !== null),
+        ...p.leave(),
+      ];
+    },
+  },
   {
     id: 'cook',
     serves: { craft: 0.8, safety: 0.3, rest: 0.3 },
