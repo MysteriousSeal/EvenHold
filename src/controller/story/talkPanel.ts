@@ -4,7 +4,7 @@
 // bottom, the speech box: the speaker's name on a plate at their side, what they say a line at a time, written out as
 // it's said (a click, Space or Enter: the rest of the line at once, then the next). After their last line it's the
 // hero's turn: the quest it's about on a card (a "!" for one offered, a "?" for one handed in: its name, what's to be
-// done, what it pays) and the hero's answers as buttons (1, 2…; Enter: the first; Escape: the one that commits to
+// done, what it pays) and the hero's answers as buttons (1, 2…; E, the key that talks, or Enter: the lit one, else the first; Escape: the one that commits to
 // nothing, where there is one). No answer to give: the last line ends it. A quest handed in to someone with another
 // to give: they're spoken to again for it (a "!" over them). Someone with a trade, asked for their wares instead: their own window. A night
 // spent (the talk's `night`): the screen gone black before its last line, "The next morning", then light again. The
@@ -20,7 +20,7 @@ import { playPace } from './paceGame';
 import { workCostume, workLook } from '../../view/meshes/human/gear/costumes';
 import { unclothed } from '../../view/meshes/human/unclothed';
 import { trackMenu, type Menu } from '../../view/ui/menu';
-import { isKey } from '../keyBindings';
+import { isKey, label as keyCap } from '../keyBindings';
 
 const WRITE_EVERY = 16; // ms a letter, written out
 const PORTRAIT: [number, number] = [300, 420];
@@ -111,8 +111,10 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     }
     answers.hidden = !heroSpeaks;
     if (heroSpeaks && answers.childElementCount === 0) {
+      const lit = litAnswer();
       talk.answers.forEach((a, i) => {
-        const button = el('button', `talk-answer${a.primary ? ' primary' : ''}`, el('kbd', '', `${i + 1}`), el('span', '', a.label)) as HTMLButtonElement;
+        const caps = i === lit ? [el('kbd', '', `${i + 1}`), el('kbd', 'talk-use', keyCap('use'))] : [el('kbd', '', `${i + 1}`)]; // (E's, by its 1)
+        const button = el('button', `talk-answer${a.primary ? ' primary' : ''}`, ...caps, el('span', '', a.label)) as HTMLButtonElement;
         button.addEventListener('click', (event) => {
           event.stopPropagation();
           pick(i);
@@ -212,6 +214,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
 
   // An answer given: the talk's over (someone with another quest to give once this one's handed in: spoken to again
   // for it), unless the answer itself leads on to more (a talk given back). Their wares asked for: on to their own window.
+  const litAnswer = () => Math.max(0, talk?.answers.findIndex((a) => a.primary) ?? 0); // (the one E and Enter give)
   const pick = (i: number) => {
     const answer = talk?.answers[i];
     if (!answer || !speaking) return;
@@ -241,7 +244,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
       return;
     }
     if (dark) return;
-    if (event.code === 'Space' || event.code === 'Enter' || isKey('use', event.code)) return answering ? (event.code === 'Enter' ? pick(Math.max(0, talk!.answers.findIndex((a) => a.primary))) : undefined) : advance();
+    if (event.code === 'Space' || event.code === 'Enter' || isKey('use', event.code)) return answering ? (event.code === 'Space' ? undefined : pick(litAnswer())) : advance(); // (Space only hurries their words)
     if (event.code.startsWith('Digit') && answering) return pick(Number(event.code.slice(5)) - 1);
     if (event.code === 'Escape') {
       // Out by the answer that commits to nothing (the one marked the way out; else the first unlit), if there is one,
