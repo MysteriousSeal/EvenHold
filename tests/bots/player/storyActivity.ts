@@ -149,7 +149,7 @@ export const STORY_ACTIVITY: Activity = {
       const wood = needs?.kind === 'bring' && (hero.bag[needs.item] ?? 0) < needs.count ? Object.values(WOOD).find((w) => w.log === needs.item) : undefined;
       if (wood && !p.model.lumber.axe) {
         const smithy = [...p.known.doors].filter((d) => d.type === 'smithy').sort((a, b) => far(a) - far(b))[0];
-        if (smithy && hero.money >= gearPrice('hatchet')) out.push({ label: `the smith, for an axe ("${t.name}" wants ${wood.name})`, at: smithy, data: { axe: smithy } });
+        if (smithy && hero.money >= 30) out.push({ label: `the smith, for an axe ("${t.name}" wants ${wood.name})`, at: smithy, data: { axe: smithy } });
       } else if (wood) {
         const level = skillOf(hero, 'lumberjacking').level;
         const tree = p.model.trees.filter((tr) => Math.abs(tr.x - hero.x) < 120 && Math.abs(tr.z - hero.z) < 120 && !p.model.lumber.felled(tr) && woodName(p, tr) === wood.name && wood.needs <= level && p.model.isMade(tr.x, tr.z)).sort((a, b) => far(a) - far(b))[0];
@@ -181,10 +181,12 @@ export const STORY_ACTIVITY: Activity = {
     if (data.axe) {
       const buy: Step = () => {
         const shop = smithShopIn(p.model);
-        if ((shop.stock.hatchet ?? 0) > 0 && buyGear(shop, p.model.hero, 'hatchet') === 'bought') [p.model.equipFromBag('hatchet'), p.log('bought a hatchet, for the story')];
+        const axes = (Object.keys(shop.stock) as Array<keyof typeof shop.stock>).filter((id) => /hatchet|axe/i.test(String(id)) && (shop.stock[id] ?? 0) > 0 && gearPrice(id as never) <= p.model.hero.money).sort((a, b) => gearPrice(a as never) - gearPrice(b as never)); // (whatever axe they have, the cheapest)
+        const axe = axes[0];
+        if (axe && buyGear(shop, p.model.hero, axe as never) === 'bought') [p.model.equipFromBag(axe as never), p.log(`bought a ${String(axe)}, for the story`)];
         return p.model.lumber.axe ? 'ok' : 'fail';
       };
-      return [travel(p, () => data.axe!), ...p.enter(data.axe), buy, ...p.leave()];
+      return [travel(p, () => data.axe!, 6), ...p.enter(data.axe), buy, ...p.leave()];
     }
     const way = travel(p, () => t.at ?? p.model.hero);
     if (data.who) return [way, ...speakWith(p, data.who)];
