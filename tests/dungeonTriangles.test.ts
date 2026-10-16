@@ -50,7 +50,7 @@ describe("a dungeon's cost to draw", () => {
     expect(costs.crypt.triangles).toBeLessThan(1_500_000);
     expect(costs.cave.triangles).toBeLessThan(2_700_000);
     expect(costs.stronghold.triangles).toBeLessThan(1_900_000);
-    expect(costs.crypt.calls).toBeLessThanOrEqual(68);
+    expect(costs.crypt.calls).toBeLessThanOrEqual(72); // (72 since the stairs fix laid this crypt out afresh: more kinds of furnishing in it, not more drawn of each)
     expect(costs.cave.calls).toBeLessThanOrEqual(61);
     expect(costs.stronghold.calls).toBeLessThanOrEqual(82);
   });
