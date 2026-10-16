@@ -1,4 +1,4 @@
-// Caves in the hills: one to every stretch of CAVE_REGION tiles a side that
+// Caves in the hills: PER_REGION to every stretch of CAVE_REGION tiles a side that
 // has a hillside for it, out in the wilds (clear of villages, ruins, camps,
 // roads, water and the start): a rocky knoll, KNOLL tiles a side, at the foot
 // of a rise (the ground climbing MOUTH_RISE tiers within RISE_WITHIN tiles
@@ -34,6 +34,8 @@ const CLEAR_OF_VILLAGES = 24; // tiles past a village's edge
 const CLEAR_OF = 14; // tiles from a ruin's or a camp's middle
 const CLEAR_OF_SPAWN = 40;
 const TRIES = 2000; // spots looked at in a region
+const PER_REGION = 3; // caves to a stretch, if it has the hillsides
+const SPACING = 120; // tiles between two mouths, at least
 const MOUTH_REACH = 0.62; // from the mouth's middle to the spot before it, where the hero stands to go in
 
 export interface Cave {
@@ -71,20 +73,19 @@ export function placeCaves(world: CaveWorld, area: Area = wholeMap(world.size)):
     world.villages.every((v) => Math.hypot(x - v.x, z - v.z) > VILLAGE_OUTER_RADIUS + CLEAR_OF_VILLAGES) &&
     world.ruins.every((r) => Math.hypot(x - (r.x + r.w / 2), z - (r.z + r.d / 2)) > CLEAR_OF) &&
     world.camps.every((c) => Math.hypot(x - c.x, z - c.z) > CLEAR_OF) &&
-    caves.every((c) => Math.hypot(x - c.mouth.x, z - c.mouth.z) > CLEAR_OF);
+    caves.every((c) => Math.hypot(x - c.mouth.x, z - c.mouth.z) > SPACING);
   for (let rx = 0; rx < regionsX; rx++) {
     for (let rz = 0; rz < regionsZ; rz++) {
       const rng = mulberry32(hashCell(rx * 13 + 5, rz * 7 + 11, world.seed + 6151));
       const [x0, z0] = [Math.floor((rx * size.width) / regionsX), Math.floor((rz * size.depth) / regionsZ)];
       if (!inArea(area, x0, z0)) continue; // (its stretch another area's)
       const [w, d] = [Math.floor(size.width / regionsX), Math.floor(size.depth / regionsZ)];
-      for (let t = 0; t < TRIES; t++) {
+      for (let k = 0, t = 0; k < PER_REGION && t < TRIES; t++) {
         const [x, z] = [x0 + Math.floor(rng() * w), z0 + Math.floor(rng() * d)];
         const cave = mouthAt(world, x, z, Math.floor(rng() * 4), inMap, wild, h);
-        if (cave) {
-          caves.push({ ...cave, level: zoneLevel(spawn, cave.mouth), name: caveName({ x, z }, world.seed) });
-          break;
-        }
+        if (!cave) continue;
+        caves.push({ ...cave, level: zoneLevel(spawn, cave.mouth), name: caveName({ x, z }, world.seed) });
+        k++;
       }
     }
   }

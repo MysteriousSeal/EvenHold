@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { MAX_BANDITS, MIN_BANDITS } from '../src/model/camps/camps';
 
-const SEEDS = Array.from({ length: 18 }, (_, i) => i + 1); // (every camp of each looked at, the far ones and the last too: some three hundred and seventy camps)
-const SIZE = { width: 256, depth: 256 }; // big enough for well over ten camps a world (eleven to thirty-odd)
-const CAMPS = 7; // in each, at the least (none within sixty tiles of the start: a test world is small)
+const SEEDS = Array.from({ length: 18 }, (_, i) => i + 1); // (every camp of each looked at, the far ones and the last too: some ninety camps)
+const SIZE = { width: 256, depth: 256 }; // big enough for a few camps a world (three to ten)
+const CAMPS = 2; // in each, at the least (none within sixty tiles of the start: a test world is small)
 
-describe('bandits in their camps (three to six each), every camp of eighteen worlds (some three hundred and seventy)', () => {
+describe('bandits in their camps (three to six each), every camp of eighteen worlds (some ninety)', () => {
   it(`are each camp's own number, every one on a free tile inside its palisade`, () => {
     const problems: string[] = [];
     const counts = new Set<number>(); // (every number from three to six turning up)

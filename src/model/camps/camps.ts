@@ -52,7 +52,7 @@ export interface CampWorld {
 
 const GRID = 26; // one candidate site per GRID x GRID tiles
 const CHEST_HALF: [number, number] = [0.22, 0.16]; // the loot's chest (its lid back too), half across and half along, unturned
-const CHANCE = 0.4;
+const CHANCE = 0.13; // (a third of the 0.4 it was: a palisade on every horizon drowned out all else)
 const OPEN_LAND = 0.15; // forest density under which it's open country
 const CLEAR_OF_VILLAGES = 12;
 const CLEAR_OF_SPAWN = 60; // (none at the door: a new player met three at once, and fell to them more than to all else)
