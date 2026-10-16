@@ -10,6 +10,10 @@ import type { Player } from './player';
 import { ACTIVITIES } from './activities';
 import { TRAITS, describe } from './persona';
 import { SKILL_IDS, skillOf } from '../../../src/model/skills/skills';
+import { STORY_QUESTS } from '../../../src/model/story/quests/catalog';
+import { idOf } from '../../../src/model/story/storyTypes';
+
+const ACTS = ["arc 1: the first village's line", 'arc 2, act 1: the empty wagon', "arc 2, act 2: the road of fires, the witch's village", 'arc 2, act 3: Greyminster', 'over: an ending reached'];
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const pct = (n: number) => `${Math.round(n * 100)}%`;
@@ -23,6 +27,16 @@ export function playReport(player: Player, seed: number, minutes: number, proble
   lines.push(`# A playthrough: seed ${seed}, ${minutes} game minutes`, '');
   lines.push(`**The player:** ${describe(persona)} (${TRAITS.map((t) => `${t} ${persona.traits[t]}`).join(', ')}; temperature ${persona.temperature}).`, '');
   lines.push(`**At the end:** level ${hero.level}, ${hero.money} copper, ${player.stats.kills} slain, ${player.stats.deaths} falls, ${player.stats.questsDone}/${player.stats.questsTaken} quests done; crafted ${player.stats.crafted}, packs fitted ${player.stats.packs}, cups sold ${player.stats.cupsSold}, salvaged ${player.stats.salvaged}; skills ${SKILL_IDS.map((id) => `${id} ${skillOf(hero, id).level}`).join(', ')}.`, '');
+
+  // The story: how far it got, what's under way, what was chosen.
+  const { story } = model;
+  const main = (id: string) => ['first', 'saint'].includes(STORY_QUESTS[idOf(id)]?.scope ?? '');
+  const doneMain = story.done.filter((d) => main(d.id));
+  const under = story.taken.filter((t) => main(t.id));
+  lines.push('## The story', '');
+  lines.push(`**How far:** ${ACTS[story.saint.act]}; ${doneMain.length} of the story's quests done${doneMain.length ? ` (the last: ${doneMain[doneMain.length - 1].name})` : ''}.`, '');
+  lines.push(`**Under way:** ${under.length ? under.map((t) => `${t.name} (${t.ready ? 'to hand in' : `${t.have}/${t.of}`}, from ${t.fromName})`).join('; ') : 'nothing of the story'}.`, '');
+  lines.push(`**Chosen:** ${player.choices.length ? player.choices.join('; ') : 'no choice came up'}.`, '');
 
   // Signals first.
   lines.push('## What this says about the game', '');

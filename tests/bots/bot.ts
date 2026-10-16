@@ -4,6 +4,7 @@
 // a quest, a board, the shops, a bench, a well, the inn's upper floor; crypts and caves, bandit camps, pedlars and
 // travellers, herbalists, a shift: ventures.ts); and it says whenever the game doesn't do what it should (checks.ts,
 // and what it sees itself: a foe that won't die, a barmaid who never serves, a quest that can't be done…).
+import type { GameEvent } from '../../src/model/types';
 import type { GameModel } from '../../src/model/GameModel';
 import { bagRoom, fitBag } from '../../src/model/hero/bagSlots';
 import { isBagItem, roomOf } from '../../src/model/loot/bags';
@@ -64,6 +65,7 @@ export abstract class Bot extends BotVentures {
     this.errands = new Errands(model, report, this.stats, rng, this.balance);
   }
 
+  frameEvents: GameEvent[] = []; // the last frame's events (the game's own, taken)
   // One frame: on with what it's doing (or something new), the keys pressed as it says.
   tick(dt: number): void {
     const { hero } = this.model;
@@ -82,7 +84,7 @@ export abstract class Bot extends BotVentures {
     this.afterFrame(); // (a roll under way: watched)
     this.balance.xp('kills', before); // (all a frame brings: blows land in it)
     // Fallen (the model's own word of it, this frame): woken at an inn, healed, some coin gone; whatever it was doing, over.
-    const events = this.model.takeEvents();
+    const events = (this.frameEvents = this.model.takeEvents()); // (kept: a game in a browser shows them)
     const fell = events.some((e) => e.kind === 'fallen'); // (not any heal to full indoors: a night's sleep, a shift's end)
     if (hero.money !== before.money) this.balance.coin(fell ? 'lost on falling' : working && !this.model.work.shift ? 'shifts' : 'coins found', hero.money - before.money);
     if (fell) {

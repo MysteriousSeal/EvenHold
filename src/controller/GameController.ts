@@ -150,12 +150,14 @@ export class GameController {
     this.view.render();
   }
   timeScale = 1; // a dev cheat: the game running this many times as fast
+  driver: ((dt: number) => GameEvent[]) | null = null; // (dev: something else at the keys, the player bot watched: npm run player, PLAY_HEADED=1)
   private held = { attack: 0, roll: 0 }; // seconds a blow or a roll pressed too soon (mid-blow, mid-roll) is still kept to go
   private still = 0; // seconds the world's held still yet (a blow landing, a parry: hitFeel.ts; what's pressed meanwhile waits)
 
   private step(dt: number): void {
     if (this.paused) return;
     if (this.still > 0) return void (this.still -= dt);
+    if (this.driver) return void [this.took(this.driver(dt)), this.view.update(dt)]; // (it presses the keys and updates the world itself)
     if (this.input.consumeAttack()) this.held.attack = PRESS_KEPT;
     if (this.held.attack > 0) this.held.attack = this.model.startAttack() ? 0 : this.held.attack - dt; // (pressed just before the last ends: it follows on)
     const turn = this.input.consumeFocus(); // Tab: the next foe in sight (Shift: back), where foes are (outdoors, or a crypt)
@@ -212,7 +214,12 @@ export class GameController {
     this.model.update(dirX, dirZ, dt);
     const come = this.model.work.arrived() ?? this.model.roads.arrived(); // (someone let into their room, at work: in, the door shut, their word; the witch-finders come up for one)
     if (come) this.onMeet(come.who, come.talk);
-    for (const event of this.model.takeEvents()) {
+    this.took(this.model.takeEvents());
+    this.view.update(dt);
+  }
+  // The frame's events felt: a parry's stop, a blow's kick and blood; and passed on.
+  private took(events: GameEvent[]): void {
+    for (const event of events) {
       if (event.kind === 'guard' && event.outcome === 'parried') this.still = Math.max(this.still, HIT_STOP.parry);
       else if (event.kind === 'hit') {
         const feel = hitFeel(event); // (held still a moment, the camera kicked, the blood thrown: felt landing)
@@ -221,7 +228,6 @@ export class GameController {
       }
       this.onEvent(event);
     }
-    this.view.update(dt);
   }
   // What E does, done: whether anything came of it (not: the next thing in reach, if any).
   private interact(found: Interaction): boolean {

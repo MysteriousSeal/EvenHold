@@ -70,6 +70,7 @@ export interface Toolkit {
   herbalistVisit(herbalist: Npc): Step[];
   report: Report;
   log(what: string): void;
+  chose(what: string): void; // (a story choice made: told, and kept for the report)
 }
 
 export class Player extends Bot {
@@ -80,6 +81,7 @@ export class Player extends Bot {
     return this.known.doors.has(e);
   }
   readonly diary: Done[] = [];
+  readonly choices: string[] = []; // the story's choices, as made (storyActivity.ts)
   readonly found: Found[] = [];
   readonly kit: Toolkit;
   idle = 0; // game seconds with nothing to do at all
@@ -124,6 +126,7 @@ export class Player extends Bot {
       herbalistVisit: (h) => this.herbalistVisit(h),
       report,
       log,
+      chose: (what) => [this.choices.push(what), log(`chose ${what}`)],
     };
     this.log(`a new player: ${describe(this.persona)}`);
   }
@@ -193,6 +196,7 @@ export class Player extends Bot {
       company: 0.3 * (0.4 + t.social * 1.2),
       craft: 0.35 * (0.4 + t.industrious * 1.2),
       glory: 0.4 * (0.4 + t.bold * 1.2),
+      story: 0.85 * (0.6 + t.curious * 0.5 + t.social * 0.3), // (how it ends: the thread every player follows, more or less)
     };
   }
 

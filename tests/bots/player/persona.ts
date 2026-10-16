@@ -7,7 +7,7 @@
 
 export const TRAITS = ['bold', 'greedy', 'curious', 'industrious', 'social', 'cautious'] as const;
 export type Trait = (typeof TRAITS)[number];
-export const DRIVES = ['safety', 'rest', 'coin', 'growth', 'curiosity', 'company', 'craft', 'glory'] as const;
+export const DRIVES = ['safety', 'rest', 'coin', 'growth', 'curiosity', 'company', 'craft', 'glory', 'story'] as const;
 export type Drive = (typeof DRIVES)[number];
 
 export interface Persona {

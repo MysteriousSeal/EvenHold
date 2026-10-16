@@ -1,15 +1,16 @@
 // A playthrough (npm run player): one player of their own mind (player.ts) in a fresh world (a seed at random each
-// run, or PLAY_SEED to play one again), for PLAY_MINUTES of game time (an hour), told as it goes: who they are, each
+// run, or PLAY_SEED to play one again), for PLAY_MINUTES of game time (ten hours), told as it goes: who they are, each
 // choice and why, what they find, what they did and what it brought, levels and skills risen, and how they stand each
 // minute. Then a report (tests/bots/reports/play-….md: report.ts) to read the game by.
 // PLAYERS=4 (up to four, one a core): as many at once, each its own world and report, their tellings side by side,
 // each line tagged with its player's number and seed; PLAY_SEEDS=a,b,c: those games again, together. PLAY_QA=1: a QA
 // sweep (player.ts): whatever's untried pulls hard, so the hour tries everything the world offers; the report says
-// what was never possible, and what was possible but never done.
+// what was never possible, and what was possible but never done. PLAY_HEADED=1: watched instead, in a browser: the
+// same player at the keys of the real game (inBrowser.ts), at PLAY_SPEED times the pace (1); close the window to stop.
 
 import { spawn } from 'node:child_process';
-import { availableParallelism } from 'node:os';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { availableParallelism, homedir, tmpdir } from 'node:os';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { GameModel } from '../../../src/model/GameModel';
 import { STREAMED_SIZE } from '../../../src/model/worldgen/regions';
@@ -19,13 +20,35 @@ import { Player } from './player';
 import { playReport } from './report';
 
 const MOST = 4; // players at once, at most
-const minutes = Number(process.env.PLAY_MINUTES ?? 60);
+const minutes = Number(process.env.PLAY_MINUTES ?? 600); // (ten game hours: the story's a long road; some 15 minutes of real time)
 const sweep = process.env.PLAY_QA === '1'; // (a QA sweep: everything the world offers tried at least once)
 const several = process.env.PLAY_SEEDS?.split(',').map(Number);
 const wanted = Math.max(1, Math.min(MOST, availableParallelism(), several?.length ?? Number(process.env.PLAYERS ?? 1)));
 
-if (wanted > 1 && !process.env.PLAY_CHILD) await together(several ?? Array.from({ length: wanted }, () => generateRandomSeed()));
+if (process.env.PLAY_HEADED === '1') await headed(Number(process.env.PLAY_SEED ?? generateRandomSeed()));
+else if (wanted > 1 && !process.env.PLAY_CHILD) await together(several ?? Array.from({ length: wanted }, () => generateRandomSeed()));
 else play(Number(process.env.PLAY_SEED ?? generateRandomSeed()));
+
+// Watched: the game served (its own vite, not the one being worked in), a browser opened on it with the bot at the
+// keys (a fresh profile: no one's saved games touched); closing the window ends it all.
+async function headed(seed: number): Promise<void> {
+  const port = Number(process.env.PLAY_PORT ?? 5190);
+  const speed = Number(process.env.PLAY_SPEED ?? 1);
+  const caches = resolve(homedir(), 'Library/Caches/ms-playwright');
+  const found = existsSync(caches) ? readdirSync(caches).filter((d) => /^chromium-\d+$/.test(d)).sort().reverse().flatMap((d) => ['chrome-mac/Chromium.app/Contents/MacOS/Chromium', 'chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'].map((app) => resolve(caches, d, app))).find(existsSync) : undefined;
+  const browser = process.env.PLAY_BROWSER ?? found;
+  if (!browser) throw new Error('No Chromium found: set PLAY_BROWSER to a Chromium or Chrome binary.');
+  const vite = spawn(process.execPath, [resolve('node_modules/vite/bin/vite.js'), '--port', String(port), '--strictPort'], { stdio: 'ignore' });
+  const url = `http://localhost:${port}/?seed=${seed}&bot&speed=${speed}`;
+  for (let i = 0; i < 100; i++) if (await fetch(url).then((r) => r.ok, () => false)) break; else await new Promise((r) => setTimeout(r, 200));
+  console.log(`Seed ${seed}: the player bot plays the real game in a browser, ${speed}x (${url}). Close the window to stop.`);
+  const window = spawn(browser, [`--user-data-dir=${mkdtempSync(resolve(tmpdir(), 'evenhold-bot-'))}`, '--no-first-run', '--no-default-browser-check', '--window-size=1600,1000', `--app=${url}`], { stdio: 'ignore' });
+  const end = () => [vite.kill(), window.kill()];
+  process.on('SIGINT', () => [end(), process.exit(0)]);
+  await new Promise((done) => window.on('close', done));
+  end();
+  console.log(`To watch this game again: PLAY_HEADED=1 PLAY_SEED=${seed} npm run player`);
+}
 
 // Several at once: each its own process (a core each), its lines tagged; the reports listed at the end.
 async function together(seeds: number[]): Promise<void> {
