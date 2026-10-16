@@ -476,6 +476,7 @@ async function boot(): Promise<void> {
     },
   });
   controller.start();
+  if (import.meta.env.DEV && new URLSearchParams(location.search).has('bot')) void import('../tests/bots/player/inBrowser').then((m) => m.drive(model, controller)); // (the player bot at the keys: npm run player, PLAY_HEADED=1)
   if (world && !kept) window.setTimeout(() => void keepWorld(seed, size, world), 2000); // (a classic world's, once the game's under way)
   const autoSave = startAutoSave(model);
   loading.show(1, 'Welcome');
