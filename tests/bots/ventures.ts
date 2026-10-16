@@ -15,6 +15,7 @@ import { CHEST_REACH, chestOf } from '../../src/model/camps/campLife';
 import type { Camp } from '../../src/model/camps/camps';
 import { TRAVELLER_TALK_RANGE, travellerInReach, travellerSays } from '../../src/model/travellers/travellerTalk';
 import type { Traveller } from '../../src/model/travellers/travellers';
+import { BAG_IDS } from '../../src/model/loot/bags';
 import { buyFromPedlar, pedlarPrice, pedlarShopAt } from '../../src/model/travellers/pedlarShop';
 import { isPotion } from '../../src/model/loot/potions';
 import { herbalistAbed } from '../../src/model/herbalist/herbalistWork';
@@ -310,6 +311,9 @@ export class BotVentures extends BotSteps {
       const shop = pedlarShopAt(this.model.shops, this.model.seed, traveller);
       this.buyOne(shop, (id) => pedlarPrice(id, false), (id) => buyFromPedlar(shop, this.model.hero, id), 'pedlar');
       if (!this.model.fishing.rod && this.model.hero.money >= pedlarPrice('fishingRod', false) + 30 && buyFromPedlar(shop, this.model.hero, 'fishingRod') === 'bought') this.stats.trades++; // (a rod, coin to spare: the lakes too)
+      // A pack, a socket free and coin to spare: the cheapest they've got (fitted by the chores: more room in the bag).
+      const pack = this.model.hero.bags.includes(null) ? BAG_IDS.filter((id) => (shop.stock[id] ?? 0) > 0 && pedlarPrice(id, false) + 40 <= this.model.hero.money).sort((a, b) => pedlarPrice(a, false) - pedlarPrice(b, false))[0] : undefined;
+      if (pack && buyFromPedlar(shop, this.model.hero, pack) === 'bought') this.stats.trades++;
       this.stats.pedlars++;
       return 'ok';
     };
