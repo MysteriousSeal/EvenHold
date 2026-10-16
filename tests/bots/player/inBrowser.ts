@@ -29,8 +29,12 @@ export function drive(model: GameModel, controller: GameController): void {
   const player = new Player(model, report, mulberry32(model.seed ^ 0x5eed), say);
   const speed = Number(new URLSearchParams(location.search).get('speed') ?? 1);
   if (speed > 0) controller.timeScale = speed;
+  let t = 0;
+  let second = 0;
   controller.driver = (dt) => {
     player.tick(dt);
+    t += dt;
+    if ((second += dt) >= 1) [(second = 0), player.balance.sample(t, player.stats), player.observe(t)]; // (each second, as a playthrough's: places come into sight noticed, the clock kept)
     return player.frameEvents;
   };
   const head = `the player bot: ${describe(player.persona)}`;
