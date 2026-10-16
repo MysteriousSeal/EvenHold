@@ -120,7 +120,7 @@ export class BotSteps {
       }
       if (!toTheEnd && hero.hp < maxHpOf(hero) * 0.3) return (ended(false), 'fail'); // off to heal
       const d = Math.hypot(foe.x - hero.x, foe.z - hero.z);
-      if (d > ATTACK_REACH + ENEMY_STATS[foe.kind].radius - 0.15) {
+      if (d > ATTACK_REACH + ENEMY_STATS[foe.kind].radius - 0.15 || !this.model.clear(hero, foe)) { // (in reach: near enough, and nothing solid between, as a blow needs)
         if ((away += dt) > 30) return (this.shunned.add(foe), 'fail'); // (out of reach: across water, say; let be)
         const step = this.walk(() => foe, ATTACK_REACH * 0.7)(dt);
         if (step === 'fail') this.shunned.add(foe); // (no way there)
