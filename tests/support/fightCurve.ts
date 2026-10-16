@@ -22,10 +22,10 @@ export const STAGES: Stage[] = [
   { level: 1, str: 0, sta: 0, kit: [['hatchet', 1, C]] },
   { level: 3, str: 3, sta: 3, kit: [['hatchet', 1, C], ['nasalCap', 1, C], ['studdedPauldrons', 1, C], ['hobnailBoots', 1, C]] },
   { level: 5, str: 10, sta: 2, kit: [['armingSword', 4, C], ['mailCoif', 4, C], ['brigandine', 4, C], ['mailChausses', 4, C], ['buckler', 4, C]] },
-  { level: 8, str: 12, sta: 3, kit: [...smith(7), ['barrowTorc', 4, R]] },
-  { level: 12, str: 12, sta: 3, kit: [...smith(11, U), ['barrowTorc', 4, R]] },
-  { level: 16, str: 14, sta: 2, agi: 10, kit: [['sunwardArmet', 15, 'legendary'], ['sunwardPauldrons', 14, 'epic'], ['sunwardCuirass', 16, 'legendary'], ['sunwardGauntlets', 14, 'epic'], ['sunwardSabatons', 14, 'epic'], ['sunwardAegis', 16, 'legendary'], ['plateGreaves', 15, U], ['warHammer', 15, R]] },
-  { level: 20, str: 15, sta: 3, agi: 10, kit: [['sunwardArmet', 15, 'legendary'], ['sunwardPauldrons', 14, 'epic'], ['sunwardCuirass', 16, 'legendary'], ['sunwardGauntlets', 14, 'epic'], ['sunwardSabatons', 14, 'epic'], ['sunwardAegis', 16, 'legendary'], ['plateGreaves', 19, R], ['warHammer', 19, R]] },
+  { level: 8, str: 14, sta: 4, kit: [...smith(7), ['barrowTorc', 4, R]] },
+  { level: 12, str: 16, sta: 9, kit: [...smith(11, U), ['barrowTorc', 4, R]] },
+  { level: 16, str: 27, sta: 10, agi: 8, kit: [['sunwardArmet', 15, 'legendary'], ['sunwardPauldrons', 14, 'epic'], ['sunwardCuirass', 16, 'legendary'], ['sunwardGauntlets', 14, 'epic'], ['sunwardSabatons', 14, 'epic'], ['sunwardAegis', 16, 'legendary'], ['plateGreaves', 15, U], ['warHammer', 15, R]] },
+  { level: 20, str: 31, sta: 10, agi: 10, kit: [['sunwardArmet', 15, 'legendary'], ['sunwardPauldrons', 14, 'epic'], ['sunwardCuirass', 16, 'legendary'], ['sunwardGauntlets', 14, 'epic'], ['sunwardSabatons', 14, 'epic'], ['sunwardAegis', 16, 'legendary'], ['plateGreaves', 19, R], ['warHammer', 19, R]] },
 ];
 export type Style = 'masher' | 'parrier' | 'average';
 
@@ -60,7 +60,14 @@ function fought(s: Stage, kind: EnemyKind, level: number, style: Style, maxT: nu
   const p = enemyPower(kind, level);
   Object.assign(e, { kind, level, maxHp: p.maxHp, hp: p.maxHp, damage: p.damage, xp: p.xp, x: h.x + 1.2, z: h.z, homeX: h.x + 1.2, homeZ: h.z, state: 'chase', cooldown: 0, swingFor: null });
   make?.(e); // (made otherwise: a champion's, model/champions/)
-  const st = ENEMY_STATS[kind];
+  return { ...duel(m, e, style, maxT), foeHp: e.maxHp, foeDmg: e.damage, sheet };
+}
+
+// The hero of `m` fighting `e` in `style` till one falls (or `maxT` seconds), wherever they are (a cave's brood mother:
+// her young about, let be).
+export function duel(m: GameModel, e: Enemy, style: Style, maxT = 300, each?: () => void) {
+  const h = m.hero;
+  const st = ENEMY_STATS[e.kind];
   const hp0 = h.hp; let t = 0, burst = 0, rest = 0;
   let fell = false; // (a fall heals them and sends them off: told by it, not by their health)
   m.fall = () => void (fell = true);
@@ -84,8 +91,9 @@ function fought(s: Stage, kind: EnemyKind, level: number, style: Style, maxT: nu
     }
     h.facing = Math.atan2(dx, dz);
     m.update(mx, mz, F); t += F;
+    each?.();
     low = Math.min(low, h.hp);
     m.takeEvents();
   }
-  return { won: e.state === 'dead' && !fell, died: fell, t, lost: hp0 - low, hp0, foeHp: e.maxHp, foeDmg: e.damage, sheet };
+  return { won: e.state === 'dead' && !fell, died: fell, t, lost: hp0 - low, hp0 };
 }

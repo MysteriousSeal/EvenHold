@@ -14,7 +14,9 @@ import type { Talk } from '../src/model/story/story';
 import { callBarkeep, ordersAt, placeOrder } from '../src/model/inn/barOrders';
 import { mugsAt, setMug } from '../src/model/inn/barMugs';
 import { BarShift } from '../src/model/jobs/barShift';
-import { JOBS } from '../src/model/jobs/jobs';
+import { JOBS, type JobId } from '../src/model/jobs/jobs';
+import { DAY_MINUTES } from '../src/model/clock';
+import { parseSave, restore, snapshot } from '../src/model/save';
 import { payRate } from '../src/model/jobs/shift';
 import { LINE } from '../src/model/jobs/pour';
 import type { Npc } from '../src/model/npcs/npcs';
@@ -301,6 +303,25 @@ describe('a pie plate left on the bar, behind the bar at work', () => {
     shift.use(row);
     expect([mugsAt(inn), shift.held]).toEqual([[], []]);
     shift.release();
+  });
+});
+
+describe("a day's shifts", () => {
+  it('the first paid in full, the second three quarters, any after half (whatever the job); a new day, in full again', () => {
+    const { model, inn } = inTheInn();
+    model.minutes = 3 * DAY_MINUTES + 9 * 60;
+    const rate = (job: JobId) => {
+      expect(model.work.start(inn, job)).toBe(true);
+      const r = model.work.shift!.rate;
+      model.work.end(true);
+      return r;
+    };
+    expect([rate('innServer'), rate('innBarkeep'), rate('innServer'), rate('innServer')]).toEqual([1, 0.75, 0.5, 0.5]);
+    model.minutes += DAY_MINUTES;
+    expect(rate('innBarkeep')).toBe(1);
+    const again = new GameModel(model.seed, TEST_MAP_SIZE);
+    restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(again.hero.jobs?.innBarkeep).toMatchObject({ day: 4, today: 1 }); // (kept through a save)
   });
 });
 

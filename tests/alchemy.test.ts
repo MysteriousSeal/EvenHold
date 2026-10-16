@@ -15,6 +15,8 @@ import { BIOMES } from '../src/model/scenery/biomes';
 import { SKILLS, SKILL_TIERS, difficulty, skillOf } from '../src/model/skills/skills';
 import { drinkPotion, potionRefused } from '../src/model/hero/bag';
 import { makeWebbed, givePox, hasPox, makeWeary, feed, tossCoin } from '../src/model/hero/blessing';
+import { herbalistPrice } from '../src/model/herbalist/herbalistShop';
+import type { BagItem } from '../src/model/hero/bag';
 import { HERO_SPEED } from '../src/model/constants';
 import { interactionOf } from '../src/model/hero/interaction';
 import { parseSave, restore, snapshot } from '../src/model/save';
@@ -332,5 +334,15 @@ describe("the herbalist's extras", () => {
     expect(brewToOrder(shop, hero, 'greaterHealth')).toBe('short');
     expect(BREW_RECIPES.superiorHealth.needs).toBeGreaterThan(ORDER_MOST);
     expect(brewToOrder(shop, hero, 'superiorHealth')).toBe('beyond');
+  });
+});
+
+describe('a brew to sell', () => {
+  it('fetches at a herbalist more than its herbs would raw, the more the higher its skill (1.5 times them at the first, 2.5 at the top)', () => {
+    for (const id of BREW_RECIPE_IDS) {
+      const recipe = BREW_RECIPES[id];
+      const herbs = Object.entries(recipe.from).reduce((sum, [herb, n]) => sum + herbalistPrice(herb as BagItem, true) * (n as number), 0);
+      expect(herbalistPrice(recipe.makes as BagItem, true), id).toBeGreaterThanOrEqual(herbs * (1.5 + recipe.needs / 270));
+    }
   });
 });

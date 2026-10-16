@@ -20,6 +20,10 @@ export const WAGE = 1; // copper an order (a shift a fallback: a third of a good
 export const PER_LEVEL = 0.25; // more pay, a level of the hero's over the first (as the quests people give: story/story.ts)
 // What a shift's pay comes to, times, for a hero of `level` (the first's as it is).
 export const payRate = (level: number): number => 1 + PER_LEVEL * Math.max(0, level - 1);
+// A day's shifts after the first, any job's, paid less (the inns' coin no more a living than the road's): the `n`th
+// begun that day (0 the first), times.
+export const DAY_SHARES = [1, 0.75, 0.5];
+export const dayShare = (n: number): number => DAY_SHARES[Math.min(n, DAY_SHARES.length - 1)];
 export const REACH = 1.4; // room tiles: by a patron, a table, or the counter's end, near enough for E
 const STAY: [number, number] = [40, 90]; // seconds those drawn in by the busy hour stay sat
 const WALKS = ["Forget it. I'll drink elsewhere.", 'Too slow by half!', "I've waited long enough.", 'Never mind!', 'Forget it.'];

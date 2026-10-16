@@ -39,15 +39,15 @@ export const POTIONS = {
   greaterEnergyPotion: { name: 'Greater energy potion', value: 31, energy: 0.7, droppedBy: {}, about: 'The herbalist won\'t say what\'s in it.' },
   // An alchemist's (skills/alchemy.ts), and the herbalists' as the hero levels.
   superiorHealthPotion: { name: 'Superior health potion', value: 180, heal: 0.3, mend: 0.8, mendFor: 12, droppedBy: {}, about: 'Mandrake in it. Hold your nose.' },
-  superiorEnergyPotion: { name: 'Superior energy potion', value: 45, energy: 1, droppedBy: {}, about: 'Your heart will pound for an hour. That means it works.' },
-  antidote: { name: 'Antidote', value: 25, cures: ['webbed', 'chilled'], does: 'Shakes off a web or a frost (Webbed, Chilled)', droppedBy: {}, about: 'Bitter as a widow. Warm as a fire.' },
-  purge: { name: 'Purge', value: 15, cures: ['weary'], empties: true, does: 'Sees off Weary, and whatever you last ate with it', droppedBy: {}, about: 'Drink it near a privy. Not in one; near one.' },
+  superiorEnergyPotion: { name: 'Superior energy potion', value: 108, energy: 1, droppedBy: {}, about: 'Your heart will pound for an hour. That means it works.' },
+  antidote: { name: 'Antidote', value: 48, cures: ['webbed', 'chilled'], does: 'Shakes off a web or a frost (Webbed, Chilled)', droppedBy: {}, about: 'Bitter as a widow. Warm as a fire.' },
+  purge: { name: 'Purge', value: 22, cures: ['weary'], empties: true, does: 'Sees off Weary, and whatever you last ate with it', droppedBy: {}, about: 'Drink it near a privy. Not in one; near one.' },
   poxSalve: { name: 'Pox salve', value: 60, cures: ['poxed'], does: 'Sees off the pox', droppedBy: {}, about: 'Rubbed in where it itches. You know where.' },
   swiftDraught: { name: 'Draught of swiftness', value: 30, gives: 'swift', lasts: DRAUGHT, does: 'Swift feet for 10 min: you walk 20% faster', droppedBy: {}, about: 'Yarrow and a bat\'s wing. Your feet itch to go.' },
-  shadowDraught: { name: 'Shadow draught', value: 35, gives: 'quiet', lasts: DRAUGHT, does: 'Quiet step for 10 min: foes notice you from half as far', droppedBy: {}, about: 'Dark as a cellar, and it makes you feel like one.' },
-  oxDraught: { name: 'Ox draught', value: 45, gives: 'strong', lasts: DRAUGHT, does: 'Strong arm for 10 min: your blows deal 1 more damage', droppedBy: {}, about: 'Red caps and venom. The northmen swear by it.' },
-  barkDraught: { name: 'Bark-skin draught', value: 50, gives: 'tough', lasts: DRAUGHT, does: 'Tough skin for 10 min: hits on you deal 15% less damage', droppedBy: {}, about: 'Your skin goes stiff and grey for a while. It passes.' },
-  hawkDraught: { name: 'Hawk-eye draught', value: 55, gives: 'keen', lasts: DRAUGHT, does: 'Keen eye for 10 min: foes drop loot and quest items more often', droppedBy: {}, about: 'Everything glitters. Some of it is even worth taking.' },
+  shadowDraught: { name: 'Shadow draught', value: 48, gives: 'quiet', lasts: DRAUGHT, does: 'Quiet step for 10 min: foes notice you from half as far', droppedBy: {}, about: 'Dark as a cellar, and it makes you feel like one.' },
+  oxDraught: { name: 'Ox draught', value: 82, gives: 'strong', lasts: DRAUGHT, does: 'Strong arm for 10 min: your blows deal 20% more damage', droppedBy: {}, about: 'Red caps and venom. The northmen swear by it.' },
+  barkDraught: { name: 'Bark-skin draught', value: 96, gives: 'tough', lasts: DRAUGHT, does: 'Tough skin for 10 min: hits on you deal 15% less damage', droppedBy: {}, about: 'Your skin goes stiff and grey for a while. It passes.' },
+  hawkDraught: { name: 'Hawk-eye draught', value: 146, gives: 'keen', lasts: DRAUGHT, does: 'Keen eye for 10 min: foes drop loot and quest items more often', droppedBy: {}, about: 'Everything glitters. Some of it is even worth taking.' },
   lovePhiltre: { name: 'Love-philtre', value: 40, sweat: true, does: 'Sold to the lovelorn. It only makes the drinker sweat', droppedBy: {}, about: 'Rosehip-pink and sickly sweet. Swears it works.' },
 } satisfies Record<string, Potion>; // (health, a copper a share point the lesser, 1.4 the greater, against food's half: paid for drunk standing, mid-fight; energy's cheaper than health: about 0.44 copper a share point, half again an ale's, 0.3, for a flask on the road)
 

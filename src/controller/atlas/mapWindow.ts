@@ -16,7 +16,7 @@ import { keyOf } from '../keyBindings';
 const [LEAST, MOST] = [0.25, 6]; // pixels a tile, drawn out and in
 const OPENED_AT = 1.5;
 
-export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boolean): void; minimap: { on: boolean; toggle(): void; click: (() => void) | null } }): { menu: Menu } {
+export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boolean): void; minimap: { on: boolean; toggle(): void; click: (() => void) | null }; journal?: { showOnMap: ((x: number, z: number) => void) | null } }): { menu: Menu } {
   const look: MapLook = { x: 0, z: 0, scale: OPENED_AT };
   const wrap = document.createElement('div');
   wrap.className = 'map-window';
@@ -118,10 +118,13 @@ export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boo
       hooks.setPaused(open);
       wrap.closest('.menu')?.classList.add('map-menu');
       if (open) [fit(), cornerText(), (named.textContent = '')];
+      if (open && on) [[look.x, look.z] = [on.x + 0.5, on.z + 0.5], (look.scale = Math.max(look.scale, OPENED_AT)), (on = null)]; // (opened on a place: the journal's)
       if (open && !frame) frame = requestAnimationFrame(loop);
     },
     tabs: [{ name: 'Map', header: () => wrap }],
   });
   hooks.minimap.click = () => menu.open(); // (the corner map, clicked)
+  let on: { x: number; z: number } | null = null;
+  if (hooks.journal) hooks.journal.showOnMap = (x, z) => [(on = { x, z }), menu.isOpen ? menu.close() : null, menu.open()]; // (a place in the journal's Places, clicked)
   return { menu };
 }

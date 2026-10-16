@@ -71,6 +71,8 @@ export interface JobRecord {
   served: number; // all told
   best: number; // most served in a shift
   earned: number; // copper, all told
+  day?: number; // the day (clock.ts DAY_MINUTES) of the last begun (older saves: none)
+  today?: number; // shifts begun that day
 }
 
 const freshRecord = (): JobRecord => ({ xp: 0, shifts: 0, served: 0, best: 0, earned: 0 });
@@ -98,7 +100,7 @@ export function readJobs(saved: unknown): Partial<Record<JobId, JobRecord>> {
     const r = (saved as Record<string, Partial<JobRecord>>)[job];
     if (!r) continue;
     const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
-    out[job] = { xp: n(r.xp), shifts: n(r.shifts), served: n(r.served), best: n(r.best), earned: n(r.earned) };
+    out[job] = { xp: n(r.xp), shifts: n(r.shifts), served: n(r.served), best: n(r.best), earned: n(r.earned), ...(r.day !== undefined && { day: n(r.day), today: n(r.today) }) };
   }
   return out;
 }
