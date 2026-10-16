@@ -4,6 +4,7 @@
 
 import { VEINS, isRock, middleOf } from '../../../src/model/skills/mining';
 import { skillOf } from '../../../src/model/skills/skills';
+import { COOK_RECIPES, COOK_RECIPE_IDS } from '../../../src/model/skills/cooking';
 import type { Step } from '../botSteps';
 import type { Activity, Target } from './activities';
 
@@ -19,7 +20,22 @@ const working = (start: () => boolean, busy: () => boolean): Step => {
   };
 };
 
+// What it can cook over an open fire just now (what's in the bag; a hearth's dish not), the most of it first.
+const dishOf = (p: Parameters<Activity['options']>[0]) =>
+  COOK_RECIPE_IDS.filter((id) => !COOK_RECIPES[id].hearth && p.model.cooking.knows(id) && p.model.cooking.canMake(id) > 0 && p.model.cooking.roomFor(id)).sort((a, b) => p.model.cooking.canMake(b) - p.model.cooking.canMake(a))[0];
+
 export const SKILL_ACTIVITIES: Activity[] = [
+  {
+    id: 'cook',
+    serves: { craft: 0.8, safety: 0.3, rest: 0.3 },
+    traits: { industrious: 0.6, cautious: 0.3 },
+    options: (p) => (!p.model.inside && !p.model.work.shift && dishOf(p) && (p.model.cooking.fireInReach || p.model.cooking.canKindle) ? [{ label: `a fire, to cook ${COOK_RECIPES[dishOf(p)!].name}`, at: null }] : []),
+    steps: (p) => [
+      () => (p.model.cooking.fireInReach || p.model.cooking.kindle() ? 'ok' : 'fail'),
+      () => { const dish = dishOf(p); return dish && p.model.cooking.start(dish, Infinity) ? 'ok' : 'fail'; },
+      working(() => true, () => p.model.cooking.progress !== null),
+    ],
+  },
   {
     id: 'mine',
     serves: { craft: 0.9, coin: 0.4, growth: 0.3 },
