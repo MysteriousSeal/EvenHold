@@ -3,6 +3,7 @@
 // lord a fight of a while at level 5, the steadier foes still a fight, and still biting, at level 12.
 import { describe, expect, it } from 'vitest';
 import { STAGES, fight } from './support/fightCurve';
+import { broodFight } from './support/broodStage';
 import { blowsToFlinch, flinches } from '../src/model/enemies/poise';
 import { makeEnemy } from '../src/model/enemies/enemies';
 import { BOSS_PHASES, phaseFloor } from '../src/model/enemies/bossPhases';
@@ -98,5 +99,14 @@ describe('a build of their own (training.ts: three points a level)', () => {
       expect(lasts(sta), `${style}: ${lasts(sta).toFixed(1)}s against ${lasts(str).toFixed(1)}s`).toBeGreaterThan(lasts(str) * 1.4);
       expect(sta.hp0 - sta.lost, style).toBeGreaterThan(str.hp0 - str.lost);
     }
+  });
+});
+
+describe('the brood mother in her own cave (support/broodStage.ts)', () => {
+  it('level 6 in chain and brigandine: one who steps back wins, her young slain as they hatch; let be, they cost the more (she fights the harder for them)', { timeout: 300_000 }, () => {
+    const chain = STAGES.find((s) => s.level === 5)!.kit;
+    for (const [str, sta] of [[15, 0], [8, 7], [0, 15]]) expect(broodFight({ level: 6, str, sta, kit: chain }, 'average', 6, 1, true).won, `${str} Str ${sta} Sta`).toBe(true);
+    const [slain, letBe] = [broodFight({ level: 6, str: 8, sta: 7, kit: chain }, 'average', 6, 1, true), broodFight({ level: 6, str: 8, sta: 7, kit: chain }, 'average', 6, 1)];
+    expect(letBe.lost, JSON.stringify({ slain: slain.lost, letBe: letBe.lost })).toBeGreaterThan(slain.lost);
   });
 });

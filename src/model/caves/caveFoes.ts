@@ -20,6 +20,7 @@ import type { Enemy, GameEvent, Hero } from '../types';
 import { hashCell, mulberry32 } from '../../util/random';
 import { cellKey } from '../map/grid';
 import { makeEnemy } from '../enemies/enemies';
+import { enemyPower } from '../enemies/enemyLevels';
 import { EnemyDirector, type Ground } from '../enemies/enemyDirector';
 import { ToldMoves, knockAway } from '../enemies/toldMoves';
 import { isFloor } from '../dungeons/floorPlan';
@@ -40,6 +41,7 @@ const NUDGE = 1.4; // tiles from the silk the hero's told it holds
 const BURROW_EVERY = 12; // tiles of burrow to a beast along it, about
 export const BROOD_AT = [2 / 3, 1 / 3]; // of her health, under each: her brood hatches
 const BROOD = 3; // hatchlings each time, from the egg sacs nearest her
+const FRENZY = 0.1; // her blows harder, a share, for each of her young alive (slain, she's her own self again)
 const BAT_FLIT = 0.9; // tiles a second a bat flits across its way
 const BAT_DART = 0.6; // tiles it darts back, having bitten
 
@@ -189,6 +191,7 @@ export class CaveRun extends DungeonFoes {
     }
     this.surface(dt);
     this.brood();
+    this.frenzy();
     if (this.mother?.state === 'dead') {
       this.chest = { x: this.nest.x, z: this.nest.z, open: false }; // her hoard, where she lay
       this.mother = null;
@@ -265,6 +268,14 @@ export class CaveRun extends DungeonFoes {
         this.surfaced.delete(worm);
       }
     }
+  }
+
+  // Her young about her, she fights the harder for them (FRENZY a hatchling alive): worth slaying, not let be.
+  private frenzy(): void {
+    const mother = this.mother;
+    if (!mother) return;
+    const young = this.foes.filter((f) => f.kind === 'hatchling' && f.state !== 'dead').length;
+    mother.damage = enemyPower(mother.kind, mother.level).damage * (1 + FRENZY * young);
   }
 
   // Under two thirds of her health, and under one third: her brood hatches, from the egg sacs nearest her.

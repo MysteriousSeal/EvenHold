@@ -60,7 +60,14 @@ function fought(s: Stage, kind: EnemyKind, level: number, style: Style, maxT: nu
   const p = enemyPower(kind, level);
   Object.assign(e, { kind, level, maxHp: p.maxHp, hp: p.maxHp, damage: p.damage, xp: p.xp, x: h.x + 1.2, z: h.z, homeX: h.x + 1.2, homeZ: h.z, state: 'chase', cooldown: 0, swingFor: null });
   make?.(e); // (made otherwise: a champion's, model/champions/)
-  const st = ENEMY_STATS[kind];
+  return { ...duel(m, e, style, maxT), foeHp: e.maxHp, foeDmg: e.damage, sheet };
+}
+
+// The hero of `m` fighting `e` in `style` till one falls (or `maxT` seconds), wherever they are (a cave's brood mother:
+// her young about, let be).
+export function duel(m: GameModel, e: Enemy, style: Style, maxT = 300, each?: () => void) {
+  const h = m.hero;
+  const st = ENEMY_STATS[e.kind];
   const hp0 = h.hp; let t = 0, burst = 0, rest = 0;
   let fell = false; // (a fall heals them and sends them off: told by it, not by their health)
   m.fall = () => void (fell = true);
@@ -84,8 +91,9 @@ function fought(s: Stage, kind: EnemyKind, level: number, style: Style, maxT: nu
     }
     h.facing = Math.atan2(dx, dz);
     m.update(mx, mz, F); t += F;
+    each?.();
     low = Math.min(low, h.hp);
     m.takeEvents();
   }
-  return { won: e.state === 'dead' && !fell, died: fell, t, lost: hp0 - low, hp0, foeHp: e.maxHp, foeDmg: e.damage, sheet };
+  return { won: e.state === 'dead' && !fell, died: fell, t, lost: hp0 - low, hp0 };
 }
