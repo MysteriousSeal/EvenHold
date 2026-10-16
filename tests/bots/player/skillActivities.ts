@@ -6,6 +6,7 @@ import { VEINS, isRock, middleOf } from '../../../src/model/skills/mining';
 import { skillOf } from '../../../src/model/skills/skills';
 import { COOK_RECIPES, COOK_RECIPE_IDS } from '../../../src/model/skills/cooking';
 import { SMITH_RECIPE_IDS } from '../../../src/model/skills/smithing';
+import { BREW_RECIPE_IDS } from '../../../src/model/skills/alchemy';
 import { SMITH_PICK, buyGear, smithShopIn } from '../../../src/model/smithy/smithShop';
 import { doorNumber, type Entrance } from '../../../src/model/interiors/interiors';
 import { COTTAGE_PRICE, UPGRADES, hasBuilt, isCottage, offerOf, pieceInReach, type UpgradeId } from '../../../src/model/homestead/cottage';
@@ -33,9 +34,24 @@ const dishOf = (p: Parameters<Activity['options']>[0]) =>
 const forgeOf = (p: Parameters<Activity['options']>[0]) =>
   SMITH_RECIPE_IDS.filter((id) => p.model.smithing.knows(id) && p.model.smithing.canMake(id) > 0 && p.model.smithing.roomFor(id)).sort((a, b) => p.model.smithing.canMake(b) - p.model.smithing.canMake(a))[0];
 
+// What it can brew just now (the herbs in the bag; a cauldron at home or a kit at a fire), the most of it first.
+const brewOf = (p: Parameters<Activity['options']>[0]) =>
+  BREW_RECIPE_IDS.filter((id) => p.model.alchemy.knows(id) && p.model.alchemy.canMake(id) > 0 && p.model.alchemy.roomFor(id)).sort((a, b) => p.model.alchemy.canMake(b) - p.model.alchemy.canMake(a))[0];
+
 const WANTED: UpgradeId[] = ['bed', 'hearth', 'cauldron', 'chest']; // (what a home wants first)
 
 export const SKILL_ACTIVITIES: Activity[] = [
+  {
+    id: 'brew',
+    serves: { craft: 0.9, coin: 0.4, safety: 0.2 },
+    traits: { industrious: 0.6, curious: 0.3 },
+    options: (p) => (!p.model.inside && !p.model.work.shift && (p.model.hero.bag.brewersKit ?? 0) > 0 && brewOf(p) && (p.model.cooking.fireInReach || p.model.cooking.canKindle) ? [{ label: 'a fire, to brew', at: null }] : []),
+    steps: (p) => [
+      () => (p.model.cooking.fireInReach || p.model.cooking.kindle() ? 'ok' : 'fail'),
+      () => { const what = brewOf(p); return what && p.model.alchemy.start(what, Infinity) ? 'ok' : 'fail'; },
+      working(() => true, () => p.model.alchemy.progress !== null),
+    ],
+  },
   {
     id: 'home',
     indoors: true,

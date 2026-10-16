@@ -327,6 +327,7 @@ export class BotVentures extends BotSteps {
       const shop = herbalistShopAt(this.model.shops, this.model.seed, herbalist);
       const shelves = { stock: Object.fromEntries(Object.entries(shop.stock).filter(([id]) => isPotion(id))) }; // (their potions: what's sold them goes in the pot)
       this.buyOne(shelves, (id) => herbalistPrice(id, false), (id) => buyFromHerbalist(shop, this.model.hero, id), 'herbalist');
+      if (!(this.model.hero.bag.brewersKit ?? 0) && (shop.stock.brewersKit ?? 0) > 0 && this.model.hero.money >= herbalistPrice('brewersKit', false) + 40) buyFromHerbalist(shop, this.model.hero, 'brewersKit'); // (a brewer's kit, coin to spare: potions of their own over a fire)
       this.stats.herbalists++;
       return 'ok';
     };
