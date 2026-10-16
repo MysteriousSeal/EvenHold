@@ -21,6 +21,8 @@ import { skillOf } from '../../../src/model/skills/skills';
 import { maxHpOf } from '../../../src/model/hero/attributes';
 import { buyGear, gearPrice, smithShopIn } from '../../../src/model/smithy/smithShop';
 import type { Enemy, Tree } from '../../../src/model/types';
+import { campLevel, type Camp } from '../../../src/model/camps/camps';
+import { SCRAP_OF } from '../../../src/model/skills/salvage';
 
 const woodName = (p: Toolkit, tree: Tree) => woodOfTree(tree, p.model.seed).name;
 const main = (scope: string | undefined) => scope === 'first' || scope === 'saint'; // (the story's own: not a village's errand)
@@ -153,6 +155,14 @@ export const STORY_ACTIVITY: Activity = {
         const tree = p.model.trees.filter((tr) => Math.abs(tr.x - hero.x) < 120 && Math.abs(tr.z - hero.z) < 120 && !p.model.lumber.felled(tr) && woodName(p, tr) === wood.name && wood.needs <= level && p.model.isMade(tr.x, tr.z)).sort((a, b) => far(a) - far(b))[0];
         if (tree) out.push({ label: `a ${wood.name}, for "${t.name}"`, at: tree, data: { tree } });
       }
+      if (needs?.kind === 'bring' && !wood && (hero.bag[needs.item] ?? 0) < needs.count && (Object.values(SCRAP_OF) as string[]).includes(needs.item)) { // (a scrap: what's carried, broken down at the bench)
+        const salvage = ACTIVITIES.find((a) => a.id === 'salvage')!;
+        for (const target of salvage.options(p)) out.push({ ...target, label: `${target.label}, for "${t.name}"`, data: { via: salvage, target } });
+      }
+      if (needs?.kind === 'do' && needs.what === 'clearCamp' && t.goal && hero.hp >= maxHpOf(hero) * 0.7) { // (a camp to clear: raided, whole)
+        const camp = p.model.camps.filter((c) => Math.hypot(c.way.x - t.goal!.x, c.way.z - t.goal!.z) < 30).sort((a, b) => Math.hypot(a.way.x - t.goal!.x, a.way.z - t.goal!.z) - Math.hypot(b.way.x - t.goal!.x, b.way.z - t.goal!.z))[0];
+        if (camp && campLevel(camp, p.model.size) <= hero.level + 1) out.push({ label: `the camp, for "${t.name}"`, at: camp.way, data: { camp } });
+      }
       if (needs?.kind === 'slay' && hero.hp >= maxHpOf(hero) * 0.6) { // (its foes: not sought half dead)
         const foe = p.model.enemies.filter((e) => e.kind === needs.foe && e.state !== 'dead' && e.level <= hero.level + 1 && far(e) < 90).sort((a, b) => far(a) - far(b))[0];
         if (foe) out.push({ label: `a ${needs.foe}, for "${t.name}"`, at: foe, data: { foe } });
@@ -163,9 +173,11 @@ export const STORY_ACTIVITY: Activity = {
     return out.slice(0, 3);
   },
   steps: (p, t) => {
-    const data = t.data as { who?: Carter | Npc; goal?: { x: number; z: number }; within?: Entrance | null; tree?: Tree; foe?: Enemy; axe?: Entrance };
+    const data = t.data as { who?: Carter | Npc; goal?: { x: number; z: number }; within?: Entrance | null; tree?: Tree; foe?: Enemy; axe?: Entrance; camp?: Camp; via?: Activity; target?: Target };
     if (data.tree) return [travel(p, () => data.tree!), ...ACTIVITIES.find((a) => a.id === 'chop')!.steps(p, { label: t.label, at: data.tree, data: data.tree })];
     if (data.foe) return [p.walk(() => data.foe!, 6), ...p.go('fight', { foe: data.foe })];
+    if (data.via) return data.via.steps(p, data.target!);
+    if (data.camp) return [travel(p, () => data.camp!.way, 20), ...p.campRaid(data.camp)];
     if (data.axe) {
       const buy: Step = () => {
         const shop = smithShopIn(p.model);
