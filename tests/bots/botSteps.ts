@@ -134,7 +134,7 @@ export class BotSteps {
       if (foe.hp < hpThen) [hpThen, inReach, away] = [foe.hp, 0, 0];
       else if ((inReach += dt) > 20) {
         this.report('foe takes no damage', `${foe.kind} #${foe.id} (level ${foe.level}), ${foe.hp}/${foe.maxHp} after ${inReach.toFixed(0)} s in reach`);
-        return 'fail';
+        return (this.shunned.add(foe), 'fail'); // (no blow lands on it from here: let be, not struck at for ever)
       }
       return 'run';
     };
