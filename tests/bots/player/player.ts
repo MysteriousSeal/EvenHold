@@ -196,7 +196,7 @@ export class Player extends Bot {
       company: 0.3 * (0.4 + t.social * 1.2),
       craft: 0.35 * (0.4 + t.industrious * 1.2),
       glory: 0.4 * (0.4 + t.bold * 1.2),
-      story: 0.85 * (0.6 + t.curious * 0.5 + t.social * 0.3), // (how it ends: the thread every player follows, more or less)
+      story: 0.85 * (0.6 + t.curious * 0.5 + t.social * 0.3) * (this.model.story.stateOf('wordToTheInn') === 'done' ? 1 : 3), // (how it ends: the thread every player follows, more or less; at the start, the carter's gold "!" before anything)
     };
   }
 
