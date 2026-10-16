@@ -6,7 +6,6 @@
 
 import { herbalistAbed } from '../../../src/model/herbalist/herbalistWork';
 import type { Entrance } from '../../../src/model/interiors/interiors';
-import { bumpsFurniture } from '../../../src/model/interiors/furniture';
 import type { Who } from '../../../src/model/story/story';
 import type { Carter } from '../../../src/model/story/carter';
 import { setAction } from '../../../src/model/hero/actionBar';
@@ -30,6 +29,7 @@ import { buyGear, gearPrice, smithShopIn } from '../../../src/model/smithy/smith
 import { PICKUP_RANGE } from '../../../src/model/loot/loot';
 import { INN_WANTS, buyPrice, innWants } from '../../../src/model/inn/tavernShop';
 import type { Step } from '../botSteps';
+import { STORY_ACTIVITY, speakWith } from './storyActivity';
 import type { Toolkit } from './player';
 import type { Drive, Trait } from './persona';
 
@@ -292,7 +292,8 @@ export const ACTIVITIES: Activity[] = [
   {
     // The quests people give (model/story/story.ts): whoever near has a gold "?" (one ready to hand in to them) or a
     // "!" (one to give) gone to, wherever they are (a keeper at their counter, a villager at home or out and about),
-    // and spoken with: each answer given the first, a quest handed in and the next of theirs taken in the same breath;
+    // and spoken with: each answer given the first (a choice as the player would), a quest handed in and the next of
+    // theirs taken in the same breath;
     // each step checked (something came of the answer; the pay as promised). What a quest asks meanwhile (logs,
     // wolves, a camp cleared) comes of the player's other doings, or doesn't.
     id: 'errand',
@@ -305,38 +306,9 @@ export const ACTIVITIES: Activity[] = [
       const near = story.asking.filter((a) => a.mark !== 'waiting' && Math.hypot(where(a.who).x - from.x, where(a.who).z - from.z) < 200).sort((a, b) => Number(b.mark === 'ready') - Number(a.mark === 'ready') || Math.hypot(where(a.who).x - from.x, where(a.who).z - from.z) - Math.hypot(where(b.who).x - from.x, where(b.who).z - from.z));
       return near.slice(0, 2).map(({ who, mark }) => ({ label: `${who.name}, who has ${mark === 'ready' ? 'a quest to take in' : 'something to ask'}`, at: where(who), data: who }));
     },
-    steps: (p, t) => {
-      const { story, hero } = p.model;
-      const who = t.data as Carter | Npc;
-      const indoors = 'where' in who ? who.where : null;
-      const word: Step = () => {
-        if (Math.hypot(who.x - hero.x, who.z - hero.z) > 2.6 || ('where' in who && who.where !== (p.model.inside?.entrance ?? null))) return 'fail'; // (walked off meanwhile: another time)
-        let said = 0;
-        for (; said < 3; said++) {
-          const talk = story.talk(who);
-          if (!talk?.quest) break; // (nothing more of theirs to take up)
-          const [money, before] = [hero.money, JSON.stringify(story.save())];
-          talk.answers[0].pick();
-          if (JSON.stringify(story.save()) === before) return p.report('quest answer came to nothing', `${who.name}: ${talk.quest.name} (${talk.quest.state})`), 'fail';
-          if (talk.quest.state === 'handIn') {
-            if (hero.money !== money + talk.quest.copper) p.report('quest paid wrong', `${talk.quest.name}: ${hero.money - money} for ${talk.quest.copper}`);
-            p.stats.questsDone++;
-          } else p.stats.questsTaken++;
-        }
-        return said > 0 ? 'ok' : 'fail';
-      };
-      // Up to them: a keeper stands behind a counter, where no one walks: to the first open spot a pace or two off
-      // (across it), near enough for a word.
-      const beside = () => {
-        const inside = p.model.inside;
-        const open = (x: number, z: number) => (inside ? x > 0 && z > 0 && x < inside.room.width - 1 && z < inside.room.depth - 1 && !bumpsFurniture(inside.furniture, x, z, 0.3) : !p.model.isBlocked(x, z, 0.3));
-        const spot = [[1.6, 0], [0, 1.6], [-1.6, 0], [0, -1.6], [2.2, 0], [0, 2.2], [-2.2, 0], [0, -2.2]].map(([dx, dz]) => ({ x: who.x + dx, z: who.z + dz })).find((s) => open(s.x, s.z));
-        return spot ?? who;
-      };
-      const upTo: Step = (dt) => (Math.hypot(who.x - hero.x, who.z - hero.z) <= 1.8 ? 'ok' : p.walk(beside, 0.5)(dt) === 'run' ? 'run' : 'ok'); // (as near as can be got: the word says whether it's near enough)
-      return indoors ? [...p.enter(indoors), upTo, word, ...p.leave()] : [upTo, word];
-    },
+    steps: (p, t) => speakWith(p, t.data as Carter | Npc), // (storyActivity.ts: a choice answered as the player would)
   },
+  STORY_ACTIVITY,
   {
     id: 'herbalist',
     serves: { safety: 0.4, curiosity: 0.3, coin: 0.2 },
