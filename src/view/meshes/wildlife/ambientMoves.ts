@@ -17,6 +17,11 @@
 // - crows sit the sown fields' fences, as the songbirds do the pastures';
 // - a heron stands in the shallows, stock-still, turning now and then, a
 //   strike at the water; the hero near, it flaps slowly off;
+// - the heath's hares and grouse go as the rabbits and songbirds do, bigger;
+// - goats graze the hills and boar root in the woods, a slow step on now and
+//   then, their heads down; the hero near, they trot off and are gone;
+// - an owl glides in slow rounds over the woods at dusk, a few wingbeats
+//   now and then;
 // - and now and then by day a flock goes over in a V, high up.
 
 import * as THREE from 'three';
@@ -48,7 +53,7 @@ export interface Moment {
   splash(x: number, z: number, age: number): void; // a ring of foam on the water, `age` seconds old
 }
 
-const FLEE = { bird: 3.2, rabbit: 3.5, frog: 2.2, heron: 4 }; // tiles: the hero this near, they're off
+const FLEE = { bird: 3.2, rabbit: 3.5, frog: 2.2, heron: 4, goat: 4.5, boar: 3.5 }; // tiles: the hero this near, they're off
 const FREEZE = 5.5; // tiles: the hero this near, a rabbit sits up stock-still, watching
 const BACK = 18; // tiles away the hero must go before they're back (within the patches still kept round them)
 const POST = 0.39; // a fence post's top, over the ground (a bird sat on it: its middle)
@@ -100,7 +105,8 @@ export function firefly(c: Creature, m: Moment, voxel: number): boolean {
   return pose(m, x, m.ground(x, z) + 0.25 + c.seed * 0.7 + Math.sin(t * 0.8) * 0.15, z, 0, 0, s, s, s);
 }
 
-export function bird(c: Creature, m: Moment): boolean {
+// (`s`: how big it's drawn, `up`: its middle over the ground: a songbird's, else a grouse's)
+export function bird(c: Creature, m: Moment, s = BIRD, up = 0.08): boolean {
   const t = m.time + c.seed * 100;
   const base = c.perch ? homeY(c, m) + POST : m.ground(c.x, c.z);
   // The hero near: off in a flurry, up and away; back once they're gone.
@@ -108,7 +114,7 @@ export function bird(c: Creature, m: Moment): boolean {
     const f = c.fled!;
     if (f > 6) return false; // (gone off out of sight)
     const flap = 0.85 + 0.15 * Math.sin(m.time * 30);
-    return pose(m, c.x + c.away!.x * f * 3.2, base + Math.min(3, f * f * 1.4 + f * 0.6), c.z + c.away!.z * f * 3.2, -0.3, Math.atan2(c.away!.x, c.away!.z), 1.1 * BIRD, flap * BIRD, BIRD);
+    return pose(m, c.x + c.away!.x * f * 3.2, base + Math.min(3, f * f * 1.4 + f * 0.6), c.z + c.away!.z * f * 3.2, -0.3, Math.atan2(c.away!.x, c.away!.z), 1.1 * s, flap * s, s);
   }
   if (c.perch) {
     // Sat on its post, looking about now and then, a little hop round as it does.
@@ -120,8 +126,8 @@ export function bird(c: Creature, m: Moment): boolean {
   const hop = Math.floor(t * 0.7);
   const into = (t * 0.7) % 1;
   const [x, z] = [c.x + (hashUnit(hop, 1, c.seed * 1e4) - 0.5) * 0.8, c.z + (hashUnit(hop, 2, c.seed * 1e4) - 0.5) * 0.8];
-  const y = m.ground(x, z) + 0.08 + (into < 0.15 ? Math.sin((into / 0.15) * Math.PI) * 0.06 : 0);
-  return pose(m, x, y, z, into > 0.5 && into < 0.7 ? 0.4 : 0, hashUnit(hop, 3, c.seed * 1e4) * Math.PI * 2, BIRD, BIRD, BIRD);
+  const y = m.ground(x, z) + up + (into < 0.15 ? Math.sin((into / 0.15) * Math.PI) * 0.06 : 0);
+  return pose(m, x, y, z, into > 0.5 && into < 0.7 ? 0.4 : 0, hashUnit(hop, 3, c.seed * 1e4) * Math.PI * 2, s, s, s);
 }
 
 // A rabbit's k'th sitting place round its home (`fits`: there's ground for it there; else its home).
@@ -130,7 +136,8 @@ function seat(c: Creature, k: number, fits: (x: number, z: number) => boolean): 
   return fits(x, z) ? { x, z } : { x: c.x, z: c.z };
 }
 
-export function rabbit(c: Creature, m: Moment, fits: (x: number, z: number) => boolean): boolean {
+// (`s`, `up`: as the bird's: a rabbit's, else a hare's)
+export function rabbit(c: Creature, m: Moment, fits: (x: number, z: number) => boolean, s = RABBIT, up = RABBIT_UP): boolean {
   const t = m.time + c.seed * 100;
   const every = 2.6 + c.seed * 1.5; // seconds between one sitting place and the next
   const [k, u] = [Math.floor(t / every), (t / every) % 1];
@@ -147,13 +154,45 @@ export function rabbit(c: Creature, m: Moment, fits: (x: number, z: number) => b
       c.fled = 99; // (gone, and stays gone till the hero's away)
       return false;
     }
-    return pose(m, x, m.ground(x, z) + RABBIT_UP + Math.abs(Math.sin(f * Math.PI * 4)) * 0.1, z, -0.15, Math.atan2(c.away!.x, c.away!.z) + Math.cos(f * 7) * 0.4, RABBIT, RABBIT, RABBIT);
+    return pose(m, x, m.ground(x, z) + up + Math.abs(Math.sin(f * Math.PI * 4)) * 0.1, z, -0.15, Math.atan2(c.away!.x, c.away!.z) + Math.cos(f * 7) * 0.4, s, s, s);
   }
   const yaw = Math.atan2(now.x - was.x, now.z - was.z) || c.seed * 6;
-  if (Math.hypot(m.hero.x - c.x, m.hero.z - c.z) < FREEZE) return pose(m, now.x, m.ground(now.x, now.z) + RABBIT_UP, now.z, -0.15, yaw, RABBIT, RABBIT, RABBIT); // (frozen, sat up)
+  if (Math.hypot(m.hero.x - c.x, m.hero.z - c.z) < FREEZE) return pose(m, now.x, m.ground(now.x, now.z) + up, now.z, -0.15, yaw, s, s, s); // (frozen, sat up)
   const hopUp = going < 1 ? Math.abs(Math.sin(going * Math.PI * 2)) * 0.08 : 0;
   const nibble = u > 0.4 && u < 0.75 ? 0.25 + Math.sin(t * 9) * 0.05 : 0; // its head down to the grass
-  return pose(m, here.x, m.ground(here.x, here.z) + RABBIT_UP + hopUp, here.z, nibble, yaw, RABBIT, RABBIT, RABBIT);
+  return pose(m, here.x, m.ground(here.x, here.z) + up + hopUp, here.z, nibble, yaw, s, s, s);
+}
+
+// A goat or a boar (`s`, `up`: how big, its middle over the ground): stood grazing (rooting), its head down, a slow
+// step on to the next place now and then; the hero near, off at a trot, and gone a little way off.
+export function grazer(c: Creature, m: Moment, fits: (x: number, z: number) => boolean, kind: 'goat' | 'boar', s: number, up: number): boolean {
+  const t = m.time + c.seed * 100;
+  const every = 7 + c.seed * 5; // seconds at each place
+  const [k, u] = [Math.floor(t / every), (t / every) % 1];
+  const [was, now] = [seat(c, k - 1, fits), seat(c, k, fits)];
+  const going = Math.min(1, u / 0.3); // a slow walk on, then stood
+  const here = { x: was.x + (now.x - was.x) * going, z: was.z + (now.z - was.z) * going };
+  if (fleeing(c, m, FLEE[kind], here, fits)) {
+    const f = c.fled!;
+    const [x, z] = [c.from!.x + c.away!.x * f * 2.4, c.from!.z + c.away!.z * f * 2.4];
+    if (f > 2.5 || !fits(x, z)) return false;
+    return pose(m, x, m.ground(x, z) + up + Math.abs(Math.sin(f * Math.PI * 3)) * 0.05, z, 0, Math.atan2(c.away!.x, c.away!.z), s, s, s);
+  }
+  const yaw = going < 1 ? Math.atan2(now.x - was.x, now.z - was.z) || c.seed * 6 : hashUnit(k, 7, c.seed * 1e4) * Math.PI * 2;
+  const step = going < 1 ? Math.abs(Math.sin(going * Math.PI * 4)) * 0.02 : 0;
+  const grazing = going < 1 ? 0 : 0.12 + Math.sin(t * (kind === 'boar' ? 6 : 2)) * 0.04; // its head down (a boar's rooting, quicker)
+  return pose(m, here.x, m.ground(here.x, here.z) + up + step, here.z, grazing, yaw, s, s, s);
+}
+
+const OWL = 1.6;
+const OWL_HIGH = 2.2; // over the ground, gliding
+// An owl gliding in slow rounds over the woods round its home, rising and falling a little, a few wingbeats now and then.
+export function owl(c: Creature, m: Moment): boolean {
+  const t = m.time * 0.22 + c.seed * 100;
+  const r = 2.5 + c.seed * 1.5;
+  const [x, z] = [c.x + Math.sin(t) * r, c.z + Math.cos(t) * r];
+  const flap = Math.sin(m.time * 9) > 0 && (m.time + c.seed * 10) % 5 < 1 ? 0.6 : 1; // (its wings squeezed in: a beat)
+  return pose(m, x, homeY(c, m) + OWL_HIGH + Math.sin(t * 2.3) * 0.25, z, 0, t + Math.PI / 2, OWL * flap, OWL, OWL);
 }
 
 export function dragonfly(c: Creature, m: Moment): boolean {
@@ -217,7 +256,7 @@ export function fish(c: Creature, m: Moment): boolean {
 
 export function heron(c: Creature, m: Moment): boolean {
   const t = m.time + c.seed * 100;
-  const stood = WATER_Y - 0.06 + 0.25; // (its middle: its legs a little under the water)
+  const stood = Math.max(WATER_Y - 0.06, homeY(c, m)) + 0.25; // (its middle: its legs a little under the water, or in the marsh's reeds)
   if (fleeing(c, m, FLEE.heron, c)) {
     // Up and off, slow wingbeats, low over the water.
     const f = c.fled!;

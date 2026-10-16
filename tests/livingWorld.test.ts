@@ -74,6 +74,21 @@ describe('the small life, by country and weather', () => {
     for (const c of all.filter((c) => c.kind === 'rabbit')) expect(Math.floor(c.z) < 30 || Math.floor(c.x) < 20).toBe(false);
   });
 
+  it('each country its own: hares and grouse on the heath, goats on the hills, boar and owls in the woods, herons in the marsh\'s reeds', () => {
+    const plain = pondWorld();
+    const band = (x: number) => (['heath', 'hills', 'forest', 'marsh', 'meadow'] as const)[Math.min(4, Math.floor(x / 12))];
+    const lands = (seed: number): LifeWorld => ({ ...pondWorld(seed), biomes: { at: (x) => band(x), woods: (x) => (band(x) === 'forest' ? 1 : 0) } });
+    const all = [1, 2, 3, 4].flatMap((seed) => cells(10).flatMap(([cx, cz]) => lifeIn(lands(seed), cx, cz)));
+    const home = { hare: 'heath', grouse: 'heath', goat: 'hills', boar: 'forest', owl: 'forest' } as const;
+    for (const [kind, country] of Object.entries(home)) {
+      const these = all.filter((c) => c.kind === kind);
+      expect(these.length, kind).toBeGreaterThan(0);
+      for (const c of these) expect([c.x - 1.6, c.x + 1.6].map((x) => band(Math.floor(x))), kind).toContain(country); // (a herd spread round its home)
+    }
+    expect(all.some((c) => c.kind === 'heron' && !plain.tiles.lake(Math.floor(c.x), Math.floor(c.z)) && band(Math.floor(c.x)) === 'marsh')).toBe(true);
+    expect(cells(10).flatMap(([cx, cz]) => lifeIn(plain, cx, cz)).some((c) => c.kind in home)).toBe(false); // (none where the countries aren't known)
+  });
+
   it('in the rain the birds and butterflies are under cover, and the frogs out even by day', () => {
     const dry = { x: 1, z: 0, strength: 0.4, rain: 0, fog: 0, snow: 0, season: 'spring' as const };
     const wet = { ...dry, rain: 0.8 };

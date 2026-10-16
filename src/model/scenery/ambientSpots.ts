@@ -3,7 +3,9 @@
 // ground (LIFE_CELL tiles a side): butterflies over a meadow, a little flock
 // of songbirds on open grass, fireflies, rabbits; on a lake's shore,
 // dragonflies and frogs; out on open water, fish (now and then leaping);
-// a heron standing in the shallows, here and there; each where on open,
+// a heron standing in the shallows, here and there (or in the marsh's
+// reeds); each country its own: hares and grouse on the heath, goats on the
+// hills, boar rooting in the woods and an owl over them at dusk; each where on open,
 // natural ground (or water), and its own roll. A field's fence has a bird
 // or two perched on it (perchesOn): crows on a sown field's, songbirds on a
 // pasture's. And when they're
@@ -22,7 +24,7 @@ import { NEIGHBORS_4 } from '../map/grid';
 import { stockOf } from '../wildlife/livestock';
 
 export const LIFE_CELL = 6; // tiles a side of each patch of ground
-export type LifeKind = 'butterfly' | 'bird' | 'firefly' | 'rabbit' | 'dragonfly' | 'frog' | 'fish' | 'crow' | 'heron';
+export type LifeKind = 'butterfly' | 'bird' | 'firefly' | 'rabbit' | 'dragonfly' | 'frog' | 'fish' | 'crow' | 'heron' | 'hare' | 'grouse' | 'goat' | 'boar' | 'owl';
 
 export interface LifeSpot {
   kind: LifeKind;
@@ -59,10 +61,15 @@ const OUT: Record<LifeKind, [number, number]> = {
   fish: [0, 24],
   crow: [5.5, 20],
   heron: [5, 21],
+  hare: [5, 21.5],
+  grouse: [5, 19.5],
+  goat: [5.5, 20.5],
+  boar: [16, 9], // (rooting from the afternoon, through the night, till the morning's well on)
+  owl: [19, 5.5],
 };
 
 // The hour each comes out at its best (for the cheats: noon for the day's, ten at night for the fireflies and frogs).
-export const LIFE_HOUR: Record<LifeKind, number> = { butterfly: 12, bird: 12, firefly: 22, rabbit: 12, dragonfly: 12, frog: 22, fish: 12, crow: 12, heron: 12 };
+export const LIFE_HOUR: Record<LifeKind, number> = { butterfly: 12, bird: 12, firefly: 22, rabbit: 12, dragonfly: 12, frog: 22, fish: 12, crow: 12, heron: 12, hare: 12, grouse: 12, goat: 12, boar: 18, owl: 22 };
 
 // What lives in patch (cx, cz).
 export function lifeIn(world: LifeWorld, cx: number, cz: number, meadow = createMeadowDensity(world.seed)): LifeSpot[] {
@@ -87,6 +94,16 @@ export function lifeIn(world: LifeWorld, cx: number, cz: number, meadow = create
   if (roll(21) < 0.14) add('bird', 2 + Math.floor(roll(22) * 4), 23, 1.6);
   if (roll(31) < 0.3 + lush * 0.3) add('firefly', 3 + Math.floor(roll(32) * 6), 33, 4);
   if (roll(41) < 0.12) add('rabbit', 2 + Math.floor(roll(42) * 3), 43, 3, edge);
+  // Each country its own, well in it (its country two tiles round too: not a stray tile of it, the ground there its
+  // neighbours' colour); none where the countries aren't known.
+  const country = (kind: string) => (x: number, z: number) => [[0, 0], [2, 2], [2, -2], [-2, 2], [-2, -2]].every(([dx, dz]) => biomes?.at(x + dx, z + dz) === kind);
+  if (biomes) {
+    if (roll(101) < 0.12) add('hare', 1 + Math.floor(roll(102) * 2), 103, 3, country('heath'));
+    if (roll(111) < 0.14) add('grouse', 2 + Math.floor(roll(112) * 3), 113, 1.6, country('heath'));
+    if (roll(121) < 0.14) add('goat', 2 + Math.floor(roll(122) * 3), 123, 3, country('hills'));
+    if (roll(131) < 0.1) add('boar', 1 + Math.floor(roll(132) * 3), 133, 2.5, country('forest'));
+    if (roll(141) < 0.1) add('owl', 1, 143, 0, country('forest'));
+  }
   // By the water: a few tries at a tile of shore, then each one on shore of its own round it.
   const tries = (salt: number, fits: (x: number, z: number) => boolean) => {
     for (let t = 0; t < 4; t++) {
@@ -110,6 +127,7 @@ export function lifeIn(world: LifeWorld, cx: number, cz: number, meadow = create
   // A heron: in the shallows, a step off the bank (the marsh's, rather).
   const shallows = (x: number, z: number) => wet(world, x, z) && NEIGHBORS_4.some(([dx, dz]) => onLand(world, x + dx, z + dz));
   if (roll(91) < 0.18) near('heron', 1, 93, shallows, marsh && ((x, z) => NEIGHBORS_4.some(([dx, dz]) => marsh(x + dx, z + dz))));
+  else if (marsh && roll(94) < 0.2) near('heron', 1, 95, (x, z) => onLand(world, x, z) && marsh(x, z)); // (or wading in the marsh's reeds)
   if (roll(71) < 0.45) near('fish', 1 + Math.floor(roll(72) * 2), 73, (x, z) => NEIGHBORS_8.every(([dx, dz]) => wet(world, x + dx, z + dz)));
   return out;
 }
