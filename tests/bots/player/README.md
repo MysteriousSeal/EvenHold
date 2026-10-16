@@ -1,11 +1,13 @@
 # The player bot
 
-A player of its own mind that plays an hour of a fresh game and writes up what the hour says about the game. It plays by the game's own keys and windows, no cheats: it sees what a player would see, and can only do what a player could.
+A player of its own mind that plays a fresh game — the story pushed towards an ending, everything else on the way — and writes up what it says about the game. It plays by the game's own keys and windows, no cheats: it sees what a player would see, and can only do what a player could.
 
 ```
-npm run player                      # a new world, a new player, 60 game minutes (15–30 s of real time)
+npm run player                      # a new world, a new player, 600 game minutes (about 15 min of real time)
+PLAY_HEADED=1 npm run player        # watched: the same player at the keys of the real game, in a browser window
+PLAY_HEADED=1 PLAY_SPEED=4 npm run player # watched, four times as fast (close the window to stop)
 PLAY_SEED=2052870920 npm run player # the same world and player again (every run prints its seed)
-PLAY_MINUTES=120 npm run player     # longer
+PLAY_MINUTES=60 npm run player      # shorter (or longer)
 PLAYERS=4 npm run player            # up to four at once, one a core: each its own world and report
 PLAY_SEEDS=11,22,33 npm run player  # those games again, together
 PLAY_QA=1 npm run player            # a QA sweep: everything untried pulls hard, so the hour tries all the world offers
@@ -25,6 +27,8 @@ Every game is a different player in a different world.
 4. **It only knows what it has seen.** Villages, inns, smithies, crypts, caves and camps count once the hero has come within 45 tiles of them (`player.ts` `notice()`), and each is announced: `found the village of Tamfield`.
 5. **It learns.** When an activity ends, its outcome becomes a reward — xp and coin for, health and time (and a fall) against — and a running mean per activity feeds the next scores: what paid off is chosen more. A fall in the first seconds of an activity is blamed on the one before (the fight they came hurt from).
 6. **The bot's feet do the walking** (`../bot.ts`, `../botSteps.ts`, `../ventures.ts`, `../errands.ts`, `../nav.ts`): how to get somewhere, fight, trade, work a shift, raid a camp. The player decides; the bot does. The game's own checks (`../checks.ts`) run alongside and report faults.
+
+**The story.** A `story` drive pulls every player along the story's own quests (the first village's line, then the second arc's): whoever has the next of it is sought however far, and a part under way is gone after where it leads (`storyActivity.ts`). A choice (the witch: freed, sold, left) is answered by the player's traits: greedy for the coin, social for mercy, bold for a fight, cautious to walk on. The report opens with **The story**: how far it got (arc 1, arc 2's acts, an ending), what's under way, and each choice made. No cheats: where the story can't be reached, the report says so.
 
 ## Reading the run
 
@@ -49,7 +53,9 @@ In order: **the signals** (what the hour says about the game, the part to read f
 | `persona.ts` | Traits, drives, scoring, drawing, and what's learnt. The brain's rules. |
 | `player.ts` | The player: knowledge of the world, the diary, choosing and finishing activities, the toolkit lent to activities. |
 | `report.ts` | The report, and the design signals. |
-| `playthrough.ts` | The runner: one game, printed as it goes. |
+| `storyActivity.ts` | The story: its quests sought, where they lead gone after, and a word with anyone (choices by the traits). |
+| `inBrowser.ts` | The player at the keys of the real game, in a browser (`PLAY_HEADED=1`): a panel tells what it's doing. |
+| `playthrough.ts` | The runner: one game, printed as it goes (or watched, `PLAY_HEADED=1`). |
 
 ## Adding an activity
 
