@@ -23,6 +23,7 @@ import { controlsCodex } from './controlsCodex';
 import { keysScreen } from './keysScreen';
 import { rebind, type KeyAction } from './keyBindings';
 import { setTipsOn, tipsOn } from './tips/firstTips';
+import { readoutOn, setReadoutOn } from '../view/hud/readout';
 import { volumeSteppers, type VolumeHooks } from './soundSettings';
 import { freshHeroScreen, heroScreen, type HeroFiles } from './storage/heroFiles';
 import '../view/ui/gilded.css';
@@ -183,14 +184,15 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
         () => (stepBrightness(1, true), changed()),
       );
       const tips = toggle('Tips', tipsOn, ['Off', 'On'], () => (setTipsOn(!tipsOn()), draw()));
+      const readout = toggle('Performance', readoutOn, ['Off', 'On'], () => (setReadoutOn(!readoutOn()), draw())); // (the corner's readout: view/hud/readout.ts)
       const sound = hooks.volumes ? volumeSteppers(hooks.volumes, stepper, draw) : []; // (Volume, Effects, Ambience)
       const controls = button('', 'Controls', 'Every key, and what it does', () => ((showing = 'controls'), (lit = 0), draw()));
       const keys = button('', 'Keys', 'Put any action on the key you like', () => ((showing = 'keys'), (lit = 0), draw()));
       const hero = button('', 'Your hero', 'Export, import, or go back to a backup', () => ((showing = 'hero'), (lit = 0), freshHeroScreen(), draw()));
       const menu = button('', 'Main menu', 'This world saved: another hero, another world', () => hooks.mainMenu());
       const settings = el('div', 'pause-settings');
-      settings.append(zoom.node, walls.node, quality.node, brightness.node, ...sound.map((s) => s.node), tips.node);
-      main.append(title, resume, settings, controls, keys, ...(hooks.files ? [hero] : []), menu, el('p', 'pause-foot', 'Esc to resume · Your progress saves itself'));
+      settings.append(zoom.node, walls.node, quality.node, brightness.node, ...sound.map((s) => s.node), tips.node, readout.node);
+      main.append(title, resume, settings, controls, keys, ...(hooks.files ? [hero] : []), menu, el('p', 'pause-foot', `Esc to resume · Your progress saves itself · v${__GAME_VERSION__}`));
       items = [
         { node: resume, act: () => resume.click() },
         zoom,
@@ -199,6 +201,7 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
         brightness,
         ...sound,
         tips,
+        readout,
         { node: controls, act: () => controls.click() },
         { node: keys, act: () => keys.click() },
         ...(hooks.files ? [{ node: hero, act: () => hero.click() }] : []),

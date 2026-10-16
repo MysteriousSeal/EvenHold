@@ -24,6 +24,7 @@ import { randomName } from './model/npcs/npcs';
 import { forgetWorld, loadGame, savedSize, savedWorlds, startAutoSave } from './controller/storage/saveGame';
 import { heroFiles } from './controller/storage/heroFiles';
 import { createFpsCounter } from './view/hud/fpsCounter';
+import { showReadout } from './view/hud/readout';
 import { createHeroHud } from './view/hud/heroHud';
 import { createBlessingHud } from './view/hud/blessingHud';
 import { createPlaceBanner } from './view/hud/placeBanner';
@@ -122,6 +123,7 @@ async function boot(): Promise<void> {
   const seed = choice.seed;
   keepSessionSeed(seed);
   (document.getElementById('version-label') as HTMLDivElement).textContent = `EvenHold v${__GAME_VERSION__}`; // (package.json's, with the seed)
+  showReadout(); // (hidden till the pause menu's Performance is On)
   // The seed, the place and the frame rate under it: the developer's, not a player's (the world's seed is on the pause
   // menu's card).
   if (!import.meta.env.DEV) for (const id of ['seed-label', 'position-label', 'fps-label']) (document.getElementById(id) as HTMLDivElement).hidden = true;
