@@ -69,6 +69,7 @@ describe('the map of the land walked', () => {
 
   it('marks the landmarks come within sight of (a ring of stones once, not each stone), kept through a save', () => {
     const model = fresh();
+    model.scenery.splice(0, model.scenery.length, ...model.scenery.filter((s) => s.kind !== 'menhir')); // (the small world's own ring, if it has one, out of the way: these alone)
     model.scenery.push(
       { kind: 'menhir', x: 40, z: 40, w: 1, d: 1, quarterTurns: 0, variant: 0 },
       { kind: 'menhir', x: 44, z: 41, w: 1, d: 1, quarterTurns: 0, variant: 0 },
