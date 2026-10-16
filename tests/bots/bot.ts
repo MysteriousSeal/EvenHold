@@ -251,19 +251,12 @@ export abstract class Bot extends BotVentures {
       {
         // A bed it may lie in (nav.ts freeBed); none free, nothing to do.
         const rested = this.until(() => hero.energy >= maxEnergyOf(hero) * 0.95 && hero.hp >= maxHpOf(hero) * 0.95, 120, 'slept in bed, not rested and mended');
-        const found = freeBed(this.model, (e) => this.knows(e));
-        // (no room let, but one to be had at the inn: rented and slept in, as a player with the coin would; not a stranger's bed)
-        const rentable = found?.type !== 'inn' && lettingHours(this.model.minutes) && hero.money >= ROOM_PRICE ? nearestDoor(this.model, 'inn') : null;
-        const bed = rentable ?? found;
+        const found = freeBed(this.model, (e) => this.knows(e)); // (no room let but one to be had: the inn's, over a stranger's bed)
+        const bed = (found?.type !== 'inn' && lettingHours(this.model.minutes) && hero.money >= ROOM_PRICE ? nearestDoor(this.model, 'inn') : null) ?? found;
         if (!bed) return [];
-        // Lain in its own bed (the let room's, at night; their own home's): the night slept, as a player would ('Sleep till
-        // morning'); else lain there till rested.
-        let lain: { t: number; energy: number } | null = null;
-        const rest: Step = (dt) => { // (in a stranger's bed, resting slower: up after two minutes, rested well enough if a third of it came back)
-          lain ??= { t: 0, energy: hero.energy };
-          if ((lain.t += dt) < 120 && hero.energy < maxEnergyOf(hero) * 0.95) return 'run';
-          return hero.energy - lain.energy >= maxEnergyOf(hero) / 3 || hero.energy >= maxEnergyOf(hero) * 0.95 ? 'ok' : rested(dt);
-        };
+        // Lain in its own bed (the let room's at night; their own home's): the night slept ('Sleep till morning'); else rested.
+        let lain: { t: number; energy: number } | null = null; // (in a stranger's bed, slower: up after two minutes, well enough rested with a third back)
+        const rest: Step = (dt) => ((lain ??= { t: 0, energy: hero.energy }), (lain.t += dt) < 120 && hero.energy < maxEnergyOf(hero) * 0.95 ? 'run' : hero.energy - lain.energy >= maxEnergyOf(hero) / 3 || hero.energy >= maxEnergyOf(hero) * 0.95 ? 'ok' : rested(dt));
         const night: Step = (dt) => (roomAction(this.model)?.kind === 'sleep' ? (sleepTillMorning(this.model), 'ok') : rest(dt));
         if (bed.type === 'inn') return [...this.enter(bed), ...this.upstairs(night), () => (this.stats.sleeps++, 'ok'), ...this.leave()]; // (up from the bed in it)
         return [...this.enter(bed), this.sitOn((k) => k === 'bed' || k === 'doubleBed'), night, () => ((this.stats.sleeps++, this.model.sitOrStand()), 'ok'), ...this.leave()];
@@ -372,9 +365,10 @@ export abstract class Bot extends BotVentures {
 
   // Sits on a seat of a kind `wanted` says (a bed, a bar stool), walking to the nearest free one.
   private sitOn(wanted: (kind: string) => boolean): Step {
+    let t = 0;
     return (dt) => {
       const { inside, hero } = this.model;
-      if (!inside) return 'fail';
+      if (!inside || (t += dt) > 30) return 'fail'; // (half a minute and not sat: given up)
       const sat = this.model.seated?.seat.piece.kind;
       if (sat && wanted(sat)) return 'ok'; // (sat on one already)
       if (sat) this.model.sitOrStand(); // (up off another, first)
@@ -438,6 +432,7 @@ export abstract class Bot extends BotVentures {
   // No room let (none to be had): not up at all.
   private upstairs(abed: Step = this.wait(3)): Step[] {
     let asking = 0;
+    let climbing = 0;
     return [
       // In letting hours, with the coin, none let yet: a room off the barmaid first (its door's unlocked for it).
       (dt) => {
@@ -481,6 +476,7 @@ export abstract class Bot extends BotVentures {
         }
         // (In the front corner, against the front wall: taken from the row before them, inside the room; a stairwell with room past it, from past it.)
         const front = stairs.z + stairs.d <= inside.room.depth - 1 ? stairs.z + stairs.d : stairs.z - 1;
+        if ((climbing += dt) > 30) return 'fail'; // (half a minute and not at their foot: given up)
         return this.walk(() => ({ x: stairs.x + (stairs.w - 1) / 2, z: front }), 0.3)(dt) === 'fail' ? 'fail' : 'run';
       },
       (dt) => {
