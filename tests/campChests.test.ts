@@ -16,7 +16,7 @@ const worlds = SEEDS.map((seed) => new GameModel(seed, SIZE));
 const each = (check: (model: GameModel, camp: Camp, at: string) => void) => {
   let camps = 0;
   for (const model of worlds) for (const [i, camp] of model.camps.entries()) [check(model, camp, `seed ${model.seed}, camp ${i} at ${camp.x},${camp.z}`), camps++];
-  expect(camps).toBeGreaterThan(150);
+  expect(camps).toBeGreaterThan(45);
 };
 
 // Whether a walker can go from tile a to tile b beside it (each a step along the way not blocked).

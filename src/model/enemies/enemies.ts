@@ -52,6 +52,15 @@ export interface EnemyWorld {
 const AS_BANDITS: ReadonlySet<EnemyKind> = new Set(['bruiser', 'crossbowman', 'firebrand', 'sawbones', 'runner']);
 const AS_CHIEFS: ReadonlySet<EnemyKind> = new Set(['houndmaster', 'quartermaster', 'gaoler', 'captain', 'banditKing']);
 
+// Whether a step (dx, dz) takes a wanderer past the farthest spot it ever picks round home (its square's corner; a
+// camp's pen's, if wider), and further out than it is: refused (a shove apart, a sidestep, crept it out bit by bit).
+export function strays(enemy: Enemy, dx: number, dz: number): boolean {
+  if (enemy.state !== 'wander') return false;
+  const reach = Math.max(ENEMY_STATS[enemy.kind].wander, enemy.pen ?? 0) * Math.SQRT2;
+  const after = Math.hypot(enemy.x + dx - enemy.homeX, enemy.z + dz - enemy.homeZ);
+  return after > reach && after > Math.hypot(enemy.x - enemy.homeX, enemy.z - enemy.homeZ);
+}
+
 // A fresh enemy of `kind` at `level` at (x, z), at home around (homeX, homeZ).
 export function makeEnemy(id: number, kind: EnemyKind, x: number, z: number, homeX = x, homeZ = z, level = 1): Enemy {
   const power = enemyPower(kind, level);
@@ -199,7 +208,7 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
   const within = (p: { x: number; z: number }) => kept(p).x === p.x && kept(p).z === p.z;
   const move = (e: Enemy, dx: number, dz: number) => {
     const to = kept({ x: e.x + dx, z: e.z + dz });
-    return Math.hypot(to.x - e.x, to.z - e.z) >= 1e-5 && actions.move(e, to.x - e.x, to.z - e.z);
+    return Math.hypot(to.x - e.x, to.z - e.z) >= 1e-5 && !strays(e, to.x - e.x, to.z - e.z) && actions.move(e, to.x - e.x, to.z - e.z);
   };
   const stats = ENEMY_STATS[enemy.kind];
   enemy.cooldown = Math.max(0, enemy.cooldown - dt);

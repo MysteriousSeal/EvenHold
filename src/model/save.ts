@@ -119,6 +119,7 @@ export interface SaveData {
   atlas?: unknown; // the land seen and the places come upon (atlas/atlas.ts; older saves: the land round the hero and the villages been to)
   story?: unknown; // (as Story.save gives it; an older save's: its states alone) // the quests people gave: taken, done (story/story.ts)
   kindled?: unknown; // the campfire the hero's lit, while it burns (skills/cooking.ts)
+  finds?: string[]; // the finds off the road taken, by their keys (loot/wildFinds.ts)
   trees?: Record<string, number>; // the trees chopped at, by where they stand: the chops taken (all of them: felled for good; skills/lumber.ts)
   rocks?: Record<string, number>; // the rocks struck at, by where they lie: the strikes taken (all of them: worked out; skills/mining.ts)
   rocksStruck?: Record<string, number>; // and when each was last struck at (game minutes: back whole a day after; an older save's: none, from its loading)
@@ -188,7 +189,8 @@ export function snapshot(model: GameModel): SaveData {
         .filter((e) => isWorldFoe(e.id) && e.state !== 'dead' && e.hp < e.maxHp)
         .map((e) => ({ id: e.id, x: round(e.x), z: round(e.z), hp: e.hp })),
     },
-    loot: model.loot.map(({ item, x, z }) => ({ item, x, z })),
+    loot: model.loot.filter((l) => !l.find).map(({ item, x, z }) => ({ item, x, z })), // (the finds off the road laid again as made)
+    finds: [...model.ground.found], // those taken for good
     coins: model.coins.map(({ amount, x, z }) => ({ amount, x, z })),
     purse: model.purse && { ...model.purse },
     floors: model.floors.save(), // what lies on each dungeon's floor
@@ -373,6 +375,7 @@ export function restore(model: GameModel, data: SaveData): void {
   }
   // (What lies outdoors, outdoors: a hero saved down in a dungeon is there already, its floor not the world's.)
   for (const { item, x, z } of records<SaveData['loot'][number]>(data.loot)) if (typeof item === 'string' && known(item) && finite(x, z)) model.ground.drop(item, x, z);
+  model.ground.taken(Array.isArray(data.finds) ? data.finds.filter((k): k is string => typeof k === 'string') : []); // (an older save's: none)
   for (const { amount, x, z } of records<SaveData['coins'][number]>(data.coins)) if (Number.isInteger(amount) && amount > 0 && finite(x, z)) model.ground.dropCoins(amount, x, z);
   model.floors.load(data.floors, known); // (an older save's: none)
   model.purse = readPurse(data.purse); // (an older save's: none dropped)

@@ -9,6 +9,8 @@ import { stepOutdoors } from './hero/walkOutdoors';
 import { HERO_SPEED, HERO_RADIUS, ENEMY_ACTIVE_RADIUS } from './constants';
 import { Nearby } from '../util/nearby';
 import { DEFAULT_MAP_SIZE, spawnOf, wholeMap, type Area, type MapSize } from './map/grid';
+import { createBiomes } from './scenery/biomes';
+import { wildFinds } from './loot/wildFinds';
 import type { World, Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Village } from './types';
 import { TilePatch, type Tiles } from './map/tiles';
 import { bumpsEnemy } from './enemies/enemies';
@@ -156,7 +158,14 @@ export class GameModel {
   // height of the land unmade, 0) set on its ground.
   settle = ({ x0, z0, x1, z1 }: Area): void => {
     for (const thing of [...this.ground.loot, ...this.ground.coins, ...this.world.enemies.filter((e) => e.quest)]) if (thing.x >= x0 && thing.x < x1 && thing.z >= z0 && thing.z < z1) thing.y = this.getGroundY(thing.x, thing.z);
+    this.layFinds({ x0, z0, x1, z1 });
   };
+  // The finds off the road on `area` (loot/wildFinds.ts), put down where they lie (but those taken).
+  private layFinds({ x0, z0, x1, z1 }: Area): void {
+    const on = <T extends { x: number; z: number }>(list: readonly T[]) => list.filter((p) => p.x >= x0 && p.x < x1 && p.z >= z0 && p.z < z1);
+    const country = createBiomes(this.seed);
+    for (const find of wildFinds(this.seed, on(this.world.scenery), on(this.world.ruins), (x, z) => country.at(x, z))) this.ground.lay(find);
+  }
 
   // Dev cheats: speed factor (1 = normal); walking through everything; enemies' blows don't hurt; every blow of the hero's
   // a kill; drawn with nothing on (what's worn stays worn, and counts); enemies standing still (enemiesFrozen, below).
@@ -195,6 +204,7 @@ export class GameModel {
     this.quests = new QuestBook(this);
     this.bounties = new Bounties(this);
     this.atlas = new Atlas(this);
+    this.layFinds({ x0: 0, z0: 0, x1: this.size.width, z1: this.size.depth }); // (on the regions made so far)
   }
 
   // A foe slain by someone else (a guard on the road): the world's, for good.

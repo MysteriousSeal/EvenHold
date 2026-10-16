@@ -1,6 +1,6 @@
 // Every ruin has its crypt's way down, over 50 random seeds: a world of
-// 2 x 2 ruin regions (1024 tiles a side: model/ruins/ruins.ts, one ruin to
-// RUIN_REGION) stands 4 ruins, and each of the 4 has its tomb, four tiles
+// 2 x 2 ruin regions (1024 tiles a side: model/ruins/ruins.ts, up to three ruins to
+// RUIN_REGION) stands up to 12 ruins and the start's, and each has its tomb, four tiles
 // inside it (its stairs two side by side), level, blocked, the ground before
 // them open, its way in a crypt's (model/crypts/crypts.ts).
 //
@@ -58,12 +58,13 @@ function cryptWorld(seed: number) {
 
 // The seeds of `part` (0 up to PARTS), checked.
 export function checkCryptEntrances(part: number): void {
-  describe(`crypt entrances: 5 ruins out of 5 (the four regions' and the one a walk from the start; seeds part ${part + 1} of ${PARTS})`, () => {
+  describe(`crypt entrances: a crypt in every ruin (the four regions' two or three each, and the one a walk from the start; seeds part ${part + 1} of ${PARTS})`, () => {
     for (const seed of SEEDS.filter((_, i) => i % PARTS === part)) {
       it(`seed ${seed}`, () => {
         const model = cryptWorld(seed);
-        expect(model.ruins).toHaveLength(5);
-        expect(model.crypts).toHaveLength(5);
+        expect(model.ruins.length).toBeGreaterThanOrEqual(9);
+        expect(model.ruins.length).toBeLessThanOrEqual(13);
+        expect(model.crypts).toHaveLength(model.ruins.length);
         for (const ruin of model.ruins) {
           const crypt = model.crypts.find((c) => c.ruin === ruin);
           expect(crypt, `a way down in the ruin at ${ruin.x},${ruin.z}`).toBeDefined();

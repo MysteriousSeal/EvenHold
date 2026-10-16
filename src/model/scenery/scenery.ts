@@ -46,7 +46,7 @@ export interface SceneryWorld {
 const SITE = 13; // tiles a side of each candidate site
 const SITE_CHANCE = 0.6;
 const CIRCLE_SITE = 90; // a ring of standing stones: one candidate to so many tiles a side
-const CIRCLE_CHANCE = 0.45;
+const CIRCLE_CHANCE = 0.65;
 const CIRCLE_RADIUS = 3; // tiles from its middle to its stones
 const CIRCLE_STONES = 7;
 const CIRCLE_TRIES = 12; // spots in each site tried for a ring

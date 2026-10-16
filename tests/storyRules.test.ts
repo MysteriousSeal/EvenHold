@@ -113,11 +113,12 @@ describe('a quest for what only the dead carry, the dead all laid', () => {
     const { story } = model;
     const key = story.keysOf('herLocket')[0];
     const asker = model.npcs.find((n) => story.questsOf(n).some((q) => q.key === key && q.set))!;
+    model.teleport(asker.village.x, asker.village.z); // (the land round their village made, its ruins all known: the one it's set at, the nearest of them)
     story.replay('herLocket', asker);
     story.accept(key);
     expect(story.taken.find((t) => t.id === key)!.task).toMatch(/ghosts in the old ruin carry them/); // (said where it's had)
-    const far = (r: (typeof model.ruins)[number]) => Math.hypot(r.x + r.w / 2 - asker.village.x, r.z + r.d / 2 - asker.village.z);
-    const ruin = model.ruins.reduce((a, b) => (far(b) < far(a) ? b : a));
+    const goal = story.taken.find((t) => t.id === key)!.goal!; // (the ruin it's set at: with a few ruins to a region, not always the nearest of those made yet)
+    const ruin = model.ruins.find((r) => r.x + r.w / 2 === goal.x && r.z + r.d / 2 === goal.z)!;
     for (const e of model.enemies) if (e.kind === 'ghost' && e.x >= ruin.x && e.x <= ruin.x + ruin.w && e.z >= ruin.z && e.z <= ruin.z + ruin.d) e.state = 'dead';
     model.teleport(ruin.way.x, ruin.way.z);
     model.minutes += 5;

@@ -111,7 +111,7 @@ describe('more dev cheats', () => {
 
   it('tours the camps, nearest first, each once, landing on open ground at the gate', async () => {
     const { nextCamp } = await import('../src/model/cheats');
-    const model = TEST_SEEDS.map((s) => fresh(s)).find((m) => m.camps.length > 1)!;
+    const model = TEST_SEEDS.map((s) => new GameModel(s, { width: 256, depth: 256 })).find((m) => m.camps.length > 1)!; // (a test world's too small for two camps: a third of what they were)
     const seen = new Set<(typeof model.camps)[number]>();
     for (let i = 0; i < model.camps.length; i++) {
       const tile = nextCamp(model, model.hero, seen)!;

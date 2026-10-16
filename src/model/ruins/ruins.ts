@@ -1,4 +1,4 @@
-// Ruins out in the wilds: the remains of an old keep or a chapel, one to
+// Ruins out in the wilds: the remains of an old keep or a chapel, PER_REGION to
 // every stretch of RUIN_REGION tiles a side (at least one in any world), on
 // open, near-level ground away from villages, roads, water and the start.
 // Each is laid out from the seed and where it stands, so no two alike, yet
@@ -23,6 +23,8 @@ const CLEAR_OF_SPAWN = 16;
 const NEAR_SPAWN: [number, number] = [55, 100]; // tiles from the start, the first ruin's middle: between these
 const NEAR_TRIES = 800; // spots looked at for it (on a streamed world's spawn region, at its corner, three in four fall off its maps)
 const TRIES = 300;
+const PER_REGION = 3; // ruins (each its crypt) to a stretch, if it has the ground
+const SPACING = 120; // tiles between a stretch's ruins' corners, at least
 // A ruin's side, as the dice say: between SIZE's.
 const ruinSide = (rng: () => number) => SIZE[0] + Math.floor(rng() * (SIZE[1] - SIZE[0] + 1));
 const MAX_RISE = 2; // tiers the ground may rise across it (its pieces stand each on its own tile)
@@ -80,13 +82,15 @@ export function placeRuins(world: RuinWorld): Ruin[] {
       const rng = mulberry32(hashCell(gx, gz, world.seed + 6151));
       const [x0, z0] = [Math.floor((gx * world.size.width) / regionsX), Math.floor((gz * world.size.depth) / regionsZ)];
       const [x1, z1] = [Math.floor(((gx + 1) * world.size.width) / regionsX), Math.floor(((gz + 1) * world.size.depth) / regionsZ)];
-      for (let t = 0; t < TRIES; t++) {
-        const [w, d] = [ruinSide(rng), ruinSide(rng)];
-        const x = x0 + 2 + Math.floor(rng() * Math.max(1, x1 - x0 - w - 4));
-        const z = z0 + 2 + Math.floor(rng() * Math.max(1, z1 - z0 - d - 4));
-        if (!fits(world, x, z, w, d, spawn, ruins)) continue;
-        ruins.push(layOut(x, z, w, d, rng));
-        break;
+      for (let k = 0; k < PER_REGION; k++) {
+        for (let t = 0; t < TRIES; t++) {
+          const [w, d] = [ruinSide(rng), ruinSide(rng)];
+          const x = x0 + 2 + Math.floor(rng() * Math.max(1, x1 - x0 - w - 4));
+          const z = z0 + 2 + Math.floor(rng() * Math.max(1, z1 - z0 - d - 4));
+          if (ruins.some((r) => Math.hypot(r.x - x, r.z - z) < SPACING) || !fits(world, x, z, w, d, spawn, ruins)) continue;
+          ruins.push(layOut(x, z, w, d, rng));
+          break;
+        }
       }
     }
   }

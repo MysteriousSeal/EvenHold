@@ -17,7 +17,7 @@ import {
   ENEMY_STATS,
   ENGAGED,
 } from '../constants';
-import { stepEnemy, type EnemyActions } from './enemies';
+import { stepEnemy, strays, type EnemyActions } from './enemies';
 import type { MapSize } from '../map/grid';
 import { clearLine, type Obstacles, type Point } from '../map/obstacles';
 
@@ -139,8 +139,8 @@ export class EnemyDirector {
         // Exactly on top of each other: part along a direction from their ids.
         const [ux, uz] = d > 1e-6 ? [dx / d, dz / d] : [Math.cos(a.id + b.id), Math.sin(a.id + b.id)];
         const push = Math.min(reach - d, ENEMY_SEPARATION_SPEED * dt) / 2;
-        this.move(a, -ux * push, -uz * push);
-        this.move(b, ux * push, uz * push);
+        if (!strays(a, -ux * push, -uz * push)) this.move(a, -ux * push, -uz * push); // (a wanderer not shoved out past its reach)
+        if (!strays(b, ux * push, uz * push)) this.move(b, ux * push, uz * push);
       }
     }
   }
