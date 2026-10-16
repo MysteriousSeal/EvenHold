@@ -13,7 +13,7 @@ import { dampAt, forcedMinutes, skyAt, weatherAt, type SkyForcing } from '../../
 import { hourAt, SEASONS, type Season } from '../../model/clock';
 import type { GameModel } from '../../model/GameModel';
 import { FOG_FAR, FOG_NEAR, SHAFT_COLOR, SUN_DIRECTION } from '../constants';
-import { setSeasonTint, setSeasonWeights, setSnow, setWindDirection, setWindStrength, tickWind } from '../meshes/common/nature';
+import { natureUniforms, setSeasonTint, setSeasonWeights, setSnow, setWindDirection, setWindStrength, tickWind } from '../meshes/common/nature';
 import type { Lights } from './lighting';
 import type { PostProcessing } from './postprocessing';
 import { Precipitation } from './rainView';
@@ -165,6 +165,7 @@ export class SkyView {
     setWindStrength(Math.min(2.5, 0.6 + wind * 1.1));
     setWindDirection(weather.windX, weather.windZ);
     tickWind(elapsed);
+    const blown = Math.max(0, (natureUniforms.uWindStrength.value - 0.6) / 1.1); // (the wind as the plants feel it, eased: the rain slants with them)
     skyUniforms.uWindDir.value.set(weather.windX, weather.windZ);
     skyUniforms.uWindGust.value = weather.gust;
     skyUniforms.uNight.value = night;
@@ -173,7 +174,7 @@ export class SkyView {
 
     this.focus.set(hero.x, model.inside ? hero.y : model.getGroundY(hero.x, hero.z), hero.z);
     const shown = sky.outdoors ? 1 : 0;
-    this.precipitation.update(weather.rain * shown, weather.snow * shown, { x: weather.windX, z: weather.windZ, strength: wind }, this.focus, elapsed, brightness, (x, z) => model.tiles.lake(x, z));
+    this.precipitation.update(weather.rain * shown, weather.snow * shown, { x: weather.windX, z: weather.windZ, strength: blown }, this.focus, elapsed, brightness, (x, z) => model.tiles.lake(x, z));
   }
 
   // The season's weights and tint, turning to the next's over a season's last day; frost on a clear winter morning
