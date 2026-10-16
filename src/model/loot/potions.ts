@@ -45,7 +45,7 @@ export const POTIONS = {
   poxSalve: { name: 'Pox salve', value: 60, cures: ['poxed'], does: 'Sees off the pox', droppedBy: {}, about: 'Rubbed in where it itches. You know where.' },
   swiftDraught: { name: 'Draught of swiftness', value: 30, gives: 'swift', lasts: DRAUGHT, does: 'Swift feet for 10 min: you walk 20% faster', droppedBy: {}, about: 'Yarrow and a bat\'s wing. Your feet itch to go.' },
   shadowDraught: { name: 'Shadow draught', value: 35, gives: 'quiet', lasts: DRAUGHT, does: 'Quiet step for 10 min: foes notice you from half as far', droppedBy: {}, about: 'Dark as a cellar, and it makes you feel like one.' },
-  oxDraught: { name: 'Ox draught', value: 45, gives: 'strong', lasts: DRAUGHT, does: 'Strong arm for 10 min: your blows deal 1 more damage', droppedBy: {}, about: 'Red caps and venom. The northmen swear by it.' },
+  oxDraught: { name: 'Ox draught', value: 45, gives: 'strong', lasts: DRAUGHT, does: 'Strong arm for 10 min: your blows deal 20% more damage', droppedBy: {}, about: 'Red caps and venom. The northmen swear by it.' },
   barkDraught: { name: 'Bark-skin draught', value: 50, gives: 'tough', lasts: DRAUGHT, does: 'Tough skin for 10 min: hits on you deal 15% less damage', droppedBy: {}, about: 'Your skin goes stiff and grey for a while. It passes.' },
   hawkDraught: { name: 'Hawk-eye draught', value: 55, gives: 'keen', lasts: DRAUGHT, does: 'Keen eye for 10 min: foes drop loot and quest items more often', droppedBy: {}, about: 'Everything glitters. Some of it is even worth taking.' },
   lovePhiltre: { name: 'Love-philtre', value: 40, sweat: true, does: 'Sold to the lovelorn. It only makes the drinker sweat', droppedBy: {}, about: 'Rosehip-pink and sickly sweet. Swears it works.' },

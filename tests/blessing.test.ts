@@ -36,7 +36,8 @@ describe("a well's blessing", () => {
     hero.blessings = [{ kind: 'swift', left: BLESSING_TIME }];
     expect(walkFactor(hero)).toBeGreaterThan(1);
     hero.blessings = [{ kind: 'strong', left: BLESSING_TIME }];
-    expect(blowDamage(hero, 1)).toBe(2);
+    expect(blowDamage(hero, 1)).toBeCloseTo(1.2); // (a fifth more, at every level)
+    expect(blowDamage(hero, 17)).toBeCloseTo(20.4);
     hero.blessings = [{ kind: 'tough', left: BLESSING_TIME }];
     expect(spared(hero)).toBe(0.15); // (a share off each blow, with armour's: combat.test.ts)
     hero.blessings = [{ kind: 'lucky', left: 2 }];
@@ -51,7 +52,7 @@ describe("a well's blessing", () => {
     const model = fresh();
     blessAll(model.hero);
     expect(model.hero.blessings).toHaveLength(8);
-    expect([walkFactor(model.hero) > 1, blowDamage(model.hero, 1), spared(model.hero), coinsFound(model.hero, 10)]).toEqual([true, 2, 0.15, 15]);
+    expect([walkFactor(model.hero) > 1, blowDamage(model.hero, 1), spared(model.hero), coinsFound(model.hero, 10)]).toEqual([true, 1.2, 0.15, 15]);
     atWell(model);
     model.hero.money = WELL_TOSS;
     model.tossCoin(0);
@@ -98,12 +99,12 @@ describe("a well's blessing", () => {
 });
 
 describe('a fall\'s Weary', () => {
-  it('weakens the hero for a while: blows 1 less, hits on them 1 more (never under 1)', () => {
+  it('weakens the hero for a while: blows 15% less, hits on them 1 more', () => {
     const hero = fresh().hero;
     makeWeary(hero);
     expect(hero.blessings).toEqual([{ kind: 'weary', left: WEARY_TIME }]);
-    expect(blowDamage(hero, 3)).toBe(2);
-    expect(blowDamage(hero, 1)).toBe(1);
+    expect(blowDamage(hero, 3)).toBeCloseTo(2.55);
+    expect(blowDamage(hero, 1)).toBeCloseTo(0.85);
     expect(hitTaken(hero, 2)).toBe(3);
     tickBlessing(hero, WEARY_TIME);
     expect(hero.blessings).toEqual([]);
