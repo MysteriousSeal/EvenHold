@@ -104,6 +104,16 @@ export abstract class Bot extends BotVentures {
       (this.nav.stillFor > 2 ? this.model.foes.find((e) => e.state !== 'dead' && near(e) < ATTACK_REACH + ENEMY_STATS[e.kind].radius) : undefined); // (hemmed in by a herd: through them)
     if (foe) this.shunned.delete(foe);
     if (!foe) return;
+    // Near spent, with nothing in the bag to eat or drink: away from it (rolled away, then run), not fought to the end.
+    const mend = (Object.keys(hero.bag) as string[]).some((id) => isPotion(id) || (isProvision(id) && !PROVISIONS[id].drink));
+    if (hero.hp < maxHpOf(hero) * 0.15 && !mend) {
+      let t = 0;
+      const away = () => { const d = Math.hypot(hero.x - foe.x, hero.z - foe.z) || 1; return [(hero.x - foe.x) / d, (hero.z - foe.z) / d] as [number, number]; };
+      this.model.roll(...away());
+      this.defense = (dt) => ((t += dt) > 5 || foe.state === 'dead' ? 'ok' : ((this.move = away()), 'run'));
+      this.steps.unshift(this.defense);
+      return;
+    }
     this.defense = this.fight(foe, true);
     this.steps.unshift(this.defense);
   }

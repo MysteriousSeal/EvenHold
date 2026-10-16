@@ -212,6 +212,14 @@ export const ACTIVITIES: Activity[] = [
     steps: (p) => p.go('barmaid'),
   },
   {
+    // Coin piling up (well over what a level's needs): to the smith for better gear, as anyone with a fat purse would.
+    id: 'shop',
+    serves: { growth: 0.9, safety: 0.5 },
+    traits: { greedy: -0.3 },
+    options: (p) => (p.model.hero.money >= 150 + 60 * p.model.hero.level ? door(p, 'smithy').map((t) => ({ ...t, label: 'the smith, to spend a fat purse' })) : []),
+    steps: (p) => p.go('smith'),
+  },
+  {
     id: 'smith',
     serves: { growth: 0.5, coin: 0.4, craft: 0.3 },
     traits: { greedy: 0.3, bold: 0.3, industrious: 0.3 },
