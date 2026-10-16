@@ -47,6 +47,7 @@ import { LootViews } from './meshes/loot/lootViews';
 import { CampFires } from './meshes/camp/campFires';
 import { KindledFire } from './meshes/camp/kindledFire';
 import { HerbPatches } from './meshes/herbs/herbPatches';
+import { StoryPropsView } from './meshes/story/storyPropsView';
 import { CampChests } from './meshes/camp/campChests';
 import { BoardMarks } from './meshes/quest/questMarks';
 import { RuinMist } from './meshes/ruin/ruinMist';
@@ -102,6 +103,7 @@ export class GameView {
   private readonly workMarks = new WorkMarks(); // (at work: over the patrons, the counter's end)
   private readonly cupboard = new Cupboard(); // (an inn's tankards, sold her, on her shelves)
   private readonly indoors = new IndoorScenes(); // (the room the hero's in, a dungeon's floor, the furniture yard: interior/indoorScenes.ts)
+  private storyProps: StoryPropsView | null = null; // (the first arc's grave post and candles at its ruin)
   private herbPatches: HerbPatches | null = null; // (the herbs up round the hero this season, to pick)
   private bedroll: BedrollView | null = null; // (the hero's, under them as they lie outdoors)
   private fishing: FishingView | null = null; // (the hero's rod, line and bobber, a line out)
@@ -376,6 +378,7 @@ export class GameView {
     this.campFires.update(model, this.elapsed);
     this.kindledFire.update(model, this.elapsed);
     (this.herbPatches ??= new HerbPatches(this.scene)).update(model, this.elapsed);
+    (this.storyProps ??= new StoryPropsView(this.scene)).update(model, dt);
     this.campChests.update(model);
     this.boardMarks.update(hero.x, hero.z, this.elapsed);
     this.mist.update(hero.x, hero.z, model.minutes, dt);
