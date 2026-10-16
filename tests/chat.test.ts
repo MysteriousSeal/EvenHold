@@ -43,4 +43,37 @@ describe('a word with a villager', () => {
     const again = chat(model, npc, () => 0.1);
     expect(again.lines[0]).not.toBe(first.lines[0]); // (met before: greeted as one known)
   });
+
+  it("tells the story's news, as far as it's got: the first village's line to its own folk, the second arc's to anyone", () => {
+    const model = fresh();
+    const npc = outdoorsVillager(model);
+    const home = npc.village;
+    const heard = (done: string[], saint: { act: number; ending: string | null; witch: string | null } = { act: 0, ending: null, witch: null }, village = home) => {
+      const world = Object.assign(Object.create(model), { story: { talk: () => null, did: (id: string) => done.includes(id), saint, people: { village } } });
+      const news = chat(world, npc, () => 0.1).answers[0].pick() as { lines: string[] };
+      return news.lines.join(' ');
+    };
+    const before = heard([]);
+    expect(before).not.toMatch(/carter|wagon|Maren|Aldous|grey|bishop|witch/i);
+    expect(heard(['wordToTheInn'])).toMatch(/carter|wagon/i);
+    expect(heard(['wordToTheInn', 'readToHer'])).toMatch(/Aldous/);
+    expect(heard(['wordToTheInn', 'readToHer', 'aBarrelForMaren'])).toMatch(/Maren|witch/);
+    expect(heard(['wordToTheInn', 'campedInTheAshes'])).toMatch(/grey/);
+    expect(heard(['wordToTheInn', 'theLongRoad'])).toMatch(/carter|finger|saint/i);
+    expect(heard(['wordToTheInn', 'theLongRoad'], undefined, { x: 0, z: 0 } as never)).not.toMatch(/carter|finger/i); // (another village: none of theirs)
+    expect(heard([], { act: 2, ending: null, witch: 'freed' })).toMatch(/witch|staple/i);
+    expect(heard([], { act: 2, ending: null, witch: 'handed' })).toMatch(/two silver/i);
+    expect(heard([], { act: 3, ending: null, witch: 'left' })).toMatch(/Greyminster|saint/i);
+    expect(heard([], { act: 4, ending: 'exposed', witch: 'left' })).toMatch(/stocks/);
+    expect(heard([], { act: 4, ending: 'kept', witch: 'left' })).toMatch(/saint|pilgrim/i);
+  });
+
+  it('speaks of the country in words, not levels', () => {
+    const model = fresh();
+    const npc = outdoorsVillager(model);
+    model.minutes = 12 * 60;
+    const place = chat(model, npc, () => 0.1).answers.find((a) => a.label.startsWith('Tell me about'))!.pick() as { lines: string[] };
+    expect(place.lines.join(' ')).not.toMatch(/level|\d/i);
+    expect(place.lines.join(' ')).toMatch(/country/);
+  });
 });

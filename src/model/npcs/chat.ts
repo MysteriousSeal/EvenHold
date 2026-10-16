@@ -39,7 +39,7 @@ export interface ChatWorld {
   caves: readonly Cave[];
   campLife: { empty(camp: Camp): boolean };
   clearedShare(entrance: Entrance): number;
-  story: { talk(who: Npc): unknown };
+  story: { talk(who: Npc): unknown; did?(id: string): boolean; saint?: { act: number; ending: string | null; witch: string | null }; people?: { village: object } | null };
 }
 
 // The villager the hero's by, for a word (outdoors, or in the same room; awake or not).
@@ -62,7 +62,7 @@ type Manner = 'warm' | 'gruff' | 'gossip';
 const mannerOf = (npc: Npc): Manner => (['warm', 'gruff', 'gossip'] as const)[Math.floor(npc.salt * 3) % 3];
 
 const GREET: Record<Manner, readonly string[]> = {
-  warm: ['Well met, traveller! Not many new faces round here.', "Good day to you. You look like you've walked a long way.", 'Hello there! Can I help you with something?', "Ah, a visitor. Welcome, welcome."],
+  warm: ['Well met, traveller! Not many new faces round here.', "Good day to you. You look like you've walked a long way.", "Hail. You've come a long way, by the state of your boots.", "Ah, a visitor. Welcome, welcome."],
   gruff: ["What d'you want?", 'Make it quick. Work to do.', "Hm. You're not from here.", "If you're selling something, I'm not buying."],
   gossip: ["Oh! You're the one everyone's talking about. Or you will be.", "Come here, come here. Have you heard?", "You've the look of someone with a story. I love a story.", "Don't tell anyone I said so, but you're the most interesting thing that's happened all week."],
 };
@@ -81,6 +81,55 @@ const ABOUT: Record<Manner, readonly string[]> = {
 };
 const DANGER = ['Quiet hereabouts. Wolves at night, nothing worse.', 'Keep to the roads after dark, mind.', "It's rough country once you're past the fields.", "Folk who wander off the roads here don't always come back."];
 
+// The story's news, as far as it's got (story/quests/firstQuests*.ts): the first village's line, told by its own folk
+// (the latest of it they've seen), by their manner; and the second arc's, heard of everywhere (the pedlars carry it:
+// travellers/pedlarNews.ts), by its act, the chained witch and how it ended.
+const LINE: ReadonlyArray<[string, Record<Manner, string>]> = [
+  ['theLongRoad', {
+    warm: "The carter's gone. Drove off with the men in grey behind him and a saint in a silk bag. Waved to everybody. He's never waved in his life.",
+    gruff: "Carter's gone south with the churchmen. Took a bone in a bag. A finger, the herbalist says, and laughs. First time I've heard her laugh.",
+    gossip: "Have you heard? The bishop's new saint is a deacon's finger with a hole in it. They'll be kissing it in gold. I may wet myself.",
+  }],
+  ['campedInTheAshes', {
+    warm: 'Men in grey on the hill, where the bandits were. Keep your voice down near the well, love.',
+    gruff: "Churchmen camped in the bandits' ashes. Counting us. Let them count.",
+    gossip: "The men in grey sleep under their cart. Under it! Like dogs. The miller's wife took them a pie and came back very quiet.",
+  }],
+  ['aBarrelForMaren', {
+    warm: "We drank to Maren last night. By name, out loud. Thirty years too late, but we did it.",
+    gruff: "Half the village drank to a witch last night. The other half watched from behind their shutters. I did both.",
+    gossip: "The wake! Nobody sang, nobody fought, and old Hob nearly said something he oughtn't. Then the man on the door looked at him.",
+  }],
+  ['readToHer', {
+    warm: "Father Aldous ordered the burning. It was in the reeve's book, read out in the square. My mother went to his masses every Sunday.",
+    gruff: "Father Aldous. Buried under the altar like a lord. I threw a stone. Don't tell my wife.",
+    gossip: "She was carrying the priest's child! Maren was! And he burned her for saying so. I always said he had wandering hands.",
+  }],
+  ['wordToTheInn', {
+    warm: "The carter's wagon broke down on the trail, poor man. Somebody stopped for him, for once. You, was it?",
+    gruff: "Carter's stuck on the trail with the inn's ale. Bandits'll have it by Sunday. And him.",
+    gossip: "That carter's lost his wheel again. Third wagon this year. They found the last one in bits, you know. In bits!",
+  }],
+];
+const WITCH: Record<string, readonly string[]> = {
+  freed: ["A hedge-witch slipped her chain up the north road. Somebody kicked the staple clean out of the wall. Good luck to her.", "The greycoats are turning over every hen-house for a witch. Somebody let her loose. Wasn't me. Wish it was."],
+  handed: ["Some stranger sold a hedge-witch to the greycoats for two silver. Two silver! I'd want five.", "They carted a witch south. A stranger handed her in, for two silver. Wonder if they sleep."],
+};
+const ACT: Record<number, readonly string[]> = {
+  2: ['The greycoats are chaining hedge-witches up the north road. Whole villages watching, and nobody saying a word.'],
+  3: ["Everybody's walking to Greyminster for the new saint. My aunt went with a bad leg. Came back with a bad leg and no money.", 'They say the saint in Greyminster heals anything. Anything you can pay for.'],
+};
+const ENDED: Record<string, readonly string[]> = {
+  exposed: ["A bishop in the stocks! In Greyminster! My cousin threw a cabbage. He's never thrown straight in his life, and he hit him.", "They put the bishop in the stocks over a pig's knuckle. A saint made of pork. I've not stopped laughing."],
+  kept: ['The miracles stopped in Greyminster, but the pilgrims still go. Faith is a stubborn mule.', "The saint's stopped healing. The bishop's started charging more. That's the church."],
+};
+function storyNews(world: ChatWorld, npc: Npc, manner: Manner, say: (lines: readonly string[]) => string): string[] {
+  const { did, saint, people } = world.story;
+  const ours = people && people.village === npc.village ? LINE.find(([id]) => did?.(id)) : undefined;
+  const wide = !saint || saint.act < 2 ? null : saint.act >= 4 && saint.ending ? say(ENDED[saint.ending] ?? []) : saint.act === 2 && saint.witch && WITCH[saint.witch] ? say(WITCH[saint.witch]) : say(ACT[Math.min(saint.act, 3)] ?? []);
+  return [...(ours ? [ours[1][manner]] : []), ...(wide ? [wide] : [])];
+}
+
 const NO_NEWS: readonly string[] = ["Nothing I've heard. Quiet as a grave, and long may it stay so.", "News? The miller's cow had twins. That's all the news there is."];
 const WORK = {
   asker: "{who} was asking after help, last I heard. Have a word with them.",
@@ -88,6 +137,10 @@ const WORK = {
   inn: "The inn's always short of hands. Ask at the board inside about a shift.",
 };
 const THANKS: readonly string[] = ["Oh, you needn't... well, if you insist. Listen close, then.", 'Generous of you. Here, between us.', 'For a coin? I can do better than gossip.'];
+
+// How hard the country is about the village (its foes' level, enemyLevels.ts), as a villager would put it.
+const countryOf = (level: number): string =>
+  level <= 2 ? "Quiet country, this. You'll not find worse than a wolf." : level <= 5 ? "Rough country, if you follow me." : level <= 10 ? 'Hard country. Folk here bury their own, and early.' : level <= 20 ? "Bad country. The dead outnumber us, and they're less trouble." : "Country the crows won't cross. I'd not be here, if I'd legs to leave.";
 
 // Which way and how far, and how dangerous for the hero.
 const told = (from: { x: number; z: number }, to: { x: number; z: number }, exact: boolean) => {
@@ -130,9 +183,13 @@ export function chat(world: ChatWorld, npc: Npc, roll: () => number = Math.rando
     const ask = (key: string, label: string, answer: () => string[]) => (asked.has(key) ? [] : [{ label, pick: (): Talk => (asked.add(key), talk(answer())) }]);
     const tip = world.hero.money >= CHAT_TIP && !asked.has('tip') && !asleep;
     return [
-      ...ask('news', 'What news?', () => [rumour(world, npc, false) ?? say(NO_NEWS)]),
+      ...ask('news', 'What news?', () => {
+        const told = storyNews(world, npc, manner, say);
+        const heard = rumour(world, npc, false);
+        return [...told, ...(heard ? [heard] : told.length ? [] : [say(NO_NEWS)])];
+      }),
       ...ask('work', 'Any work going?', () => [workFor(world, npc)]),
-      ...ask('place', `Tell me about ${village}`, () => [say(ABOUT[manner]).replace('{village}', village), hourAt(world.minutes) >= 19 || hourAt(world.minutes) < 6 ? say(DANGER) : `It's a level ${zoneLevel(spawnOf(world.size), npc.village)} sort of place, if you follow me. ${say(DANGER)}`]),
+      ...ask('place', `Tell me about ${village}`, () => [say(ABOUT[manner]).replace('{village}', village), hourAt(world.minutes) >= 19 || hourAt(world.minutes) < 6 ? say(DANGER) : `${countryOf(zoneLevel(spawnOf(world.size), npc.village))} ${say(DANGER)}`]),
       ...(tip ? [{ label: `Press a coin on them · ${CHAT_TIP} copper`, pick: (): Talk => {
         world.hero.money -= CHAT_TIP;
         asked.add('tip');
