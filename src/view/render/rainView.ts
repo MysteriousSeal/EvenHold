@@ -178,7 +178,7 @@ export class Precipitation {
   // tiles are lake (for the rings).
   update(rain: number, snow: number, wind: { x: number; z: number; strength: number }, focus: THREE.Vector3, elapsed: number, light: number, lake: (x: number, z: number) => boolean): void {
     this.rings.update(rain, focus, elapsed, lake);
-    this.set(this.rain, rain, { x: wind.x * (0.12 + wind.strength * 0.5), z: wind.z * (0.12 + wind.strength * 0.5) }, focus, elapsed, 0.22 + 0.13 * light);
+    this.set(this.rain, rain, { x: wind.x * wind.strength * 0.55, z: wind.z * wind.strength * 0.55 }, focus, elapsed, 0.22 + 0.13 * light);
     this.set(this.snow, snow, { x: wind.x * wind.strength * 0.5, z: wind.z * wind.strength * 0.5 }, focus, elapsed, 0.55 + 0.35 * light);
   }
 
