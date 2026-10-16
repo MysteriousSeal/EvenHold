@@ -24,6 +24,7 @@ import { Memory, describe, draw, drawPersona, score, type Drive, type Persona } 
 
 const SEEN = 45; // tiles: how far off a place is noticed (about what's on screen, and a little beyond)
 const UNEXPLORED_WINDOW = 15; // minutes: with nothing new seen in so long, they've explored the country round
+const FIGHTS = new Set(['dungeon', 'camp', 'hunt', 'quest', 'fight', 'story']); // (what starts a fight, or walks into one)
 const BUDGET = 8 * 60; // game seconds an activity may take, at most (a shift, a dungeon: their own): past it, given up, said so
 
 // What's been done, start to finish: for the diary and the report.
@@ -209,7 +210,8 @@ export class Player extends Bot {
     if (this.model.seated) this.model.sitOrStand(); // (up, whatever they were sat on: afresh)
     const drives = this.drives();
     const from = this.model.inside?.entrance ?? this.model.hero; // (indoors: as far as its door is)
-    const options = ACTIVITIES.filter((a) => (this.cooled.get(a.id) ?? 0) <= this.seconds).flatMap((activity) => activity.options(this.kit).map((target) => ({ id: activity.id, serves: activity.serves, traits: activity.traits, distance: target.at ? Math.hypot(target.at.x - from.x, target.at.z - from.z) : 0, activity, target })));
+    const hurt = this.model.hero.hp < maxHpOf(this.model.hero) * 0.6; // (no one goes looking for a fight half dead: mend first)
+    const options = ACTIVITIES.filter((a) => (this.cooled.get(a.id) ?? 0) <= this.seconds && !(hurt && FIGHTS.has(a.id))).flatMap((activity) => activity.options(this.kit).map((target) => ({ id: activity.id, serves: activity.serves, traits: activity.traits, distance: target.at ? Math.hypot(target.at.x - from.x, target.at.z - from.z) : 0, activity, target })));
     for (const id of new Set(options.map((o) => o.id))) this.offered.set(id, (this.offered.get(id) ?? 0) + 1);
     if (options.length === 0) return void (this.todo = [this.wait(3)]);
     const scored = score(options, drives, this.persona, this.memory, this.seconds);
@@ -218,7 +220,7 @@ export class Player extends Bot {
       const done = new Set(this.diary.filter((d) => d.outcome === 'ok').map((d) => d.id));
       for (const s of scored) if (!done.has(s.option.id)) [(s.score *= 4), (s.why = `${s.why ? `${s.why}, ` : ''}untried: the sweep`)];
     }
-    const pick = draw(scored, this.persona.temperature, this.rng);
+    const pick = scored.find((s) => s.option.id === 'loot') ?? draw(scored, this.persona.temperature, this.rng); // (something dropped a step or two off: picked up before anything else, as anyone would)
     const { activity, target } = pick.option;
     // Out of a building first (an activity of the outdoors, planned from inside, comes to nothing): its own steps
     // worked out once outside, and taken up then.
@@ -296,6 +298,7 @@ export class Player extends Bot {
     const outcome: Done['outcome'] = fell ? 'fell' : this.failed ? 'fail' : seconds < 2 && xp === 0 && coin === 0 && this.bagSig() === c.before.bag ? 'cut short' : 'ok';
     const done: Done = { id: c.activity.id, label: c.target.label, why: c.why, at: c.at, seconds, outcome, xp, coin, hurt, level: c.before.level };
     this.diary.push(done);
+    if (outcome === 'fell') this.cooled.set(c.activity.id, this.seconds + 600); // (what just killed them: not straight back to it; ten minutes)
     if ((outcome === 'fail' || outcome === 'cut short') && seconds < 5) [this.cooled.set(c.activity.id, this.seconds + 30), (this.dwell = 4)]; // (came to nothing at once: not again just yet, and a moment's pause: no one decides twice a second)
     // Its reward: experience and coin for, health and time (and a fall) against, about ±1. A fall in its first
     // moments is the last thing's doing (the fight they came hurt from), not this one's.

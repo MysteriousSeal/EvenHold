@@ -74,7 +74,7 @@ export const ACTIVITIES: Activity[] = [
     traits: { bold: 0.4, greedy: 0.3 },
     options: (p) => {
       const going = p.model.quests.taken.find((t) => !p.model.quests.done(t));
-      if (!going) return [];
+      if (!going || going.quest.level > p.model.hero.level + 1) return []; // (a board's quest over their head: another day)
       if (innWants(going.quest.item)) return [{ label: `the inn's order: ${going.quest.count} ${INN_WANTS[going.quest.item].plural}`, at: null, data: going.quest.key }];
       return [{ label: `the quest: ${going.quest.kind === 'kill' ? `slay ${going.quest.count} ${going.quest.foe}` : `gather ${going.quest.count} for the board`}`, at: going.quest, data: going.quest.key }];
     },
@@ -131,7 +131,8 @@ export const ACTIVITIES: Activity[] = [
     serves: { growth: 0.6, glory: 0.6, coin: 0.3 },
     traits: { bold: 0.7, cautious: -0.5 },
     options: (p) => {
-      const prey = p.model.hero.hp > maxHpOf(p.model.hero) * 0.6 ? p.nearestFoe(60) : null;
+      const found = p.model.hero.hp > maxHpOf(p.model.hero) * 0.6 ? p.nearestFoe(60) : null;
+      const prey = found && found.level <= p.model.hero.level ? found : null; // (one of their own level or under: a boar of a level over them isn't a hunt)
       return prey ? [{ label: `a hunt: a ${prey.kind} (level ${prey.level})`, at: prey }] : [];
     },
     steps: (p) => p.go('hunt'),
