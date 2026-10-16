@@ -74,7 +74,10 @@ export const TIPS: readonly Tip[] = [
     id: 'food',
     title: 'Food',
     due: (m) => Object.keys(m.hero.bag).some((item) => isProvision(item) && (m.hero.bag[item as keyof typeof m.hero.bag] ?? 0) > 0),
-    text: (key) => `Food mends you as you eat it; drink brings back energy. Right-click it in your bag (${key('bag')}), or drag it onto your action bar.`,
+    text: (key, m) => {
+      const slot = m.hero.actionBar.findIndex((a) => a !== null && isProvision(a)); // (put there by itself: hero/actionBar.ts fillNew)
+      return slot >= 0 ? `Food mends you as you eat it; drink brings back energy. Press ${slot + 1} to eat when hurt.` : `Food mends you as you eat it; drink brings back energy. Right-click it in your bag (${key('bag')}), or drag it onto your action bar.`;
+    },
   },
   {
     id: 'bagFull',

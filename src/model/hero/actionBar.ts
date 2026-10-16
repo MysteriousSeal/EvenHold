@@ -2,7 +2,7 @@
 // in their bag (WoW's way: a slot points at a kind of thing, never holds it),
 // each used with its key (1 to 8) or a click, one taken from the bag and
 // eaten or drunk (bag.ts eatOrDrink, drinkPotion). Emptied, the slot stays,
-// waiting for more. A spell the hero knows goes on it too (spells/spells.ts: by its key), cast with the slot's key
+// waiting for more. Food, drink or a potion new to the bag goes on the first empty slot by itself (fillNew). A spell the hero knows goes on it too (spells/spells.ts: by its key), cast with the slot's key
 // (GameModel.useAction).
 
 import { isTool, type ToolId } from '../loot/tools';
@@ -53,3 +53,17 @@ export const readActionBar = (saved: unknown): ActionBar =>
     const item = Array.isArray(saved) ? saved[i] : null;
     return typeof item === 'string' && usable(item) ? item : null;
   });
+
+// Food, drink or a potion new to the bag (none of it carried before: `carried`, kept between calls) put on the first
+// empty slot by itself, unless it's on the bar already (a newcomer given loaves, never told to drag them there); what's
+// on the bar never moved, a full bar left be.
+export function fillNew(hero: Pick<Hero, 'actionBar' | 'bag'>, carried: Set<string>): void {
+  for (const [item, count] of Object.entries(hero.bag)) {
+    if (!count || carried.has(item)) continue;
+    carried.add(item);
+    if (!(isProvision(item) || isPotion(item)) || hero.actionBar.includes(item)) continue;
+    const free = hero.actionBar.indexOf(null);
+    if (free >= 0) hero.actionBar[free] = item;
+  }
+  for (const item of carried) if (!hero.bag[item as keyof Hero['bag']]) carried.delete(item); // (all eaten: new again when more comes)
+}

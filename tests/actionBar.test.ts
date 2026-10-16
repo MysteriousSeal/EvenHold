@@ -16,6 +16,25 @@ vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createEle
 const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
 
 describe('the action bar', () => {
+  it('food, drink or a potion new to the bag goes on the first empty slot by itself; what was carried before, what the player put there, a full bar: left be', () => {
+    const model = fresh();
+    const { hero } = model;
+    hero.bag.ale = 1; // (carried as the game began: left in the bag)
+    model.update(0, 0, 1 / 30);
+    setAction(hero, 0, 'ale'); // (the player's)
+    hero.bag.bread = 2; // (the carter's loaves)
+    hero.bag.ironScrap = 1; // (not to eat)
+    model.update(0, 0, 1 / 30);
+    expect(hero.actionBar.slice(0, 3)).toEqual(['ale', 'bread', null]);
+    hero.bag.bread = 3; // (more of what's there: not again)
+    model.update(0, 0, 1 / 30);
+    expect(hero.actionBar.filter((a) => a === 'bread')).toHaveLength(1);
+    hero.actionBar.fill('ale', 1);
+    hero.bag.lesserHealthPotion = 1; // (a full bar: none moved)
+    model.update(0, 0, 1 / 30);
+    expect(hero.actionBar.includes('lesserHealthPotion')).toBe(false);
+  });
+
   it('eight slots, empty at first; food and drink only, one slot each; swapped, cleared', () => {
     const { hero } = fresh();
     expect(hero.actionBar).toEqual(Array(ACTION_SLOTS).fill(null));
