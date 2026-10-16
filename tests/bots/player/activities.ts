@@ -172,7 +172,8 @@ export const ACTIVITIES: Activity[] = [
     options: (p) => {
       const { hero } = p.model;
       const [tired, hurt] = [hero.energy < maxEnergyOf(hero) * 0.6, hero.hp < maxHpOf(hero) * 0.5];
-      const bed = (tired || hurt) && freeBed(p.model, (e) => p.known.doors.has(e)); // (one it may lie in, of those it's come across: nav.ts)
+      const inn = lettingHours(p.model.minutes) && hero.money >= ROOM_PRICE ? door(p, 'inn')[0]?.at : undefined; // (or a room to be had: the inn's, rented)
+      const bed = (tired || hurt) && (freeBed(p.model, (e) => p.known.doors.has(e)) ?? inn); // (one it may lie in, of those it's come across: nav.ts)
       return bed ? [{ label: hurt ? 'a bed, to mend' : 'a bed, to sleep', at: bed }] : []; // (tired, or hurt: a bed mends, for free)
     },
     steps: (p) => p.go('sleep'),

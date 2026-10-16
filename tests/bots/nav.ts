@@ -221,7 +221,7 @@ export class Nav {
 export function freeBed(model: GameModel, known: (e: Entrance) => boolean = () => true, within = 250): Entrance | null {
   const { hero } = model;
   const own = model.entrances.find((e) => ownsHere(hero, e) && known(e) && Math.hypot(e.x - hero.x, e.z - hero.z) < within) ?? null;
-  return nearestDoor(model, 'inn', (e) => !known(e) || letUntil(e) === null, within) ?? own ?? nearestDoor(model, 'house', (e) => !known(e) || model.folk.some((n) => n.home === e && n.where === e), within);
+  return nearestDoor(model, 'inn', (e) => !known(e) || letUntil(e) === null, within) ?? own ?? nearestDoor(model, 'house', (e) => !known(e) || model.folk.some((n) => n.home === e && n.where === e) || !model.folk.some((n) => n.home === e), within); // (a house someone lives in, they out: a cottage for sale has no bed)
 }
 
 export function nearestDoor(model: GameModel, type: Entrance['type'], but: (e: Entrance) => boolean = () => false, within = Infinity): Entrance | null {
