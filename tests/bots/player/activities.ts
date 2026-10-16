@@ -57,7 +57,7 @@ const door = (p: Toolkit, type: Entrance['type'], within = 250): Target[] => {
   return e ? [{ label: `the ${type}`, at: e, data: e }] : [];
 };
 
-const SHIFT_EVERY = 120; // game minutes between shifts, for a player with coin (50 or more)
+const SHIFT_EVERY = 24 * 60; // the clock's minutes between shifts (a day: 24 minutes of play), for a player with coin (50 or more)
 const lastShift = new WeakMap<object, number>(); // (by game: when its last shift began)
 
 export const ACTIVITIES: Activity[] = [
@@ -327,7 +327,7 @@ export const ACTIVITIES: Activity[] = [
     budget: 15 * 60,
     serves: { coin: 1, company: 0.3, craft: 0.3 },
     traits: { industrious: 0.9, greedy: 0.5, bold: -0.3 },
-    // (a shift pays well: a player still has a life besides; one each two game hours, unless broke)
+    // (a shift pays well: a player still has a life besides; one a game day, unless broke)
     options: (p) => (p.model.hero.money >= 50 && p.model.minutes - (lastShift.get(p.model) ?? -Infinity) < SHIFT_EVERY ? [] : door(p, 'inn').map((t) => ({ ...t, label: 'a shift at the inn', data: t.data }))),
     steps: (p, t) => {
       lastShift.set(p.model, p.model.minutes);

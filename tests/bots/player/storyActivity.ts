@@ -73,6 +73,35 @@ export function speakWith(p: Toolkit, who: Carter | Npc): Step[] {
   return indoors ? [...p.enter(indoors), upTo, word, ...p.leave()] : [upTo, word];
 }
 
+// A long road in legs (the bots' own walking plans only so far through the land made round them): a leg of LEG
+// tiles at a time towards it, each walked and the next aimed afresh, till it's within NEAR; a leg that can't be
+// walked, a sidestep tried, and after FAILS of them, given up.
+const LEG = 80;
+const NEAR = 60;
+const FAILS = 4;
+function travel(p: Toolkit, to: () => { x: number; z: number }): Step {
+  let leg: Step | null = null;
+  let fails = 0;
+  return (dt) => {
+    const { hero } = p.model;
+    const at = to();
+    const far = Math.hypot(at.x - hero.x, at.z - hero.z);
+    if (far <= NEAR) return 'ok';
+    if (!leg) {
+      const turn = fails * 0.6 * (fails % 2 ? 1 : -1); // (straight on; then a little to either side)
+      const a = Math.atan2(at.z - hero.z, at.x - hero.x) + turn;
+      const go = Math.min(LEG, far);
+      const aim = { x: hero.x + Math.cos(a) * go, z: hero.z + Math.sin(a) * go };
+      leg = p.walk(() => aim, 4);
+    }
+    const now = leg(dt);
+    if (now === 'run') return 'run';
+    leg = null;
+    if (now === 'fail' && ++fails >= FAILS) return 'fail';
+    return 'run';
+  };
+}
+
 export const STORY_ACTIVITY: Activity = {
   id: 'story',
   serves: { story: 1, growth: 0.3, curiosity: 0.2 },
@@ -86,16 +115,21 @@ export const STORY_ACTIVITY: Activity = {
       const ours = mark === 'ready' ? story.taken.some((t) => t.ready && t.to === who && main(STORY_QUESTS[idOf(t.id)]?.scope)) : story.questsOf(who).some((q) => q.set && q.state === 'offered' && main(q.scope));
       if (ours) out.push({ label: `${who.name}, for the story`, at: whereOf(who), data: { who } });
     }
-    for (const t of story.taken) if (!t.ready && t.goal && main(STORY_QUESTS[idOf(t.id)]?.scope)) out.push({ label: `where "${t.name}" leads`, at: t.within ?? t.goal, data: { goal: t.goal, within: t.within } });
+    for (const t of story.taken) {
+      if (!main(STORY_QUESTS[idOf(t.id)]?.scope)) continue;
+      if (t.ready && t.to && !out.some((o) => (o.data as { who?: unknown }).who === t.to)) out.unshift({ label: `${t.toName}, to hand in "${t.name}"`, at: t.door ?? whereOf(t.to), data: { who: t.to } }); // (however far: who it's handed in to)
+      else if (t.goal) out.push({ label: t.ready ? `back towards ${t.toName}` : `where "${t.name}" leads`, at: t.within ?? t.goal, data: { goal: t.goal, within: t.within } });
+    }
     return out.slice(0, 3);
   },
   steps: (p, t) => {
     const data = t.data as { who?: Carter | Npc; goal?: { x: number; z: number }; within?: Entrance | null };
-    if (data.who) return speakWith(p, data.who);
+    const way = travel(p, () => t.at ?? p.model.hero);
+    if (data.who) return [way, ...speakWith(p, data.who)];
     const goal = data.goal!;
     let waited = 0;
     const stay = (seconds: number): Step => (dt) => ((waited += dt) >= seconds ? 'ok' : 'run'); // (a while there: what it asks there comes of being there)
-    if (data.within) return [...p.enter(data.within), stay(20), ...p.leave()]; // (or of the shift the player works)
-    return [p.walk(() => goal, 2), stay(10)]; // (a place reached; a foe met is fought off on the way)
+    if (data.within) return [way, ...p.enter(data.within), stay(20), ...p.leave()]; // (or of the shift the player works)
+    return [way, p.walk(() => goal, 2), stay(10)]; // (a place reached; a foe met is fought off on the way)
   },
 };
