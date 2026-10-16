@@ -133,7 +133,7 @@ describe('the journal', () => {
     const journal = createJournal(model);
     model.story.accept('wordToTheInn');
     journal.menu.open();
-    expect(within('Journal', '.menu-tab').length).toBeLessThan(2); // (one list: no second page)
+    expect(within('Journal', '.menu-tab').map((t) => t.textContent)).toEqual(['Quests', 'Places']); // (one list of quests: no second page for them; the places found beside it)
     expect(sections('Journal')[0]).toContain('From people · 1');
     expect(last('Journal').textContent).toContain('Word to the inn');
     const abandon = () => within('Journal', '.quest-abandon')[0];
