@@ -338,11 +338,13 @@ describe("the herbalist's extras", () => {
 });
 
 describe('a brew to sell', () => {
-  it('fetches at a herbalist more than its herbs would raw, the more the higher its skill (1.5 times them at the first, 2.5 at the top)', () => {
+  it('fetches at a herbalist more than its herbs would raw, the more the higher its skill (1.5 times them at the first, 2.5 at the top), short of 90% of her own price', () => {
     for (const id of BREW_RECIPE_IDS) {
       const recipe = BREW_RECIPES[id];
       const herbs = Object.entries(recipe.from).reduce((sum, [herb, n]) => sum + herbalistPrice(herb as BagItem, true) * (n as number), 0);
-      expect(herbalistPrice(recipe.makes as BagItem, true), id).toBeGreaterThanOrEqual(herbs * (1.5 + recipe.needs / 270));
+      const paid = herbalistPrice(recipe.makes as BagItem, true);
+      expect(paid, id).toBeGreaterThanOrEqual(Math.min(herbs * (1.5 + recipe.needs / 270), Math.floor(herbalistPrice(recipe.makes as BagItem, false) * 0.9)));
+      expect(paid, id).toBeGreaterThan(herbs);
     }
   });
 });

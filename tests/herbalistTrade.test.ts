@@ -110,7 +110,8 @@ describe("a herbalist's cave parts and prices", () => {
   it('what she charges for a brew, and to brew one to order, as ever; what she pays for one the hero brewed, more than its herbs', () => {
     expect(['antidote', 'purge', 'shadowDraught', 'oxDraught', 'barkDraught', 'superiorEnergyPotion', 'hawkDraught'].map((id) => herbalistPrice(id as BagItem, false))).toEqual([25, 15, 35, 45, 50, 44, 55]);
     expect([orderFee('antidote'), orderFee('hawkDraught'), orderFee('oxDraught')]).toEqual([8, 17, 14]);
-    expect([herbalistPrice('hawkDraught', true), herbalistPrice('antidote', true), herbalistPrice('minorHealthPotion', true)]).toEqual([73, 24, 10]); // (herbs 29: 2.5 times them; 14: 1.65; a potion already worth more, half its price as ever)
+    expect([herbalistPrice('hawkDraught', true), herbalistPrice('antidote', true), herbalistPrice('poxSalve', true), herbalistPrice('minorHealthPotion', true)]).toEqual([49, 22, 30, 10]); // (herbs 29, 14: 2.5 times them, 1.65, but never past 90% of her own price; a potion already worth more, half its price as ever)
+    for (const id of Object.keys(POTIONS) as BagItem[]) expect(herbalistPrice(id, true), id).toBeLessThan(herbalistPrice(id, false)); // (none bought of her and sold back for more)
   });
 
   it('energy at most half again what an ale costs, a share point; health left as it was', () => {
