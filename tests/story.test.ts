@@ -105,7 +105,7 @@ describe('the quests people give', () => {
     expect(story.markOf(barmaid)).toBe('offer');
     // (What she says of an axe is what they carry: one, to use it; none, where to get one.)
     const has = model.lumber.axe;
-    expect(story.talk(barmaid)!.lines.join(' ').includes('You carry an axe')).toBe(has);
+    expect(story.talk(barmaid)!.lines.join(' ').includes("You've an axe")).toBe(has);
     for (const key of Object.keys(hero.bag)) if (key.startsWith('hatchet')) delete hero.bag[key as never];
     delete hero.equipment.mainHand;
     expect(model.lumber.axe).toBe(false);
