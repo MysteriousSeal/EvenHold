@@ -18,20 +18,20 @@ export interface Blessing {
 
 export const BLESSINGS: Record<BlessingKind, { name: string; about: string }> = {
   swift: { name: 'Swift feet', about: 'You walk 20% faster.' },
-  strong: { name: 'Strong arm', about: 'Your blows deal 1 more damage.' },
+  strong: { name: 'Strong arm', about: 'Your blows deal 20% more damage.' },
   tough: { name: 'Tough skin', about: 'Hits on you deal 15% less damage.' },
   lucky: { name: 'Lucky coin', about: 'Foes drop 50% more coins.' },
   wise: { name: 'Wise mind', about: 'You gain 25% more experience.' },
   quiet: { name: 'Quiet step', about: 'Foes notice you from half as far.' },
   second: { name: 'Second wind', about: 'Each foe you slay heals you 1.' },
   keen: { name: 'Keen eye', about: 'Foes drop loot and quest items more often.' },
-  weary: { name: 'Weary', about: 'After a fall or a collapse: your blows deal 1 less damage, and hits on you 1 more.' }, // (no well's: a fall's, or a collapse's, mark)
+  weary: { name: 'Weary', about: 'After a fall or a collapse: your blows deal 15% less damage, and hits on you 1 more.' }, // (no well's: a fall's, or a collapse's, mark)
   chilled: { name: 'Chilled', about: "Frost on you (a draugr's breath, a ghost's touch): you walk 45% slower." }, // (no well's: a draugr's breath, crypts/frostBreath.ts; a ghost's touch, hero/fighting.ts)
   poxed: { name: 'The pox', about: 'Caught at work in an inn\'s room: you tire half as fast again. A herbalist has a salve for it.' }, // (no well's: a client's, jobs/roomShift.ts; a herbalist's salve ends it: hero/pox.ts)
   webbed: { name: 'Webbed', about: "A cave spider's web clings to you: you walk 60% slower." }, // (no well's: a spider's spat web, caves/caveFoes.ts)
   fed: { name: 'Well fed', about: 'A hot stew in you: your health comes back slowly as you go.' }, // (no well's: a cook's stew, eaten through: loot/meals.ts)
   fortified: { name: 'Fortified', about: 'A pie in you: hits on you deal 15% less damage, and you tire a third slower.' }, // (a cook's pie)
-  feasted: { name: 'Feasted', about: 'A feast in you: your blows deal 1 more damage, hits on you 15% less, and your health comes back slowly.' }, // (a cook's feast)
+  feasted: { name: 'Feasted', about: 'A feast in you: your blows deal 15% more damage, hits on you 15% less, and your health comes back slowly.' }, // (a cook's feast)
   rested: { name: 'Well rested', about: 'A night in a proper bed: your breath comes back a quarter faster, and you tire a quarter slower.' }, // (no well's: a night in an inn's room, inn/roomLetting.ts)
   tempered: { name: 'Tempered', about: 'Your gear fresh from the smith: hits on you deal 10% less damage, and it wears half as fast.' }, // (no well's: a smith's mending, hero/wear.ts)
 };
@@ -48,7 +48,8 @@ const WELL_REACH = 1.15; // from the well's middle: right beside it
 
 const on = (who: { blessings?: Blessing[] }, kind: BlessingKind) => !!who.blessings?.some((b) => b.kind === kind);
 export const walkFactor = (hero: Hero) => (on(hero, 'swift') ? 1.2 : 1) * (on(hero, 'chilled') ? CHILL_PACE : 1) * (on(hero, 'webbed') ? WEB_PACE : 1);
-export const blowDamage = (hero: Hero, base: number) => Math.max(1, base + (on(hero, 'strong') ? 1 : 0) + (on(hero, 'feasted') ? 1 : 0) - (on(hero, 'weary') ? 1 : 0));
+// (Shares, not points: a feast worth as much at level 16 as at 1.)
+export const blowDamage = (hero: Hero, base: number) => base * (on(hero, 'strong') ? 1.2 : 1) * (on(hero, 'feasted') ? 1.15 : 1) * (on(hero, 'weary') ? 0.85 : 1);
 export const hitTaken = (hero: Hero, damage: number) => damage + (on(hero, 'weary') ? 1 : 0); // (Weary: a point more)
 const SPARED = 0.15; // of each blow, Tough skin's; a pie's or a feast's
 export const spared = (hero: Hero) => (on(hero, 'tough') ? SPARED : 0) + (on(hero, 'fortified') || on(hero, 'feasted') ? SPARED : 0) + (on(hero, 'tempered') ? TEMPERED_SPARED : 0); // (a share off, with armour's: attributes.ts throughArmor, under its cap)

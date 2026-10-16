@@ -92,7 +92,10 @@ export const namedGear = (id: NamedId, level: number): GearKey => gearKey({ item
 export const canWear = (key: GearKey, level: number): boolean => levelOf(key) <= level;
 
 const grows = (level: number) => 1 + (level - 1) * 0.12; // its own stats and armour, a level on
-const STAT_LINE = (level: number, tier: number) => 1 + Math.floor(level / 4) + (tier - 1); // an extra stat line's
+// Its own stats grow as its armour does to level 5, slower past it (three points a level since: the stats trained make
+// the build, hero/attributes.ts): the smith's plate and what's after trimmed, a starter's as it was.
+const statGrows = (level: number) => grows(Math.min(level, 5)) + Math.max(0, level - 5) * 0.04;
+const STAT_LINE = (level: number, tier: number) => 1 + Math.floor(level / 6) + (tier - 1); // an extra stat line's (was a quarter of its level, till the stats trained made the build)
 const ARMOR_LINE = (level: number, tier: number) => 1 + Math.floor(level / 3) + tier;
 const AFFIX_LINE: Record<Affix, (level: number, tier: number) => number> = {
   crit: (level, tier) => 0.01 * (1 + Math.floor(level / 12) + (tier - 2)),
@@ -132,7 +135,7 @@ export function gearSpecs(key: GearKey): GearSpecs {
     specs.lines.push({ kind, amount, extra });
   };
   if (entry.armor) add('armor', Math.round(entry.armor * grows(level)), false);
-  for (const [stat, n] of Object.entries(entry.stats ?? {})) add(stat as Stat, Math.round(n * grows(level)), false);
+  for (const [stat, n] of Object.entries(entry.stats ?? {})) add(stat as Stat, Math.round(n * statGrows(level)), false);
   const tier = tierOf(rarity);
   const taken = new Set<string>();
   const fixed = namedOf(item, roll)?.lines; // (a named piece's: listed, not rolled)

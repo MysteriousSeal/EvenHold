@@ -243,7 +243,7 @@ describe('meals', () => {
     expect([blowDamage(hero, 5), spared(hero), mending(hero)]).toEqual([5, 0.15, 0]);
     expect(tiring(hero)).toBeLessThan(1);
     hero.blessings = [{ kind: 'feasted', left: 60 }];
-    expect([blowDamage(hero, 5), spared(hero)]).toEqual([6, 0.15]);
+    expect([blowDamage(hero, 5), spared(hero)]).toEqual([5.75, 0.15]); // (15% harder)
     expect(mending(hero)).toBeGreaterThan(0);
   });
 

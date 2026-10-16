@@ -78,10 +78,10 @@ describe("what the hero's blow does", () => {
     expect(heroBlow(hero, 0.04)).toEqual({ damage: 0.72, crit: false });
   });
 
-  it("a point more with the well's Strong blessing", () => {
+  it("a fifth more with the well's Strong blessing", () => {
     const hero = heroWith();
     hero.blessings = [{ kind: 'strong', left: 60 }];
-    expect(heroBlow(hero, 0.99).damage).toBe(2);
+    expect(heroBlow(hero, 0.99).damage).toBeCloseTo(1.2);
   });
 });
 

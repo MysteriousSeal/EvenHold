@@ -22,10 +22,10 @@ export const STAGES: Stage[] = [
   { level: 1, str: 0, sta: 0, kit: [['hatchet', 1, C]] },
   { level: 3, str: 3, sta: 3, kit: [['hatchet', 1, C], ['nasalCap', 1, C], ['studdedPauldrons', 1, C], ['hobnailBoots', 1, C]] },
   { level: 5, str: 10, sta: 2, kit: [['armingSword', 4, C], ['mailCoif', 4, C], ['brigandine', 4, C], ['mailChausses', 4, C], ['buckler', 4, C]] },
-  { level: 8, str: 12, sta: 3, kit: [...smith(7), ['barrowTorc', 4, R]] },
-  { level: 12, str: 12, sta: 3, kit: [...smith(11, U), ['barrowTorc', 4, R]] },
-  { level: 16, str: 14, sta: 2, agi: 10, kit: [['sunwardArmet', 15, 'legendary'], ['sunwardPauldrons', 14, 'epic'], ['sunwardCuirass', 16, 'legendary'], ['sunwardGauntlets', 14, 'epic'], ['sunwardSabatons', 14, 'epic'], ['sunwardAegis', 16, 'legendary'], ['plateGreaves', 15, U], ['warHammer', 15, R]] },
-  { level: 20, str: 15, sta: 3, agi: 10, kit: [['sunwardArmet', 15, 'legendary'], ['sunwardPauldrons', 14, 'epic'], ['sunwardCuirass', 16, 'legendary'], ['sunwardGauntlets', 14, 'epic'], ['sunwardSabatons', 14, 'epic'], ['sunwardAegis', 16, 'legendary'], ['plateGreaves', 19, R], ['warHammer', 19, R]] },
+  { level: 8, str: 14, sta: 4, kit: [...smith(7), ['barrowTorc', 4, R]] },
+  { level: 12, str: 16, sta: 9, kit: [...smith(11, U), ['barrowTorc', 4, R]] },
+  { level: 16, str: 27, sta: 10, agi: 8, kit: [['sunwardArmet', 15, 'legendary'], ['sunwardPauldrons', 14, 'epic'], ['sunwardCuirass', 16, 'legendary'], ['sunwardGauntlets', 14, 'epic'], ['sunwardSabatons', 14, 'epic'], ['sunwardAegis', 16, 'legendary'], ['plateGreaves', 15, U], ['warHammer', 15, R]] },
+  { level: 20, str: 31, sta: 10, agi: 10, kit: [['sunwardArmet', 15, 'legendary'], ['sunwardPauldrons', 14, 'epic'], ['sunwardCuirass', 16, 'legendary'], ['sunwardGauntlets', 14, 'epic'], ['sunwardSabatons', 14, 'epic'], ['sunwardAegis', 16, 'legendary'], ['plateGreaves', 19, R], ['warHammer', 19, R]] },
 ];
 export type Style = 'masher' | 'parrier' | 'average';
 
