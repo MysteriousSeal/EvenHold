@@ -85,7 +85,7 @@ const OPENING: StoryQuest[] = [
     ],
     accept: "I'll see to the wolves.",
     decline: 'Not today.',
-    waiting: (t) => [`Three wolves off the trail, then tell ${t.carter} his wheel's coming. Before my boy sets out. Before I have another. Before my boy sets out.`],
+    waiting: (t) => [`Three wolves off the trail, then tell ${t.carter} his wheel's coming. Before my boy sets out. Before I have another.`],
     pending: () => ["Wheel's not here yet? Then the wolves are still out there. Heard them kill something last night. Screamed like a man. Nell's not stopped shaking since. Probably a deer. Probably."],
     after: () => ["My boy came home whistling. Whistling! I've not heard a whistle in this house since. Well. Thank you. Here, have a drink. No? More for me."],
     task: (t) => `Slay 3 wolves, then tell ${t.carter} the wheel is coming`,
