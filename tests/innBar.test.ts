@@ -313,7 +313,7 @@ describe("a day's shifts", () => {
     const rate = (job: JobId) => {
       expect(model.work.start(inn, job)).toBe(true);
       const r = model.work.shift!.rate;
-      model.work.end(true);
+      model.work.end(false); // (worked to its end)
       return r;
     };
     expect([rate('innServer'), rate('innBarkeep'), rate('innServer'), rate('innServer')]).toEqual([1, 0.75, 0.5, 0.5]);
@@ -322,6 +322,17 @@ describe("a day's shifts", () => {
     const again = new GameModel(model.seed, TEST_MAP_SIZE);
     restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
     expect(again.hero.jobs?.innBarkeep).toMatchObject({ day: 4, today: 1 }); // (kept through a save)
+  });
+
+  it('a shift left at once, nothing done, not counted: the next worked still paid in full', () => {
+    const { model, inn } = inTheInn();
+    model.minutes = 3 * DAY_MINUTES + 9 * 60;
+    for (let i = 0; i < 3; i++) {
+      expect(model.work.start(inn, 'innServer')).toBe(true);
+      model.work.end(true);
+    }
+    expect(model.work.start(inn, 'innBarkeep')).toBe(true);
+    expect(model.work.shift!.rate).toBe(1);
   });
 });
 

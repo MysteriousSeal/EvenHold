@@ -43,6 +43,7 @@ export const isBarAction = (action: WorkAction): action is BarAction => AT_THE_B
 
 export class Work {
   shift: InnShift | BarShift | RoomShift | null = null;
+  private begunOn = 0; // the day the shift under way was begun (clock.ts DAY_MINUTES)
 
   constructor(private readonly host: WorkHost) {}
 
@@ -59,7 +60,8 @@ export class Work {
     if (this.shift || this.host.inside?.entrance !== inn) return false;
     const { rank } = rankIn(job, recordOf(this.host.hero, job).xp);
     this.shift = job === 'innBarkeep' ? new BarShift(inn, rank, this.host.seed) : job === 'innCompanion' ? new RoomShift(inn, rank, this.host.seed, this.host) : new InnShift(inn, rank, this.host.seed);
-    this.shift.rate = payRate(this.host.hero.level) * dayShare(this.begunToday(job)); // (the inn's pay keeping up with the hero, as a quest's does; the day's second and on, less)
+    this.begunOn = Math.floor(this.host.minutes / DAY_MINUTES);
+    this.shift.rate = payRate(this.host.hero.level) * dayShare(this.workedOn(this.begunOn)); // (the inn's pay keeping up with the hero, as a quest's does; the day's second and on, less)
     if (this.shift instanceof RoomShift) return (this.shift.onServed = (great) => this.served(great)), true; // (no one's work taken over: the room's their own)
     if (this.shift instanceof BarShift) {
       // The inn's own tankards (sold to her: inn/tavernShop.ts INN_WANTS) out on the shelves, so many at most: the shift
@@ -139,15 +141,9 @@ export class Work {
     }
   }
 
-  // How many shifts were begun today before this one (any job's), this one counted with its own job's record.
-  private begunToday(job: JobId): number {
-    const day = Math.floor(this.host.minutes / DAY_MINUTES);
-    const records = Object.values(this.host.hero.jobs ?? {});
-    const before = records.reduce((sum, r) => sum + (r.day === day ? r.today ?? 0 : 0), 0);
-    const record = recordOf(this.host.hero, job);
-    record.today = record.day === day ? (record.today ?? 0) + 1 : 1;
-    record.day = day;
-    return before;
+  // How many shifts were worked on `day` (any job's).
+  private workedOn(day: number): number {
+    return Object.values(this.host.hero.jobs ?? {}).reduce((sum, r) => sum + (r.day === day ? r.today ?? 0 : 0), 0);
   }
 
   // The shift over (`early`: left before its time): paid all it earned at once (a clean shift's bonus besides), the
@@ -166,6 +162,7 @@ export class Work {
       this.host.report({ kind: 'coins', amount: pay });
     }
     if (!early) record.shifts++;
+    if (!early || shift.served > 0) [record.today, record.day] = [record.day === this.begunOn ? (record.today ?? 0) + 1 : 1, this.begunOn]; // (counted toward the day's cut pay; left at once, nothing done: not)
     record.best = Math.max(record.best, shift.served);
     this.host.report({ kind: 'shift', job: JOBS[shift.job].name, served: shift.served, walkedOut: shift.walkedOut, tally: shift.tally, earned: shift.earned + bonus, bonus, early });
   }
