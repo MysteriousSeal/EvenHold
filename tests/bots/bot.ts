@@ -375,11 +375,11 @@ export abstract class Bot extends BotVentures {
       const reach = this.model.seatInReach;
       if (reach && wanted(reach.piece.kind)) return this.model.sitOrStand() ? 'ok' : 'fail';
       const taken = (p: unknown) => this.model.npcs.some((n) => n.seat?.piece === p);
-      const seat = inside.furniture
-        .filter((f) => wanted(f.kind) && !taken(f))
-        .sort((a, b) => { const o = nearTo?.() ?? hero; return Math.hypot(a.x - o.x, a.z - o.z) - Math.hypot(b.x - o.x, b.z - o.z); })[0];
+      const seat = inside.furniture.filter((f) => wanted(f.kind) && !taken(f)).sort((a, b) => { const o = nearTo?.() ?? hero; return Math.hypot(a.x - o.x, a.z - o.z) - Math.hypot(b.x - o.x, b.z - o.z); })[0];
       if (!seat) return 'fail';
-      return this.walk(() => ({ x: seat.x + (seat.w - 1) / 2, z: seat.z + (seat.d - 1) / 2 }), seat.w > 1 || seat.d > 1 ? 0.9 : 0.3)(dt) === 'fail' ? 'fail' : 'run'; // (a bed's middle can't be stood in: beside it, its reach)
+      const side = seat.wall === 'left' ? { x: seat.x + seat.w - 0.3, z: seat.z } : { x: seat.x, z: seat.z + seat.d - 0.3 }; // (its open side, off its wall, at its first tile: the night stand's by its last)
+      const bed = seat.w > 1 || seat.d > 1;
+      return this.walk(() => (bed ? side : seat), bed ? 0.15 : 0.3)(dt) === 'fail' ? 'fail' : 'run'; // (near it from the hall upstairs is through the wall: out of reach)
     };
   }
 
