@@ -15,6 +15,8 @@ import type { Npc } from '../../../src/model/npcs/npcs';
 import type { Traveller } from '../../../src/model/travellers/travellers';
 import { dungeonAt } from '../../../src/model/dungeons/dungeons';
 import { campLevel } from '../../../src/model/camps/camps';
+import { zoneLevel } from '../../../src/model/enemies/enemyLevels';
+import { spawnOf } from '../../../src/model/map/grid';
 import { campName } from '../../../src/model/camps/campNames';
 import { villageName } from '../../../src/model/villages/villageNames';
 import { maxEnergyOf, maxHpOf } from '../../../src/model/hero/attributes';
@@ -67,14 +69,20 @@ export const ACTIVITIES: Activity[] = [
     id: 'explore',
     serves: { curiosity: 1, growth: 0.2 },
     traits: { curious: 0.8, cautious: -0.3 },
-    options: (p) => [{ label: p.unexplored() ? 'somewhere new' : 'the country round', at: null }],
-    steps: (p) => {
-      if (!p.unexplored()) return p.go('explore'); // (the country round: a stroll)
-      // Somewhere new: a hundred tiles or so off one way, walked in legs (a long road in one walk comes to nothing).
-      const a = p.rng() * Math.PI * 2;
+    options: (p) => {
+      if (!p.unexplored()) return [{ label: 'the country round', at: null }];
+      // Somewhere new, walked in legs: toward country at their level or under, clear of camps known; not hurt, back once hurt.
       const { hero } = p.model;
-      const to = { x: hero.x + Math.cos(a) * 160, z: hero.z + Math.sin(a) * 160 }; // (some 100 walked: the leg's done within 60)
-      return [travel(p, () => to)];
+      if (hero.hp < maxHpOf(hero) * 0.5) return [];
+      const angles = Array.from({ length: 12 }, () => p.rng() * Math.PI * 2);
+      const ways = [160, 100, 60].flatMap((d) => angles.map((a) => ({ x: hero.x + Math.cos(a) * d, z: hero.z + Math.sin(a) * d }))); // (far first; nearer, when far is over their head)
+      const to = ways.find((w) => zoneLevel(spawnOf(p.model.size), w) <= hero.level && [...p.known.camps].every((c) => Math.hypot(c.x - (hero.x + w.x) / 2, c.z - (hero.z + w.z) / 2) > Math.hypot(w.x - hero.x, w.z - hero.z) / 2 + 30));
+      return to ? [{ label: 'somewhere new', at: null, data: to }] : []; // (every way new over their head: nowhere new, today)
+    },
+    steps: (p, t) => {
+      if (!t.data) return p.go('explore'); // (the country round: a stroll)
+      const { hero } = p.model, go = travel(p, () => t.data as { x: number; z: number });
+      return [(dt) => (hero.hp < maxHpOf(hero) * 0.5 ? 'ok' : go(dt))]; // (hurt on the way: turned back, enough seen)
     },
   },
   {
